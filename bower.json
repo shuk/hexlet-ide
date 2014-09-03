@@ -1,0 +1,8 @@
+{
+    "name": "codex",
+    "dependencies": {
+        "bootstrap": "*",
+        "fuelux": "*",
+        "react": "*"
+    }
+}

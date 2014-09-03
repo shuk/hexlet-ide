@@ -1,0 +1,29 @@
+{
+  "name": "codex",
+  "version": "0.0.1",
+  "description": "Web IDE",
+  "keywords": [],
+  "dependencies": {
+    "react": "*"
+  },
+  "devDependencies": {
+    "jquery": "*",
+    "gulp": "*",
+    "mocha": "*",
+    "webpack": "*",
+    "webpack-dev-server": "*",
+
+    "style-loader": "*",
+    "css-loader": "*",
+    "less-loader": "*",
+    "url-loader": "*",
+    "jsx-loader": "*",
+
+    "gulp-webpack": "*",
+    "gulp-cjsx": "*",
+    "gulp-util": "*",
+    "gulp-eslint": "*",
+    "gulp-sass": "*",
+    "gulp-watch": "*"
+  }
+}
