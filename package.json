@@ -8,8 +8,10 @@
   },
   "devDependencies": {
     "jquery": "*",
+    "mori": "*",
     "gulp": "*",
     "mocha": "*",
+    "lodash": "*",
     "webpack": "*",
     "webpack-dev-server": "*",
 
