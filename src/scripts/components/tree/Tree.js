@@ -1,8 +1,8 @@
 /** @jsx React.DOM */
 
 var Leaf = require("./Leaf.js");
-var _ = require("lodash/dist/lodash");
-var mori = require("mori/mori.js");
+var _ = require("lodash/dist/lodash.js");
+var Immutable = require("immutable");
 
 var Tree = React.createClass({
     toggleFolderState: function(ancestry, e) {
@@ -30,7 +30,7 @@ var Tree = React.createClass({
             "tree-branch-children": true
         });
 
-        var newAncestry = mori.conj(this.props.ancestry, item.id);
+        var newAncestry = this.props.ancestry.push(item.id);
 
         return (
             <li className={treeBranchClasses} data-template="treebranch" role="treeitem" aria-expanded="false">

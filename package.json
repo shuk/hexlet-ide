@@ -8,7 +8,7 @@
   },
   "devDependencies": {
     "jquery": "*",
-    "mori": "*",
+    "immutable": "*",
     "gulp": "*",
     "mocha": "*",
     "lodash": "*",
