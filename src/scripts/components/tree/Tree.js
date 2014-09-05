@@ -1,13 +1,15 @@
 /** @jsx React.DOM */
 
-var Leaf = require("./Leaf");
 var _ = require("lodash");
 var Immutable = require("immutable");
-var React = require("React");
+var React = require("react/addons");
+
+var Leaf = require("./Leaf");
+var TreeActions = require("actions/TreeActions");
 
 var Tree = React.createClass({
-    toggleFolderState: function(ancestry, e) {
-        this.props.toggleFolderState(ancestry);
+    toggleFolderStateHandler: function(ancestry) {
+        TreeActions.toggleFolderState(ancestry);
     },
 
     renderSubTree: function(item) {
@@ -34,16 +36,16 @@ var Tree = React.createClass({
         var newAncestry = this.props.ancestry.push(item.id);
 
         return (
-            <li className={treeBranchClasses} data-template="treebranch" role="treeitem" aria-expanded="false">
+            <li key={item.id} className={treeBranchClasses} data-template="treebranch" role="treeitem" aria-expanded="false">
                 <div className="tree-branch-header">
-                    <button className="tree-branch-name" onClick={_.partial(this.toggleFolderState, newAncestry)}>
+                    <button className="tree-branch-name" onClick={_.partial(this.toggleFolderStateHandler, newAncestry)}>
                         <span className="glyphicon icon-caret glyphicon-play"></span>
                         <span className={folderIconClasses}></span>
                         <span className="tree-label">{item.name}</span>
                     </button>
                 </div>
                 <ul className={childrenClasses} role="group">
-                    <Tree ancestry={newAncestry} key={item.id} nodes={item.children} toggleFolderState={this.toggleFolderState} />
+                    <Tree ancestry={newAncestry} nodes={item.children} />
                 </ul>
             </li>
         );

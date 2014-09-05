@@ -5,7 +5,7 @@
 require("stylesheets/tabs.css");
 
 var Codex = require("components/Codex");
-var React = require("React");
+var React = require("react/addons");
 var $ = require("jquery");
 
 $(function() {

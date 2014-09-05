@@ -9,13 +9,13 @@ module.exports = {
         filename: "main.js"
     },
 
-    externals: {
-        // require("jquery") is external and available
-        //  on the global var jQuery
-        "jquery": "jQuery",
-        // "lodash": "_",
-        "React": "React"
-    },
+    // externals: {
+    //     // require("jquery") is external and available
+    //     //  on the global var jQuery
+    //     "jquery": "jQuery",
+    //     // "lodash": "_",
+    //     "react": "React"
+    // },
 
     cache: true,
     debug: true,

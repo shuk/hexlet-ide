@@ -2,17 +2,16 @@
 
 var _ = require("lodash");
 var Immutable = require("immutable");
-var React = require("React");
+var React = require("react");
 
 var Tree = require("./Tree");
-var FSStore = require("stores/FSStore");
-var TreeActions = require("actions/TreeActions");
+var TreeStore = require("stores/TreeStore");
 
 function getState() {
-    return {nodes: FSStore.getAllNodes()};
+    return {nodes: TreeStore.getAll()};
 }
 
-var Box = React.createClass({
+var TreeBox = React.createClass({
     // propTypes: {
     // nodeLabel: React.PropTypes.renderable.isRequired
     // defaultCollapsed: React.PropTypes.bool,
@@ -22,26 +21,22 @@ var Box = React.createClass({
         return getState();
     },
 
-    toggleFolderState: function(ancestry) {
-        TreeActions.toggleFolderState(ancestry);
-    },
-
     render: function() {
         return (
             <div className="fuelux">
                 <ul className="tree" role="tree">
-                    <Tree nodes={this.state.nodes} ancestry={Immutable.Vector()} toggleFolderState={this.toggleFolderState} />
+                    <Tree nodes={this.state.nodes} ancestry={Immutable.Vector()} />
                 </ul>
             </div>
         );
     },
 
     componentDidMount: function() {
-        FSStore.addChangeListener(this._onChange);
+        TreeStore.addChangeListener(this._onChange);
     },
 
     componentWillUnmount: function() {
-        FSStore.removeChangeListener(this._onChange);
+        TreeStore.removeChangeListener(this._onChange);
     },
 
     _onChange: function() {
@@ -49,4 +44,4 @@ var Box = React.createClass({
     }
 });
 
-module.exports = Box;
+module.exports = TreeBox;

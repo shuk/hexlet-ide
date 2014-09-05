@@ -3,38 +3,38 @@
 require("codemirror/lib/codemirror.css");
 
 var _ = require("lodash");
-var Immutable = require("immutable");
+// var Immutable = require("immutable");
 var CodeMirror = require("codemirror");
-var React = require("react");
-var ReactPropTypes = React.PropTypes;
+var React = require("react/addons");
+// var ReactPropTypes = React.PropTypes;
 
-var FSStore = require("stores/FSStore")
+var TabsStore = require("stores/TabsStore")
 
 function getState() {
-    return {tabsData: FSStore.getOpenedInTabs()}
+    return {tabs: TabsStore.getAll()}
 }
 
-var Box = React.createClass({
-    propTypes: {
+var TabsBox = React.createClass({
+    // propTypes: {
         // tabsData: React.PropTypes.renderable.isRequired
         // defaultCollapsed: React.PropTypes.bool,
-    },
+    // },
 
     getInitialState: function() {
         return getState();
     },
 
     render: function() {
-        var data = this.state.tabsData;
+        var tabs = this.state.tabs;
 
-        var tabs = data.map(function(item) {
-            return <li><a href="#">{item.id}</a></li>
+        var items = tabs.map(function(item) {
+            return <li className="active"><a href="#">{item.name}</a></li>
         });
 
         return (
             <div>
                 <ul className="nav nav-tabs" role="tablist">
-                    {tabs}
+                    {items}
                 </ul>
                 <div className="row">
                     <div className="col-md-12">
@@ -51,17 +51,16 @@ var Box = React.createClass({
         //     lineNumbers: true,
         //     tabSize: 2
         // });
-        FSStore.addChangeListener(this._onChange);
+        TabsStore.addChangeListener(this._onChange);
     },
 
     componentWillUnmount: function() {
-        FSStore.removeChangeListener(this._onChange);
+        // TabsStore.removeChangeListener(this._onChange);
     },
 
     _onChange: function() {
         this.setState(getState());
     }
-
 });
 
-module.exports = Box;
+module.exports = TabsBox;

@@ -11,7 +11,7 @@ var ActionTypes = CodexConstants.ActionTypes;
 
 var CHANGE_EVENT = "change";
 
-var fs = [
+var tree = [
     {name: "Test Folder 1", type: "folder", state: "closed", id: "F1",
         children: [
             { name: "Test Sub Folder 1", type: "folder", state: "closed", id: "FF1",
@@ -38,9 +38,9 @@ function replaceIn(id, ancestry, nodes) {
     return nodes;
 }
 
-var FSStore = merge(EventEmitter.prototype, {
-    getAllNodes: function() {
-        return fs;
+var TreeStore = merge(EventEmitter.prototype, {
+    getAll: function() {
+        return tree;
     },
 
     getOpenedInTabs: function() {
@@ -66,11 +66,11 @@ AppDispatcher.register(function(payload) {
     switch(payload.actionType) {
         case ActionTypes.TREE_TOGGLE_FOLDER_STATE:
             var ancestry = payload.ancestry;
-            fs = replaceIn(ancestry.first(), ancestry.rest(), fs);
+            tree = replaceIn(ancestry.first(), ancestry.rest(), tree);
             break;
         default:
     }
-    FSStore.emitChange();
+    TreeStore.emitChange();
 });
 
-module.exports = FSStore;
+module.exports = TreeStore;

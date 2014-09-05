@@ -1,18 +1,18 @@
 /** @jsx React.DOM */
 
-var TreeBox = require("components/tree/Box");
-var TabsBox = require("components/tabs/Box");
-var React = require("React");
+var TreeBox = require("components/tree/TreeBox");
+var TabsBox = require("components/tabs/TabsBox");
+var React = require("react/addons");
 
 var Codex = React.createClass({
     render: function() {
         return (
             <div className="row">
                 <div className="col-md-4">
-                    <TreeBox nodes={this.props.treeNodes} />
+                    <TreeBox />
                 </div>
                 <div className="col-md-8">
-                    <TabsBox tabsData={this.props.tabsData} />
+                    <TabsBox />
                 </div>
             </div>
         );
