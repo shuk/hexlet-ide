@@ -4,14 +4,16 @@
   "description": "Web IDE",
   "keywords": [],
   "dependencies": {
-    "react": "*"
+    "lodash": "*",
+    "immutable": "*",
+    "jquery": "*",
+    "codemirror": "*",
+    "react": "*",
+    "flux": "*"
   },
   "devDependencies": {
-    "jquery": "*",
-    "immutable": "*",
     "gulp": "*",
     "mocha": "*",
-    "lodash": "*",
     "webpack": "*",
     "webpack-dev-server": "*",
 

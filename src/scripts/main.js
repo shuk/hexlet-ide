@@ -4,24 +4,10 @@
 
 require("stylesheets/tabs.css");
 
-var Codex = require("components/Codex.js");
-var React = require("react/lib/React");
-var $ = require("jquery/dist/jquery.js");
-
-var treeData = [
-    {name: "Test Folder 1", type: "folder", state: "closed", id: "F1",
-        children: [
-            { name: "Test Sub Folder 1", type: "folder", state: "closed", id: "FF1",
-                children: [{name: "test item", type: "item", id: "fff3"}]},
-            { name: "Test Sub Folder 2", type: "folder", state: "closed", id: "FF2" },
-            { name: "Test Item 2 in Folder 1", type: "item", id: "FI2" }
-        ]},
-        { name: "Test Folder 2", type: "folder", state: "closed",  id: "F2" },
-        { name: "Test Item 1", type: "item", id: "I1" },
-        { name: "Test Item 2", type: "item", id: "I2" }
-];
-
+var Codex = require("components/Codex");
+var React = require("React");
+var $ = require("jquery");
 
 $(function() {
-    React.renderComponent(<Codex treeNodes={treeData} />, $("#codex").get(0));
+    React.renderComponent(<Codex />, $("#codex").get(0));
 });

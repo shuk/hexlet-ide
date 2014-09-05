@@ -1,5 +1,7 @@
 /** @jsx React.DOM */
 
+var React = require("React");
+
 var Leaf = React.createClass({
     render: function() {
         var item = this.props.item

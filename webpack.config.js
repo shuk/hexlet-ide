@@ -12,9 +12,9 @@ module.exports = {
     externals: {
         // require("jquery") is external and available
         //  on the global var jQuery
-        "jquery/dist/jquery": "jQuery",
-        "lodash/dist/lodash": "_",
-        "react/lib/React": "React"
+        "jquery": "jQuery",
+        // "lodash": "_",
+        "React": "React"
     },
 
     cache: true,
@@ -34,7 +34,7 @@ module.exports = {
 
     resolve: {
         modulesDirectories: [
-            "src/scripts", "node_modules", "bower_components"
+            "src", "src/scripts", "node_modules", "bower_components"
         ]
     },
 

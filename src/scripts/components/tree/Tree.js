@@ -1,8 +1,9 @@
 /** @jsx React.DOM */
 
-var Leaf = require("./Leaf.js");
-var _ = require("lodash/dist/lodash.js");
+var Leaf = require("./Leaf");
+var _ = require("lodash");
 var Immutable = require("immutable");
+var React = require("React");
 
 var Tree = React.createClass({
     toggleFolderState: function(ancestry, e) {
@@ -53,8 +54,8 @@ var Tree = React.createClass({
         if (undefined == nodes) {
             return null;
         }
-
         var items = this.props.nodes.map(function(item) {
+            // var object = item.toObject();
             switch(item.type) {
                 case "folder":
                     return this.renderSubTree(item);

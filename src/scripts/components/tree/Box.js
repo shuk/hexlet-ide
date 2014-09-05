@@ -1,8 +1,16 @@
 /** @jsx React.DOM */
 
-var Tree = require("./Tree.js");
-var _ = require("lodash/dist/lodash");
+var _ = require("lodash");
 var Immutable = require("immutable");
+var React = require("React");
+
+var Tree = require("./Tree");
+var FSStore = require("stores/FSStore");
+var TreeActions = require("actions/TreeActions");
+
+function getState() {
+    return {nodes: FSStore.getAllNodes()};
+}
 
 var Box = React.createClass({
     // propTypes: {
@@ -11,28 +19,12 @@ var Box = React.createClass({
     // },
 
     getInitialState: function() {
-        return {nodes: this.props.nodes};
+        return getState();
     },
 
     toggleFolderState: function(ancestry) {
-        var nodes = this.replaceIn(ancestry.first(), ancestry.rest(), this.state.nodes);
-
-        this.setState({nodes: nodes});
+        TreeActions.toggleFolderState(ancestry);
     },
-
-    replaceIn: function(id, ancestry, nodes) {
-        var index = _.findIndex(nodes, {id: id});
-        var item = nodes[index];
-
-        if (undefined == ancestry || ancestry.length == 0) {
-            item.state = ("opened" == item.state) ? "closed" : "opened";
-        } else {
-            var children = item.children;
-            item.children = this.replaceIn(ancestry.first(), ancestry.rest(), children);
-        }
-        return nodes;
-    },
-
 
     render: function() {
         return (
@@ -42,6 +34,18 @@ var Box = React.createClass({
                 </ul>
             </div>
         );
+    },
+
+    componentDidMount: function() {
+        FSStore.addChangeListener(this._onChange);
+    },
+
+    componentWillUnmount: function() {
+        FSStore.removeChangeListener(this._onChange);
+    },
+
+    _onChange: function() {
+        this.setState(getState());
     }
 });
 
