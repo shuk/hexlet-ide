@@ -5,11 +5,19 @@ var CodexConstants = require("constants/CodexConstants");
 var ActionTypes = CodexConstants.ActionTypes;
 
 var TabsActions = {
-    openFile: function(item) {
+    closeTab: function(tab) {
         "use strict";
         AppDispatcher.dispatch({
-            actionType: ActionTypes.TABS_OPEN_FILE,
-            item: item
+            actionType: ActionTypes.TABS_CLOSE,
+            tabId: tab.id
+        });
+    },
+
+    makeCurrent: function(tab) {
+        "use strict";
+        AppDispatcher.dispatch({
+            actionType: ActionTypes.TABS_MAKE_CURRENT,
+            tabId: tab.id
         });
     }
 };

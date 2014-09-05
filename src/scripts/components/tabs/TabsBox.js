@@ -9,6 +9,7 @@ var React = require("react/addons");
 // var ReactPropTypes = React.PropTypes;
 
 var TabsStore = require("stores/TabsStore")
+var TabsActions = require("actions/TabsActions");
 
 function getState() {
     return {tabs: TabsStore.getAll()}
@@ -24,12 +25,28 @@ var TabsBox = React.createClass({
         return getState();
     },
 
+    selectTab: function(tab, e) {
+        TabsActions.makeCurrent(tab);
+    },
+
+    closeTab: function(tab, e) {
+        TabsActions.closeTab(tab);
+    },
+
     render: function() {
         var tabs = this.state.tabs;
+        var cx = React.addons.classSet;
 
-        var items = tabs.map(function(item) {
-            return <li className="active"><a href="#">{item.name}</a></li>
-        });
+        var items = _.mapValues(tabs, function(tab) {
+            var tabClasses = cx({
+                "active": tab.current,
+            });
+            return <li className={tabClasses}>
+                <a href="#" onDoubleClick={this.closeTab.bind(this, tab)} onClick={this.selectTab.bind(this, tab)}>
+                    {tab.item.name}
+                </a>
+            </li>
+        }, this);
 
         return (
             <div>

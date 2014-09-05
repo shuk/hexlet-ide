@@ -11,7 +11,7 @@ var ActionTypes = CodexConstants.ActionTypes;
 
 var CHANGE_EVENT = "change";
 
-var tabs = [];
+var tabs = {};
 
 var TabsStore = merge(EventEmitter.prototype, {
     getAll: function() {
@@ -33,13 +33,24 @@ var TabsStore = merge(EventEmitter.prototype, {
 
 AppDispatcher.register(function(payload) {
     switch(payload.actionType) {
+
         case ActionTypes.TREE_OPEN_FILE:
+            _.mapValues(tabs, function(t) { t.current = false; });
+
             var item = payload.item;
-            var tab = _.find(tabs, {id: item.id});
-            console.log(tab);
-            if (tab === undefined) {
-                tabs.push(item);
-            }
+            tabs[item.id] = {id: item.id, item: item, current: true};
+            break;
+
+        case ActionTypes.TABS_MAKE_CURRENT:
+            _.mapValues(tabs, function(t) { t.current = false; });
+
+            var tab = tabs[payload.tabId];
+            tab.current = true;
+            break;
+
+        case ActionTypes.TABS_CLOSE:
+            delete tabs[payload.tabId];
+            console.log(tabs);
             break;
         default:
     }
