@@ -5,6 +5,15 @@ var CodexConstants = require("constants/CodexConstants");
 var ActionTypes = CodexConstants.ActionTypes;
 
 var TabsActions = {
+    flushTabContent: function(id, content) {
+        "use strict";
+        AppDispatcher.dispatch({
+            actionType: ActionTypes.TABS_FLUSH_CONTENT,
+            tabId: id,
+            content: content
+        });
+    },
+
     closeTab: function(tab) {
         "use strict";
         AppDispatcher.dispatch({

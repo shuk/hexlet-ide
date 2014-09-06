@@ -18,6 +18,10 @@ var TabsStore = merge(EventEmitter.prototype, {
         return tabs;
     },
 
+    getCurrent: function() {
+        return _.find(tabs, "current");
+    },
+
     emitChange: function() {
         this.emit(CHANGE_EVENT);
     },
@@ -38,7 +42,9 @@ AppDispatcher.register(function(payload) {
             _.mapValues(tabs, function(t) { t.current = false; });
 
             var item = payload.item;
-            tabs[item.id] = {id: item.id, item: item, current: true};
+            tabs[item.id] = {id: item.id, name: item.name, current: true, content: ""};
+
+            TabsStore.emitChange();
             break;
 
         case ActionTypes.TABS_MAKE_CURRENT:
@@ -46,15 +52,25 @@ AppDispatcher.register(function(payload) {
 
             var tab = tabs[payload.tabId];
             tab.current = true;
+
+            TabsStore.emitChange();
             break;
 
         case ActionTypes.TABS_CLOSE:
             delete tabs[payload.tabId];
-            console.log(tabs);
+
+            TabsStore.emitChange();
             break;
+
+        case ActionTypes.TABS_FLUSH_CONTENT:
+            tab = tabs[payload.tabId];
+            if (tab !== undefined) {
+                tabs[payload.tabId].content = payload.content;
+            }
+            break;
+
         default:
     }
-    TabsStore.emitChange();
 });
 
 module.exports = TabsStore;
