@@ -1,6 +1,7 @@
 /* global module require __dirname */
 
 var path = require("path");
+var webpack = require("webpack");
 
 module.exports = {
     output: {
@@ -20,7 +21,7 @@ module.exports = {
     cache: true,
     debug: true,
     devtool: "source-map",
-    entry: ["./src/scripts/main.js"],
+    entry: ["./src/editor/main.js"],
 
     // stats: {
     //   colors: true,
@@ -28,13 +29,13 @@ module.exports = {
     // },
 
     devServer: {
-        publicPath: "/assets/",
-        contentBase: "./dev"
+        publicPath: "/assets/"
+        // contentBase: "./dev"
     },
 
     resolve: {
         modulesDirectories: [
-            "src", "src/scripts", "node_modules", "bower_components"
+            "src", "node_modules", "bower_components"
         ]
     },
 
@@ -57,7 +58,15 @@ module.exports = {
         }, {
             test: /\.(png|svg|woff|eot|ttf|otf)$/,
             loader: "url?limit=100000"
-        }]
+        }],
+
+        plugins: [
+            new webpack.ProvidePlugin({
+                $: "jquery",
+                jQuery: "jquery"
+            })
+        ]
+
         // , {
         //     test: /\.gif/,
         //     loader: 'url-loader?limit=10000&mimetype=image/gif'

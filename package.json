@@ -3,31 +3,46 @@
   "version": "0.0.1",
   "description": "Web IDE",
   "keywords": [],
+  "scripts": {
+      "start": "nodemon --debug --harmony-proxies bin/codex.js"
+  },
   "dependencies": {
-    "lodash": "*",
+    "cli": "*",
+    "codemirror": "*",
+    "eureca.io": "*",
+    "engine.io": "*",
+    "primus": "*",
+    "express": "*",
+    "flux": "*",
     "immutable": "*",
     "jquery": "*",
-    "codemirror": "*",
+    "lodash": "*",
     "react": "*",
-    "flux": "*"
+    "jade": "*",
+    "tree-model": "*",
+    "commander": "*",
+    "findit": "*",
+    "rimraf": "*"
   },
+
   "devDependencies": {
+    "nodemon": "*",
     "gulp": "*",
     "mocha": "*",
     "webpack": "*",
     "webpack-dev-server": "*",
-
+    "webpack-dev-middleware": "*",
     "style-loader": "*",
     "css-loader": "*",
     "less-loader": "*",
     "url-loader": "*",
     "jsx-loader": "*",
-
     "gulp-webpack": "*",
     "gulp-cjsx": "*",
     "gulp-util": "*",
     "gulp-eslint": "*",
     "gulp-sass": "*",
-    "gulp-watch": "*"
+    "gulp-watch": "*",
+    "gulp-download": "*"
   }
 }
