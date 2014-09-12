@@ -4,12 +4,20 @@
     "engines": {
         "node": "0.10.x"
     },
+    "preferGlobal": true,
     "version": "0.0.1-6",
     "description": "Web IDE",
     "keywords": [],
     "scripts": {
         "start": "bin/codex.js -p 8080 -r /var/tmp",
         "dev": "nodemon --debug --harmony-proxies bin/codex.js"
+    },
+    "bugs": {
+        "url": "https://github.com/hexlet/codex/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Hexlet/codex"
     },
     "bin": {
         "codex": "./bin/codex.js"
