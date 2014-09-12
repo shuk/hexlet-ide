@@ -4,11 +4,11 @@
     "engines": {
         "node": "0.10.x"
     },
-    "version": "0.0.1-3",
+    "version": "0.0.1-6",
     "description": "Web IDE",
     "keywords": [],
     "scripts": {
-        "start": "bin/codex.js -p 8080 -r test",
+        "start": "bin/codex.js -p 8080 -r /var/tmp",
         "dev": "nodemon --debug --harmony-proxies bin/codex.js"
     },
     "bin": {
