@@ -16,18 +16,26 @@ var Codex = React.createClass({
         );
     },
 
+    componentWillReceiveProps: function(nextProps) {
+        if (nextProps.focus) {
+            this.state.myCodeMirror.focus();
+        }
+    },
+
     componentDidMount: function() {
+        var $this = this;
         var element = this.refs.editor;
         var myCodeMirror = CodeMirror(element.getDOMNode(), {
             lineNumbers: true,
             // tabSize: 2,
-            value: this.props.content,
+            value: this.props.initContent,
             mode: this.props.mode
         });
 
         myCodeMirror.on("change", function(CodeMirror, object) {
-            this.onChangeValue(CodeMirror.getValue());
+            $this.props.onChangeValue(myCodeMirror.getValue());
         });
+        console.log("ehu");
 
         this.setState({myCodeMirror: myCodeMirror});
     }

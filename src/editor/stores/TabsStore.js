@@ -43,7 +43,22 @@ AppDispatcher.register(function(payload) {
 
             var item = payload.item;
             var content = payload.content;
-            tabs[item.id] = {id: item.id, name: item.name, current: true, content: content};
+            tabs[item.id] = {id: item.id, edited: false, name: item.name, current: true, content: content};
+
+            TabsStore.emitChange();
+            break;
+
+        case ActionTypes.TABS_EDIT_CURRENT:
+            var tab = tabs[payload.id];
+            tab.content = payload.content;
+            tab.edited = true;
+
+            TabsStore.emitChange();
+            break;
+
+        case ActionTypes.TABS_SAVE_CURRENT:
+            var tab = tabs[payload.id];
+            tab.edited = false;
 
             TabsStore.emitChange();
             break;
@@ -63,12 +78,12 @@ AppDispatcher.register(function(payload) {
             TabsStore.emitChange();
             break;
 
-        case ActionTypes.TABS_FLUSH_CONTENT:
-            tab = tabs[payload.id];
-            if (tab !== undefined) {
-                tabs[payload.id].content = payload.content;
-            }
-            break;
+        // case ActionTypes.TABS_FLUSH_CONTENT:
+        //     tab = tabs[payload.id];
+        //     if (tab !== undefined) {
+        //         tabs[payload.id].content = payload.content;
+        //     }
+        //     break;
 
         default:
     }

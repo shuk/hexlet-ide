@@ -8,6 +8,12 @@ require("bootstrap/dist/css/bootstrap.css");
 require("fuelux/dist/css/fuelux.css");
 require("codemirror/lib/codemirror.css");
 
+var key = require("keymaster");
+
+key.filter = function(event) {
+    return true;
+}
+
 require("codemirror/mode/javascript/javascript");
 require("codemirror/mode/jade/jade");
 

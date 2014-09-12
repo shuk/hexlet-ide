@@ -21,6 +21,8 @@ module.exports = {
         TREE_REMOVE_FOLDER: null,
 
         TABS_MAKE_CURRENT: null,
-        TABS_FLUSH_CONTENT: null
+        TABS_SAVE_CURRENT: null,
+        TABS_EDIT_CURRENT: null
+        // TABS_FLUSH_CONTENT: null
     })
 };

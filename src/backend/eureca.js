@@ -76,9 +76,10 @@ var eureca = function(server, options) {
         read: function(path) {
             return fs.readFileSync(path, {encoding: "utf8"});
         },
-        writeFile: function() {
-        },
-        unlink: function() {
+
+        write: function(filepath, content) {
+            var fullPath = path.join(path.dirname(options.rootDir), filepath);
+            return fs.writeFileSync(fullPath, content);
         },
 
         unlink: function(folder) {

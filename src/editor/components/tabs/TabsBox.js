@@ -4,6 +4,7 @@ var _ = require("lodash");
 // var Immutable = require("immutable");
 var React = require("react/addons");
 // var ReactPropTypes = React.PropTypes;
+var key = require("keymaster");
 
 var TabsStore = require("editor/stores/TabsStore");
 var Editor = require("editor/components/Editor");
@@ -26,8 +27,12 @@ var TabsBox = React.createClass({
         return getState();
     },
 
-    handleChangeEditorValue: function(value) {
-        this.setState({value: value});
+    handleChangeEditorValue: function(current, content) {
+        TabsActions.edit(current, content);
+    },
+
+    handleSaveFile: function() {
+        TabsActions.save(this.state.current);
     },
 
     selectTab: function(tab, e) {
@@ -36,12 +41,15 @@ var TabsBox = React.createClass({
 
     closeTab: function(tab, e) {
         TabsActions.closeTab(tab);
-        TabsActions.flushTabContent(this.state.current.id, this.state.value);
+        // TabsActions.flushTabContent(this.state.current.id, this.state.value);
     },
 
     render: function() {
+        var cx = React.addons.classSet;
+
         var tabs = this.state.tabs;
         var current = this.state.current;
+
 
         modes = {
             "js": "javascript",
@@ -53,8 +61,6 @@ var TabsBox = React.createClass({
         }
 
         var items = _.mapValues(tabs, function(tab) {
-            var cx = React.addons.classSet;
-
             var tabClasses = cx({
                 "active": tab.current,
             });
@@ -62,6 +68,7 @@ var TabsBox = React.createClass({
             return (<li key={"tab_" + tab.id} className={tabClasses}>
                 <a href="#" onDoubleClick={this.closeTab.bind(this, tab)} onClick={this.selectTab.bind(this, tab)}>
                     {tab.name}
+                    {tab.edited ? "*" : null}
                 </a>
             </li>);
         }, this);
@@ -71,16 +78,39 @@ var TabsBox = React.createClass({
                 <ul className="nav nav-tabs" role="tablist">
                     {items}
                 </ul>
-                <br />
-                {current !== undefined ?
-                    <Editor mode={mode} key={Math.random()} onChangeValue={this.handleChangeEditorValue} content={current.content} />
-                : null}
+                <div className="tab-content">
+                    {_.mapValues(tabs, function(tab) {
+                        var classes = cx({
+                            "tab-pane": true,
+                            "fade active in": tab.current
+                        });
+
+                        return (
+                            <div className={classes}>
+                                <Editor mode={mode}
+                                    focus={tab.current}
+                                    key={tab.id}
+                                    onChangeValue={this.handleChangeEditorValue.bind(this, tab)}
+                                    initContent={tab.content} />
+                            </div>
+                        );
+                    }, this)}
+                </div>
             </div>
         );
     },
 
     componentDidMount: function() {
+        var $this = this;
         TabsStore.addChangeListener(this._onChange);
+
+        key("ctrl+s", function(){ $this.handleSaveFile(); return false });
+    },
+
+    componentWillUpdate: function(nextProps, nextState) {
+        if (nextState.current === undefined) {
+            key.unbind("ctrl+s");
+        }
     },
 
     componentWillUnmount: function() {

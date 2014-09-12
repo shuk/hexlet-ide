@@ -22,7 +22,8 @@
     "tree-model": "*",
     "commander": "*",
     "findit": "*",
-    "rimraf": "*"
+    "rimraf": "*",
+    "keymaster": "*"
   },
 
   "devDependencies": {
