@@ -1,30 +1,34 @@
-/* global require module __dirname */
+/* global require process module __dirname */
 
 var path = require("path");
 var express = require("express");
 var app = express();
 var server = require("http").createServer(app);
-var webpack = require("webpack");
-var webpackDevMiddleware = require("webpack-dev-middleware");
-var webpackConfig = require("../../webpack.config.js");
-
 var s = function(options) {
     app.engine("jade", require("jade").__express);
 
     app.set("views", path.join(__dirname, "views"));
     app.set("view engine", "jade");
 
-    server.listen(9000);
+    console.log("starting on port '" + options.port + "'");
+    server.listen(options.port);
 
     require("./eureca")(server, options);
 
     var routes = require("./routes/index");
     app.use("/", routes);
 
-    var compiler = webpack(webpackConfig);
+    if (process.env.NODE_ENV === "develop") {
+        var webpack = require("webpack");
+        var webpackConfig = require("../../webpack.config.js");
+        var compiler = webpack(webpackConfig);
 
-    var middleware = webpackDevMiddleware(compiler, webpackConfig.devServer);
-    app.use(middleware);
+        var webpackDevMiddleware = require("webpack-dev-middleware");
+        var middleware = webpackDevMiddleware(compiler, webpackConfig.devServer);
+        app.use(middleware);
+    } else {
+        app.use(express.static(path.join(__dirname, "public")));
+    }
 
     // catch 404 and forward to error handler
     app.use(function(req, res, next) {

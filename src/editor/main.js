@@ -8,6 +8,8 @@ require("bootstrap/dist/css/bootstrap.css");
 require("fuelux/dist/css/fuelux.css");
 require("codemirror/lib/codemirror.css");
 
+var rpc = require("./rpc");
+
 var key = require("keymaster");
 
 key.filter = function(event) {
@@ -24,7 +26,9 @@ var React = require("react/addons");
 var Codex = require("editor/components/Codex");
 var TreeActions = require("editor/actions/TreeActions");
 
-TreeActions.loadTree();
+rpc.ready(function(proxy) {
+    TreeActions.loadTree();
+});
 
 $(function() {
     React.renderComponent(<Codex />, $("#codex").get(0));

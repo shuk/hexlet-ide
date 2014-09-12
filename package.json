@@ -1,49 +1,57 @@
 {
-  "name": "codex",
-  "version": "0.0.1",
-  "description": "Web IDE",
-  "keywords": [],
-  "scripts": {
-      "start": "nodemon --debug --harmony-proxies bin/codex.js"
-  },
-  "dependencies": {
-    "cli": "*",
-    "codemirror": "*",
-    "eureca.io": "*",
-    "engine.io": "*",
-    "primus": "*",
-    "express": "*",
-    "flux": "*",
-    "immutable": "*",
-    "jquery": "*",
-    "lodash": "*",
-    "react": "*",
-    "jade": "*",
-    "tree-model": "*",
-    "commander": "*",
-    "findit": "*",
-    "rimraf": "*",
-    "keymaster": "*"
-  },
-
-  "devDependencies": {
-    "nodemon": "*",
-    "gulp": "*",
-    "mocha": "*",
-    "webpack": "*",
-    "webpack-dev-server": "*",
-    "webpack-dev-middleware": "*",
-    "style-loader": "*",
-    "css-loader": "*",
-    "less-loader": "*",
-    "url-loader": "*",
-    "jsx-loader": "*",
-    "gulp-webpack": "*",
-    "gulp-cjsx": "*",
-    "gulp-util": "*",
-    "gulp-eslint": "*",
-    "gulp-sass": "*",
-    "gulp-watch": "*",
-    "gulp-download": "*"
-  }
+    "name": "codex",
+    "subdomain": "codex",
+    "engines": {
+        "node": "0.10.x"
+    },
+    "version": "0.0.1-2",
+    "description": "Web IDE",
+    "keywords": [],
+    "scripts": {
+        "start": "node --harmony-proxies bin/codex.js -p 8080",
+        "dev": "nodemon --debug --harmony-proxies bin/codex.js"
+    },
+    "bin": {
+        "codex": "./bin/codex.js"
+    },
+    "dependencies": {
+        "cli": "*",
+        "codemirror": "*",
+        "eureca.io": "*",
+        "engine.io": "*",
+        "primus": "*",
+        "express": "*",
+        "flux": "*",
+        "immutable": "*",
+        "jquery": "*",
+        "lodash": "*",
+        "react": "*",
+        "jade": "*",
+        "tree-model": "*",
+        "commander": "*",
+        "findit": "*",
+        "rimraf": "*",
+        "keymaster": "*"
+    },
+    "devDependencies": {
+        "nodemon": "*",
+        "gulp": "*",
+        "mocha": "*",
+        "webpack": "*",
+        "webpack-dev-server": "*",
+        "webpack-dev-middleware": "*",
+        "style-loader": "*",
+        "css-loader": "*",
+        "less-loader": "*",
+        "url-loader": "*",
+        "jsx-loader": "*",
+        "gulp-webpack": "*",
+        "gulp-cjsx": "*",
+        "gulp-util": "*",
+        "gulp-eslint": "*",
+        "gulp-sass": "*",
+        "gulp-watch": "*",
+        "gulp-download": "*",
+        "gulp-nodemon": "*"
+    }
 }

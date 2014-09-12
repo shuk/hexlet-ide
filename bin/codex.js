@@ -8,11 +8,11 @@ var program = require("commander");
 
 program
   // .version("0.0.1")
-  .option("-p, --port", "Port")
-  // .option("-r, --root-dir [path]", "Root directory", path.normalize)
+  .option("-p, --port [num]", "Port", 9000)
+  .option("-r, --root-dir [path]", "Root directory", process.cwd())
   .parse(process.argv);
 
-  program.rootDir = path.join(process.cwd(), "test");
-  // console.log(program.rootDir);
+  program.rootDir = path.resolve(program.rootDir);
+  // console.log(program.port);
 
 require("../src/backend/server")(program);
