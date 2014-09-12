@@ -8,7 +8,7 @@
     "description": "Web IDE",
     "keywords": [],
     "scripts": {
-        "start": "node --harmony-proxies bin/codex.js -p 8080",
+        "start": "node --harmony-proxies bin/codex.js -p 8080 -r test",
         "dev": "nodemon --debug --harmony-proxies bin/codex.js"
     },
     "bin": {
