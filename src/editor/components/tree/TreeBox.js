@@ -8,6 +8,7 @@ var Tree = require("./Tree");
 var Modal = require("editor/components/Modal");
 var ContextMenu = require("./ContextMenu");
 var TreeStore = require("editor/stores/TreeStore");
+var ModalStore = require("editor/stores/ModalStore");
 var TreeActions = require("editor/actions/TreeActions");
 
 var CodexConstants = require("editor/constants/CodexConstants");
@@ -16,7 +17,7 @@ var ActionTypes = CodexConstants.ActionTypes;
 function getState() {
     return {
         tree: TreeStore.getRoot(),
-        modalData: TreeStore.getModal(),
+        modalData: ModalStore.get("tree"),
         contextMenu: TreeStore.getContextMenu()
     };
 }
@@ -39,15 +40,24 @@ var TreeBox = React.createClass({
         TreeActions.openRemoveFolderModal(id);
     },
 
+    handleOpenCreateFileModal: function(parentId) {
+        TreeActions.openCreateFileModal(parentId);
+    },
+
+    handleOpenRemoveFileModal: function(id) {
+        TreeActions.openRemoveFileModal(id);
+    },
+
     handleCreateFolder: function(parentId) {
         TreeActions.createFolder(parentId, this.refs.nameInput.getDOMNode().value);
     },
 
-    handleNewFileModal: function(parentId) {
-    },
-
     handleRemoveFolder: function(id) {
         TreeActions.removeFolder(id);
+    },
+
+    handleCreateFile: function(parentId) {
+        TreeActions.createFile(parentId, this.refs.nameInput.getDOMNode().value);
     },
 
     handleRemoveFile: function(id) {
@@ -59,11 +69,11 @@ var TreeBox = React.createClass({
         contextMenuChildren = [];
         contextMenuChildren.push([
                 {onClick: this.handleOpenCreateFolderModal.bind(this, contextMenu.id), title: "new folder"},
-                {onClick: this.handleNewFileModal.bind(this, contextMenu.id), title: "new file"}
+                {onClick: this.handleOpenCreateFileModal.bind(this, contextMenu.id), title: "new file"}
         ]);
 
         if (contextMenu.type === "file") {
-            contextMenuChildren.push([{onClick: this.handleRemoveFile.bind(this, contextMenu.id), title: "remove file"}]);
+            contextMenuChildren.push([{onClick: this.handleOpenRemoveFolderModal.bind(this, contextMenu.id), title: "remove file"}]);
         } else if (contextMenu.type === "folder") {
             contextMenuChildren.push([{onClick: this.handleOpenRemoveFolderModal.bind(this, contextMenu.id), title: "remove folder"}]);
         } else {
@@ -87,9 +97,26 @@ var TreeBox = React.createClass({
                         </form>
                     </Modal>;
                 break;
+
             case ActionTypes.TREE_OPEN_REMOVE_FOLDER_MODAL:
                 modal =
                     <Modal title={"remove folder"} onApply={this.handleRemoveFolder.bind(this, modalData.id)}>
+                        {"Are you sure?"}
+                    </Modal>;
+                break;
+
+            case ActionTypes.TREE_OPEN_CREATE_FILE_MODAL:
+                modal =
+                    <Modal title={"create file"} onApply={this.handleCreateFile.bind(this, modalData.id)}>
+                        <form action="">
+                            <input type="text" ref="nameInput" />
+                        </form>
+                    </Modal>;
+                break;
+
+            case ActionTypes.TREE_OPEN_REMOVE_FILE_MODAL:
+                modal =
+                    <Modal title={"remove file"} onApply={this.handleRemoveFile.bind(this, modalData.id)}>
                         {"Are you sure?"}
                     </Modal>;
                 break;
@@ -114,10 +141,12 @@ var TreeBox = React.createClass({
 
     componentDidMount: function() {
         TreeStore.addChangeListener(this._onChange);
+        ModalStore.addChangeListener(this._onChange);
     },
 
     componentWillUnmount: function() {
         TreeStore.removeChangeListener(this._onChange);
+        ModalStore.removeChangeListener(this._onChange);
     },
 
     _onChange: function() {

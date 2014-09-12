@@ -13,9 +13,15 @@ var CHANGE_EVENT = "change";
 
 var tabs = {};
 
+var unsavedTabModal = false;
+
 var TabsStore = merge(EventEmitter.prototype, {
     getAll: function() {
         return tabs;
+    },
+
+    getClosingUnsafedTabModal: function() {
+        return unsavedTabModal;
     },
 
     getCurrent: function() {
@@ -43,7 +49,7 @@ AppDispatcher.register(function(payload) {
 
             var item = payload.item;
             var content = payload.content;
-            tabs[item.id] = {id: item.id, edited: false, name: item.name, current: true, content: content};
+            tabs[item.id] = {id: item.id, dirty: false, name: item.name, current: true, content: content};
 
             TabsStore.emitChange();
             break;
@@ -51,14 +57,14 @@ AppDispatcher.register(function(payload) {
         case ActionTypes.TABS_EDIT_CURRENT:
             var tab = tabs[payload.id];
             tab.content = payload.content;
-            tab.edited = true;
+            tab.dirty = true;
 
             TabsStore.emitChange();
             break;
 
         case ActionTypes.TABS_SAVE_CURRENT:
             var tab = tabs[payload.id];
-            tab.edited = false;
+            tab.dirty = false;
 
             TabsStore.emitChange();
             break;

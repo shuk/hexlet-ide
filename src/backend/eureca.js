@@ -20,6 +20,7 @@ var eureca = function(server, options) {
             var rootItem = {
                 name: rootDirName,
                 path: options.rootDir,
+                state: "opened",
                 id: fs.statSync(options.rootDir).ino
             };
             var treeOptions = {
@@ -75,6 +76,19 @@ var eureca = function(server, options) {
 
         read: function(path) {
             return fs.readFileSync(path, {encoding: "utf8"});
+        },
+
+        touch: function(filepath) {
+            var fullPath = path.join(path.dirname(options.rootDir), filepath);
+            fs.writeFileSync(fullPath, "");
+            var item = {
+                name: path.basename(filepath),
+                id: fs.statSync(fullPath).ino,
+                type: "file",
+                path: fullPath,
+                state: "open"
+            };
+            return item;
         },
 
         write: function(filepath, content) {

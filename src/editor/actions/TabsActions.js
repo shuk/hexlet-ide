@@ -31,7 +31,7 @@ var TabsActions = {
         });
     },
 
-    save: function(tab, content) {
+    save: function(tab) {
         "use strict";
         var rpc = new Eureca.Client();
         var filePath = TreeStore.getPath(tab.id);
@@ -42,6 +42,17 @@ var TabsActions = {
                     id: tab.id
                 });
             });
+        });
+    },
+
+    openSavingModalForDirtyTab: function(id) {
+        AppDispatcher.dispatch({
+            actionType: ActionTypes.MODAL_OPEN,
+            scope: "tabs",
+            data: {
+                id: id,
+                type: ActionTypes.TABS_OPEN_SAVING_MODAL_FOR_DIRTY_TAB
+            }
         });
     },
 

@@ -12,8 +12,6 @@ var ActionTypes = CodexConstants.ActionTypes;
 
 var CHANGE_EVENT = "change";
 
-var modal = false;
-
 var contextMenu = false;
 
 var tree = new TreeModel();
@@ -31,10 +29,6 @@ var TreeStore = merge(EventEmitter.prototype, {
 
     getContextMenu: function() {
         return contextMenu;
-    },
-
-    getModal: function() {
-        return modal;
     },
 
     emitChange: function() {
@@ -71,18 +65,6 @@ AppDispatcher.register(function(payload) {
             contextMenu = false;
             break;
 
-        case ActionTypes.TREE_OPEN_CREATE_FOLDER_MODAL:
-            modal = {id: payload.id, type: ActionTypes.TREE_OPEN_CREATE_FOLDER_MODAL};
-            break;
-
-        case ActionTypes.TREE_OPEN_REMOVE_FOLDER_MODAL:
-            modal = {id: payload.id, type: ActionTypes.TREE_OPEN_REMOVE_FOLDER_MODAL};
-            break;
-
-        case ActionTypes.TREE_CLOSE_MODAL:
-            modal = false;
-            break;
-
         case ActionTypes.TREE_CREATE_FOLDER:
             var parentId = payload.parentId;
             var item = payload.item;
@@ -98,6 +80,13 @@ AppDispatcher.register(function(payload) {
             break;
 
         case ActionTypes.TREE_CREATE_FILE:
+            var parentId = payload.parentId;
+            var item = payload.item;
+            var node = root.first(function(node) { return node.model.id === parentId; });
+            var newNode = tree.parse(item);
+            node.addChild(newNode);
+            break;
+
         case ActionTypes.TREE_REMOVE_FILE:
         break;
 

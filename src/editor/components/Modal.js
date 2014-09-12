@@ -1,17 +1,17 @@
 /** @jsx React.DOM */
 
 var React = require("react/addons");
-var TreeActions = require("editor/actions/TreeActions");
+var ModalActions = require("editor/actions/ModalActions");
 
 var Modal = React.createClass({
 
     handleCloseModal: function() {
-        TreeActions.closeModal();
+        ModalActions.close();
     },
 
     handleApply: function() {
         this.props.onApply();
-        TreeActions.closeModal();
+        ModalActions.close();
     },
 
     render: function() {
@@ -27,7 +27,7 @@ var Modal = React.createClass({
                 <div className="modal-content">
                     <div className="modal-header">
                         <button type="button" className="close" data-dismiss="modal" onClick={this.handleCloseModal}>
-                            <span aria-hidden="true">×</span><span className="sr-only">Close</span>
+                            <span aria-hidden="true">×</span><span className="sr-only">Cancel</span>
                         </button>
                         <h4 className="modal-title">{this.props.title}</h4>
                     </div>

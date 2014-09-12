@@ -12,6 +12,7 @@ program
   // .option("-r, --root-dir [path]", "Root directory", path.normalize)
   .parse(process.argv);
 
-  program.rootDir = path.join(process.cwd(), "src");
+  program.rootDir = path.join(process.cwd(), "test");
+  // console.log(program.rootDir);
 
 require("../src/backend/server")(program);
