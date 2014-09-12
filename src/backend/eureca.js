@@ -7,6 +7,8 @@ var eureca = function(server, options) {
     var TreeModel = require("tree-model");
     var rimraf = require("rimraf");
     var EurecaServer = require("eureca.io").EurecaServer;
+
+    var shared = require("../shared");
     var eurecaServer = new EurecaServer();
     eurecaServer.attach(server);
 
@@ -23,18 +25,7 @@ var eureca = function(server, options) {
                 state: "opened",
                 id: fs.statSync(options.rootDir).ino
             };
-            var treeOptions = {
-                modelComparatorFn: function(a, b) {
-                    if (a.type === "folder" && b.type === "file") {
-                        return -1;
-                    } else if (b.type === "folder" && a.type === "file") {
-                        return 1;
-                    } else {
-                        return 0;
-                    }
-                }
-            };
-            var tree = new TreeModel(treeOptions);
+            var tree = new TreeModel(shared.treeOptions);
             var rootNode = tree.parse(rootItem);
 
             var finder = require("findit")(options.rootDir);

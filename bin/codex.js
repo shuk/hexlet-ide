@@ -12,7 +12,7 @@ program
   .option("-r, --root-dir [path]", "Root directory", process.cwd())
   .parse(process.argv);
 
-  program.rootDir = path.resolve(program.rootDir);
-  // console.log(program.port);
+  program.rootDir = path.resolve(process.env.TEST_DIR || program.rootDir);
+  console.log("info: Root dir is " + program.rootDir);
 
 require("../src/backend/server")(program);

@@ -11,7 +11,7 @@ var ActionTypes = CodexConstants.ActionTypes;
 
 var CHANGE_EVENT = "change";
 
-var tabs = {};
+var tabs = [];
 
 var unsavedTabModal = false;
 
@@ -45,17 +45,23 @@ AppDispatcher.register(function(payload) {
     switch(payload.actionType) {
 
         case ActionTypes.TREE_OPEN_FILE:
-            _.mapValues(tabs, function(t) { t.current = false; });
+            tabs.map(function(t) { t.current = false; });
 
             var item = payload.item;
             var content = payload.content;
-            tabs[item.id] = {id: item.id, dirty: false, name: item.name, current: true, content: content};
+
+            var tab = _.find(tabs, {id: item.id});
+            if (tab === undefined) {
+                tabs.push({id: item.id, dirty: false, name: item.name, current: true, content: content});
+            } else {
+                tab.current = true;
+            }
 
             TabsStore.emitChange();
             break;
 
         case ActionTypes.TABS_EDIT_CURRENT:
-            var tab = tabs[payload.id];
+            var tab = _.find(tabs, {id: payload.id});
             tab.content = payload.content;
             tab.dirty = true;
 
@@ -63,23 +69,23 @@ AppDispatcher.register(function(payload) {
             break;
 
         case ActionTypes.TABS_SAVE_CURRENT:
-            var tab = tabs[payload.id];
+            var tab = _.find(tabs, {id: payload.id});
             tab.dirty = false;
 
             TabsStore.emitChange();
             break;
 
         case ActionTypes.TABS_MAKE_CURRENT:
-            _.mapValues(tabs, function(t) { t.current = false; });
+            tabs.map(function(t) { t.current = false; });
 
-            var tab = tabs[payload.id];
+            var tab = _.find(tabs, {id: payload.id});
             tab.current = true;
 
             TabsStore.emitChange();
             break;
 
         case ActionTypes.TABS_CLOSE:
-            delete tabs[payload.id];
+            tabs = _.filter(tabs, function(t) { return t.id !== payload.id; });
 
             TabsStore.emitChange();
             break;

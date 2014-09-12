@@ -35,8 +35,10 @@ var Modal = React.createClass({
                         {this.props.children}
                     </div>
                     <div className="modal-footer">
-                        <button type="button" className="btn btn-default" data-dismiss="modal" onClick={this.handleCloseModal}>Close</button>
-                        <button type="button" onClick={this.handleApply} className="btn btn-primary">Apply</button>
+                        <form action="">
+                            <button type="button" className="btn btn-default" data-dismiss="modal" onClick={this.handleCloseModal}>Cancel</button>
+                            <button type="button" onClick={this.handleApply} className="btn btn-primary">Apply</button>
+                        </form>
                     </div>
                 </div>
             </div>

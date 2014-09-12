@@ -2,9 +2,10 @@
 
 var EventEmitter = require("events").EventEmitter;
 var merge = require("react/lib/merge");
-var Immutable = require("immutable");
-var _ = require("lodash");
+// var Immutable = require("immutable");
+// var _ = require("lodash");
 var TreeModel = require("tree-model");
+var shared = require("shared");
 
 var AppDispatcher = require("editor/dispatcher/AppDispatcher");
 var CodexConstants = require("editor/constants/CodexConstants");
@@ -14,8 +15,8 @@ var CHANGE_EVENT = "change";
 
 var contextMenu = false;
 
-var tree = new TreeModel();
-var root = undefined;
+var tree = new TreeModel(shared.treeOptions);
+var root;
 
 var TreeStore = merge(EventEmitter.prototype, {
     getRoot: function() {

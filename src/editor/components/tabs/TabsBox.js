@@ -35,7 +35,6 @@ var TabsBox = React.createClass({
     },
 
     handleSaveFile: function() {
-        console.log("ehu");
         TabsActions.save(this.state.current);
     },
 
@@ -74,7 +73,7 @@ var TabsBox = React.createClass({
             mode = modes[_.last(current.name.split("."))];
         }
 
-        var items = _.mapValues(tabs, function(tab) {
+        var items = tabs.map(function(tab) {
             var tabClasses = cx({
                 "active": tab.current,
             });
@@ -99,7 +98,7 @@ var TabsBox = React.createClass({
                     {items}
                 </ul>
                 <div className="tab-content">
-                    {_.mapValues(tabs, function(tab) {
+                    {tabs.map(function(tab) {
                         var classes = cx({
                             "tab-pane": true,
                             "fade active in": tab.current

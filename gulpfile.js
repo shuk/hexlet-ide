@@ -21,5 +21,6 @@ gulp.task("webpack", function() {
 
 gulp.task("develop", function() {
     process.env.NODE_ENV = "develop";
+    process.env.TEST_DIR = "test";
     nodemon({script: "bin/codex.js"});
 });

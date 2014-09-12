@@ -35,7 +35,6 @@ var Codex = React.createClass({
         myCodeMirror.on("change", function(CodeMirror, object) {
             $this.props.onChangeValue(myCodeMirror.getValue());
         });
-        console.log("ehu");
 
         this.setState({myCodeMirror: myCodeMirror});
     }

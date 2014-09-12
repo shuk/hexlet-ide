@@ -5,7 +5,7 @@
         "node": "0.10.x"
     },
     "preferGlobal": true,
-    "version": "0.0.1-6",
+    "version": "0.0.1-7",
     "description": "Web IDE",
     "keywords": [],
     "scripts": {
