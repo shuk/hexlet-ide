@@ -105,10 +105,9 @@ var TabsBox = React.createClass({
                         });
 
                         return (
-                            <div className={classes}>
+                            <div className={classes} key={tab.id}>
                                 <Editor mode={mode}
                                     focus={tab.current}
-                                    key={tab.id}
                                     onChangeValue={this.handleChangeEditorValue.bind(this, tab)}
                                     initContent={tab.content} />
                             </div>

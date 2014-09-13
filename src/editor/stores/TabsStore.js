@@ -6,8 +6,8 @@ var merge = require("react/lib/merge");
 var _ = require("lodash");
 
 var AppDispatcher = require("editor/dispatcher/AppDispatcher");
-var CodexConstants = require("editor/constants/CodexConstants");
-var ActionTypes = CodexConstants.ActionTypes;
+var IdeConstants = require("editor/constants/IdeConstants");
+var ActionTypes = IdeConstants.ActionTypes;
 
 var CHANGE_EVENT = "change";
 

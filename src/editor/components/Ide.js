@@ -4,11 +4,11 @@ var React = require("react/addons");
 
 var TreeBox = require("editor/components/tree/TreeBox");
 var TabsBox = require("editor/components/tabs/TabsBox");
-var CodexActions = require("editor/actions/CodexActions");
+var IdeActions = require("editor/actions/IdeActions");
 
-var Codex = React.createClass({
+var Ide = React.createClass({
     handleGlobalClick: function() {
-        CodexActions.globalClick()
+        IdeActions.globalClick()
     },
 
     render: function() {
@@ -25,4 +25,4 @@ var Codex = React.createClass({
     }
 });
 
-module.exports = Codex;
+module.exports = Ide;

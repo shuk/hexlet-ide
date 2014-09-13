@@ -1,5 +1,5 @@
 {
-    "name": "codex",
+    "name": "hexlet-ide",
     "dependencies": {
         "bootstrap": "*",
         "fuelux": "*"

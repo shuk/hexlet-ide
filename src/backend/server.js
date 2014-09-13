@@ -4,20 +4,26 @@ var path = require("path");
 var express = require("express");
 var app = express();
 var server = require("http").createServer(app);
+var term = require("term.js");
+// var io = require("socket.io");
+
 var s = function(options) {
     app.engine("jade", require("jade").__express);
 
     app.set("views", path.join(__dirname, "views"));
     app.set("view engine", "jade");
 
-    console.log("starting on port '" + options.port + "'");
+    console.log("info: starting on port '" + options.port + "'");
     server.listen(options.port);
+
+    app.use(term.middleware());
 
     require("./eureca")(server, options);
 
     var routes = require("./routes/index");
     app.use("/", routes);
 
+    app.use(express.static(path.join(__dirname, "public")));
     if (process.env.NODE_ENV === "develop") {
         var webpack = require("webpack");
         var webpackConfig = require("../../webpack.config.js");
@@ -26,8 +32,6 @@ var s = function(options) {
         var webpackDevMiddleware = require("webpack-dev-middleware");
         var middleware = webpackDevMiddleware(compiler, webpackConfig.devServer);
         app.use(middleware);
-    } else {
-        app.use(express.static(path.join(__dirname, "public")));
     }
 
     // catch 404 and forward to error handler

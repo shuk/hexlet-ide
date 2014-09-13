@@ -5,8 +5,8 @@ var merge = require("react/lib/merge");
 // var Immutable = require("immutable");
 
 var AppDispatcher = require("editor/dispatcher/AppDispatcher");
-var CodexConstants = require("editor/constants/CodexConstants");
-var ActionTypes = CodexConstants.ActionTypes;
+var IdeConstants = require("editor/constants/IdeConstants");
+var ActionTypes = IdeConstants.ActionTypes;
 
 var CHANGE_EVENT = "change";
 

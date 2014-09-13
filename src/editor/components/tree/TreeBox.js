@@ -11,8 +11,8 @@ var TreeStore = require("editor/stores/TreeStore");
 var ModalStore = require("editor/stores/ModalStore");
 var TreeActions = require("editor/actions/TreeActions");
 
-var CodexConstants = require("editor/constants/CodexConstants");
-var ActionTypes = CodexConstants.ActionTypes;
+var IdeConstants = require("editor/constants/IdeConstants");
+var ActionTypes = IdeConstants.ActionTypes;
 
 function getState() {
     return {

@@ -1,9 +1,10 @@
 /* global require module */
 
 var AppDispatcher = require("editor/dispatcher/AppDispatcher");
-var CodexConstants = require("editor/constants/CodexConstants");
-var ActionTypes = CodexConstants.ActionTypes;
+var IdeConstants = require("editor/constants/IdeConstants");
+var ActionTypes = IdeConstants.ActionTypes;
 var TreeStore = require("editor/stores/TreeStore");
+var rpc = require("editor/rpc");
 
 var TabsActions = {
     // flushTabContent: function(id, content) {
@@ -33,14 +34,11 @@ var TabsActions = {
 
     save: function(tab) {
         "use strict";
-        var rpc = new Eureca.Client();
         var filePath = TreeStore.getPath(tab.id);
-        rpc.ready(function (proxy) {
-            proxy.fs.write(filePath, tab.content).onReady(function(result) {
-                AppDispatcher.dispatch({
-                    actionType: ActionTypes.TABS_SAVE_CURRENT,
-                    id: tab.id
-                });
+        rpc.fs.write(filePath, tab.content).onReady(function() {
+            AppDispatcher.dispatch({
+                actionType: ActionTypes.TABS_SAVE_CURRENT,
+                id: tab.id
             });
         });
     },

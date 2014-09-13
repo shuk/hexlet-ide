@@ -4,10 +4,10 @@ var path = require("path");
 
 var rpc = require("editor/rpc");
 var AppDispatcher = require("editor/dispatcher/AppDispatcher");
-var CodexConstants = require("editor/constants/CodexConstants");
+var IdeConstants = require("editor/constants/IdeConstants");
 var TreeStore = require("editor/stores/TreeStore");
 
-var ActionTypes = CodexConstants.ActionTypes;
+var ActionTypes = IdeConstants.ActionTypes;
 
 
 var TreeActions = {

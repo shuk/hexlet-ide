@@ -23,7 +23,7 @@ require("bootstrap/dist/js/bootstrap");
 
 var React = require("react/addons");
 
-var Codex = require("editor/components/Codex");
+var Ide = require("editor/components/Ide");
 var TreeActions = require("editor/actions/TreeActions");
 
 rpc.ready(function(proxy) {
@@ -31,5 +31,37 @@ rpc.ready(function(proxy) {
 });
 
 $(function() {
-    React.renderComponent(<Codex />, $("#codex").get(0));
+    React.renderComponent(<Ide />, $("#hexlet-ide").get(0));
+
+// window.addEventListener('load', function() {
+//   var socket = io.connect();
+//   socket.on('connect', function() {
+//     var term = new Terminal({
+//       cols: 80,
+//       rows: 24,
+//       screenKeys: true
+//     });
+
+//     term.on('data', function(data) {
+//       socket.emit('data', data);
+//     });
+
+//     term.on('title', function(title) {
+//       document.title = title;
+//     });
+
+//     term.open(document.body);
+
+//     term.write('\x1b[31mWelcome to term.js!\x1b[m\r\n');
+
+//     socket.on('data', function(data) {
+//       term.write(data);
+//     });
+
+//     socket.on('disconnect', function() {
+//       term.destroy();
+//     });
+//   });
+// }, false);
+
 });

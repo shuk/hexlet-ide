@@ -1,29 +1,21 @@
 {
-    "name": "codex",
-    "subdomain": "codex",
+    "name": "hexlet-ide",
+    "subdomain": "hexlet",
     "engines": {
         "node": "0.10.x"
     },
-    "preferGlobal": true,
-    "version": "0.0.1-7",
+    "version": "0.0.1-9",
     "description": "Web IDE",
     "keywords": [],
     "scripts": {
-        "start": "bin/codex.js -p 8080 -r /var/tmp",
-        "dev": "nodemon --debug --harmony-proxies bin/codex.js"
-    },
-    "bugs": {
-        "url": "https://github.com/hexlet/codex/issues"
-    },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/Hexlet/codex"
+        "start": "bin/hexlet-ide.js -p 8080 -r /var/tmp"
     },
     "bin": {
-        "codex": "./bin/codex.js"
+        "hexlet-ide": "./bin/hexlet-ide.js"
     },
     "dependencies": {
-        "cli": "*",
+        "socket.io": "*",
+        "term.js": "*",
         "codemirror": "*",
         "eureca.io": "*",
         "engine.io": "*",

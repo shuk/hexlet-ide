@@ -8,8 +8,8 @@ var TreeModel = require("tree-model");
 var shared = require("shared");
 
 var AppDispatcher = require("editor/dispatcher/AppDispatcher");
-var CodexConstants = require("editor/constants/CodexConstants");
-var ActionTypes = CodexConstants.ActionTypes;
+var IdeConstants = require("editor/constants/IdeConstants");
+var ActionTypes = IdeConstants.ActionTypes;
 
 var CHANGE_EVENT = "change";
 
@@ -62,7 +62,7 @@ AppDispatcher.register(function(payload) {
             contextMenu = {id: payload.id, type: payload.type, x: payload.x, y: payload.y};
             break;
 
-        case ActionTypes.CODEX_GLOBAL_CLICK:
+        case ActionTypes.IDE_GLOBAL_CLICK:
             contextMenu = false;
             break;
 

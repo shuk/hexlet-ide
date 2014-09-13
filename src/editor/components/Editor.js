@@ -5,7 +5,7 @@ var CodeMirror = require("codemirror");
 
 var TabsActions = require("editor/actions/TabsActions");
 
-var Codex = React.createClass({
+var Editor = React.createClass({
     render: function() {
         return (
             <div className="row">
@@ -40,4 +40,4 @@ var Codex = React.createClass({
     }
 });
 
-module.exports = Codex;
+module.exports = Editor;

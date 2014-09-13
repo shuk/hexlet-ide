@@ -4,7 +4,7 @@ var keyMirror = require("react/lib/keyMirror");
 
 module.exports = {
     ActionTypes: keyMirror({
-        CODEX_GLOBAL_CLICK: null,
+        IDE_GLOBAL_CLICK: null,
 
         TREE_LOAD: null,
         TREE_TOGGLE_FOLDER_STATE: null,

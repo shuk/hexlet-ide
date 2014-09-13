@@ -1,0 +1,2 @@
+### RUN
+    hexlet-ide -r .
