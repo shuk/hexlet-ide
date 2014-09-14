@@ -12,7 +12,6 @@ var eureca = function(server, options) {
     var eurecaServer = new EurecaServer();
     eurecaServer.attach(server);
 
-
     eurecaServer.exports.fs = {
         tree: function() {
             var context = this;  //"this" contains an eureca.io internal context

@@ -8,7 +8,8 @@
     "description": "Web IDE",
     "keywords": [],
     "scripts": {
-        "start": "bin/hexlet-ide.js -p 8080 -r /var/tmp"
+        "start": "bin/hexlet-ide.js -p 8080 -r /var/tmp",
+        "test": "./node_modules/.bin/mocha"
     },
     "bin": {
         "hexlet-ide": "./bin/hexlet-ide.js"
@@ -35,6 +36,7 @@
         "pty.js": "git://github.com/chjj/pty.js"
     },
     "devDependencies": {
+        "zombie": "*",
         "nodemon": "*",
         "gulp": "*",
         "mocha": "*",

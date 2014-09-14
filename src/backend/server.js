@@ -20,7 +20,6 @@ var s = function(options) {
     var routes = require("./routes/index");
     app.use("/", routes);
 
-    app.use(express.static(path.join(__dirname, "public")));
     if (process.env.NODE_ENV === "develop") {
         var webpack = require("webpack");
         var webpackConfig = require("../../webpack.config.js");
@@ -30,6 +29,7 @@ var s = function(options) {
         var middleware = webpackDevMiddleware(compiler, webpackConfig.devServer);
         app.use(middleware);
     }
+    app.use(express.static(path.join(__dirname, "public")));
 
     // catch 404 and forward to error handler
     app.use(function(req, res, next) {
