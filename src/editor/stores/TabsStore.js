@@ -16,89 +16,89 @@ var tabs = [];
 var unsavedTabModal = false;
 
 var TabsStore = merge(EventEmitter.prototype, {
-    getAll: function() {
-        return tabs;
-    },
+  getAll: function() {
+    return tabs;
+  },
 
-    getClosingUnsafedTabModal: function() {
-        return unsavedTabModal;
-    },
+  getClosingUnsafedTabModal: function() {
+    return unsavedTabModal;
+  },
 
-    getCurrent: function() {
-        return _.find(tabs, "current");
-    },
+  getCurrent: function() {
+    return _.find(tabs, "current");
+  },
 
-    emitChange: function() {
-        this.emit(CHANGE_EVENT);
-    },
+  emitChange: function() {
+    this.emit(CHANGE_EVENT);
+  },
 
-    addChangeListener: function(callback) {
-        this.on(CHANGE_EVENT, callback);
-    },
+  addChangeListener: function(callback) {
+    this.on(CHANGE_EVENT, callback);
+  },
 
-    removeChangeListener: function(callback) {
-        this.removeListener(CHANGE_EVENT, callback);
-    }
+  removeChangeListener: function(callback) {
+    this.removeListener(CHANGE_EVENT, callback);
+  }
 });
 
 AppDispatcher.register(function(payload) {
-    switch(payload.actionType) {
+  switch(payload.actionType) {
 
-        case ActionTypes.TREE_OPEN_FILE:
-            tabs.map(function(t) { t.current = false; });
+    case ActionTypes.TREE_OPEN_FILE:
+      tabs.map(function(t) { t.current = false; });
 
-            var item = payload.item;
-            var content = payload.content;
+    var item = payload.item;
+    var content = payload.content;
 
-            var tab = _.find(tabs, {id: item.id});
-            if (tab === undefined) {
-                tabs.push({id: item.id, dirty: false, name: item.name, current: true, content: content});
-            } else {
-                tab.current = true;
-            }
-
-            TabsStore.emitChange();
-            break;
-
-        case ActionTypes.TABS_EDIT_CURRENT:
-            var tab = _.find(tabs, {id: payload.id});
-            tab.content = payload.content;
-            tab.dirty = true;
-
-            TabsStore.emitChange();
-            break;
-
-        case ActionTypes.TABS_SAVE_CURRENT:
-            var tab = _.find(tabs, {id: payload.id});
-            tab.dirty = false;
-
-            TabsStore.emitChange();
-            break;
-
-        case ActionTypes.TABS_MAKE_CURRENT:
-            tabs.map(function(t) { t.current = false; });
-
-            var tab = _.find(tabs, {id: payload.id});
-            tab.current = true;
-
-            TabsStore.emitChange();
-            break;
-
-        case ActionTypes.TABS_CLOSE:
-            tabs = _.filter(tabs, function(t) { return t.id !== payload.id; });
-
-            TabsStore.emitChange();
-            break;
-
-        // case ActionTypes.TABS_FLUSH_CONTENT:
-        //     tab = tabs[payload.id];
-        //     if (tab !== undefined) {
-        //         tabs[payload.id].content = payload.content;
-        //     }
-        //     break;
-
-        default:
+    var tab = _.find(tabs, {id: item.id});
+    if (tab === undefined) {
+      tabs.push({id: item.id, dirty: false, name: item.name, current: true, content: content});
+    } else {
+      tab.current = true;
     }
+
+    TabsStore.emitChange();
+    break;
+
+    case ActionTypes.TABS_EDIT_CURRENT:
+      var tab = _.find(tabs, {id: payload.id});
+    tab.content = payload.content;
+    tab.dirty = true;
+
+    TabsStore.emitChange();
+    break;
+
+    case ActionTypes.TABS_SAVE_CURRENT:
+      var tab = _.find(tabs, {id: payload.id});
+    tab.dirty = false;
+
+    TabsStore.emitChange();
+    break;
+
+    case ActionTypes.TABS_MAKE_CURRENT:
+      tabs.map(function(t) { t.current = false; });
+
+    var tab = _.find(tabs, {id: payload.id});
+    tab.current = true;
+
+    TabsStore.emitChange();
+    break;
+
+    case ActionTypes.TABS_CLOSE:
+      tabs = _.filter(tabs, function(t) { return t.id !== payload.id; });
+
+    TabsStore.emitChange();
+    break;
+
+    // case ActionTypes.TABS_FLUSH_CONTENT:
+    //     tab = tabs[payload.id];
+    //     if (tab !== undefined) {
+    //         tabs[payload.id].content = payload.content;
+    //     }
+    //     break;
+
+    default:
+  }
 });
 
 module.exports = TabsStore;

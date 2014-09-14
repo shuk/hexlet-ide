@@ -13,7 +13,7 @@ var rpc = require("./rpc");
 var key = require("keymaster");
 
 key.filter = function(event) {
-    return true;
+  return true;
 }
 
 require("codemirror/mode/javascript/javascript");
@@ -27,11 +27,11 @@ var Ide = require("editor/components/Ide");
 var TreeActions = require("editor/actions/TreeActions");
 
 rpc.ready(function(proxy) {
-    TreeActions.loadTree();
+  TreeActions.loadTree();
 });
 
 $(function() {
-    React.renderComponent(<Ide />, $("#hexlet-ide").get(0));
+  React.renderComponent(<Ide />, $("#hexlet-ide").get(0));
 });
 
 window.addEventListener('load', function() {

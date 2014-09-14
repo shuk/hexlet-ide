@@ -14,13 +14,13 @@ var nodemon = require("gulp-nodemon");
 gulp.task("default", ["develop"]);
 
 gulp.task("webpack", function() {
-    return gulp.src("./src/editor/main.js")
-    .pipe(webpack(webpackConfig))
-    .pipe(gulp.dest("src/backend/public/assets"));
+  return gulp.src("./src/editor/main.js")
+  .pipe(webpack(webpackConfig))
+  .pipe(gulp.dest("src/backend/public/assets"));
 });
 
 gulp.task("develop", function() {
-    process.env.NODE_ENV = "develop";
-    process.env.TEST_DIR = "test/fixtures/project";
-    nodemon({script: "bin/hexlet-ide.js"});
+  process.env.NODE_ENV = "develop";
+  process.env.TEST_DIR = "test/fixtures/project";
+  nodemon({script: "bin/hexlet-ide.js"});
 });
