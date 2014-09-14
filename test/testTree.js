@@ -16,15 +16,11 @@ describe("test tree", function(){
 
     it("open/close folder", function(done) {
         p.then(function() {
-            b.wait(function() {
-                b.fire(".tree-branch-name", "click");
-            });
+            b.fire(".tree-branch-name", "click");
         })
         .then(function() {
-            b.wait(function() {
-                b.assert.elements("button span.glyphicon-folder-close");
-                done();
-            });
+            b.assert.elements("button span.glyphicon-folder-close");
+            done();
         });
     });
 });
