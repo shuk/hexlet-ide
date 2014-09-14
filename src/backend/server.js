@@ -4,8 +4,6 @@ var path = require("path");
 var express = require("express");
 var app = express();
 var server = require("http").createServer(app);
-var term = require("term.js");
-// var io = require("socket.io");
 
 var s = function(options) {
     app.engine("jade", require("jade").__express);
@@ -16,9 +14,8 @@ var s = function(options) {
     console.log("info: starting on port '" + options.port + "'");
     server.listen(options.port);
 
-    app.use(term.middleware());
-
     require("./eureca")(server, options);
+    require("./terminal")(server, app, options);
 
     var routes = require("./routes/index");
     app.use("/", routes);
