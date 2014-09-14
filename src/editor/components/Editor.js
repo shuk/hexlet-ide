@@ -11,6 +11,7 @@ var Editor = React.createClass({
             <div className="row">
                 <div className="col-md-12">
                     <div ref="editor"></div>
+                    <div ref="terminal" id="terminal"></div>
                 </div>
             </div>
         );

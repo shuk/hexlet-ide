@@ -31,7 +31,8 @@
         "commander": "*",
         "findit": "*",
         "rimraf": "*",
-        "keymaster": "*"
+        "keymaster": "*",
+        "pty.js": "git://github.com/chjj/pty.js"
     },
     "devDependencies": {
         "nodemon": "*",
