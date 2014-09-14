@@ -21,6 +21,6 @@ gulp.task("webpack", function() {
 
 gulp.task("develop", function() {
     process.env.NODE_ENV = "develop";
-    process.env.TEST_DIR = "test";
+    process.env.TEST_DIR = "test/fixtures/project";
     nodemon({script: "bin/hexlet-ide.js"});
 });
