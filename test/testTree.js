@@ -1,15 +1,17 @@
 /* global after require beforeEach define describe it */
 
+require("./testHelper");
+
 var Browser = require("zombie");
 // var assert = require("assert");
 var b = Browser.create({debug: false, site: "http://localhost:8080"});
-var p = b.visit("/");
 
 describe("test tree", function(){
-  this.timeout(100000);
-
-  // beforeEach(function() {
-  // });
+  this.timeout(10000);
+  var p;
+  beforeEach(function() {
+    p = b.visit("/");
+  });
 
   it("open/close folder", function(done) {
     p.then(function() {

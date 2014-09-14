@@ -1,0 +1,11 @@
+language: node_js
+node_js:
+  - "0.11"
+  - "0.10"
+
+before_install: npm install -g gulp
+install: npm install && bower install
+before_script: gulp webpack
+env:
+  - NODE_ENV=travis
+  - PORT=3001
