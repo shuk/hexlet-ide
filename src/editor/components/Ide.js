@@ -13,12 +13,19 @@ var Ide = React.createClass({
 
   render: function() {
     return (
-      <div className="row" onClick={this.handleGlobalClick}>
-        <div className="col-md-4">
-          <TreeBox />
+      <div>
+        <div className="row" onClick={this.handleGlobalClick}>
+          <div className="col-md-4">
+            <TreeBox />
+          </div>
+          <div className="col-md-8">
+            <TabsBox />
+          </div>
         </div>
-        <div className="col-md-8">
-          <TabsBox />
+        <div className="row">
+          <div className="col-md-12">
+            <div id="terminal"></div>
+          </div>
         </div>
       </div>
     );

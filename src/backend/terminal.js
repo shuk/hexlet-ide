@@ -16,7 +16,7 @@ module.exports = function(server, app, options) {
     : 'xterm',
     cols: 80,
     rows: 24,
-    cwd: process.env.HOME
+    cwd: options.rootDir
   });
 
   terminal.on('data', function(data) {
