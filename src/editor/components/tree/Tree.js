@@ -53,7 +53,7 @@ var Tree = React.createClass({
             onClick={this.handleToggleFolderState.bind(this, tree.id)}>
             <span className="glyphicon icon-caret glyphicon-play"></span>
             <span className={folderIconClasses} data-name={tree.name}></span>
-            <span className="tree-label">{tree.name}</span>
+            <span className="tree-label" data-name={tree.name}>{tree.name}</span>
           </button>
         </div>
 

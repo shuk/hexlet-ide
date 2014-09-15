@@ -93,7 +93,7 @@ var TreeBox = React.createClass({
         modal =
         <Modal title={"create folder"} onApply={this.handleCreateFolder.bind(this, modalData.id)}>
           <form action="">
-            <input type="text" ref="nameInput" />
+            <input type="text" name="folderName" ref="nameInput" />
           </form>
         </Modal>;
         break;

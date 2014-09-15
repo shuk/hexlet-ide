@@ -15,7 +15,7 @@ var ContextMenu = React.createClass({
         <ul className="dropdown-menu" role="menu">
           {this.props.children.reduce(function(acc, group, index, array) {
             var boundedGroup = group.map(function(item) {
-              return <li><a href="#" onClick={item.onClick}>{item.title}</a></li>;
+              return <li><a href="#" data-name={item.title} onClick={item.onClick}>{item.title}</a></li>;
             })
 
             if (array.length !== index + 1) {
