@@ -122,10 +122,12 @@ var TreeBox = React.createClass({
               break;
     }
 
+    var contextMenu = this.state.contextMenu;
+
     return (
       <div className="fuelux">
         {contextMenu ?
-          <ContextMenu>
+          <ContextMenu x={contextMenu.x} y={contextMenu.y}>
             {this.buildContextMenuChildren()}
           </ContextMenu>
           : null}

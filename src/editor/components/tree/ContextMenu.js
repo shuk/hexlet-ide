@@ -5,7 +5,8 @@ var React = require("react/addons");
 var ContextMenu = React.createClass({
   render: function() {
     var menuStyle = {
-      position: "absolute",
+      position: "fixed",
+      zIndex: 100,
       top: this.props.y,
       left: this.props.x
     };
