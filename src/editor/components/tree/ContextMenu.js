@@ -3,6 +3,11 @@
 var React = require("react/addons");
 
 var ContextMenu = React.createClass({
+  propTypes:{
+    x: React.PropTypes.number.isRequired,
+    y: React.PropTypes.number.isRequired
+  },
+
   render: function() {
     var menuStyle = {
       position: "fixed",
