@@ -45,6 +45,10 @@ var Tree = React.createClass({
       "tree-branch-children": true
     });
 
+    var folderIconStyle = {
+      marginRight: 10
+    };
+
     return (
       <li className={treeBranchClasses} data-template="treebranch" data-name={tree.name} role="treeitem" aria-expanded="false">
         <div className="tree-branch-header">
@@ -52,7 +56,7 @@ var Tree = React.createClass({
             onContextMenu={this.handleContextMenu.bind(this, tree.id, "folder")}
             onClick={this.handleToggleFolderState.bind(this, tree.id)}>
             <span className="glyphicon icon-caret glyphicon-play"></span>
-            <span className={folderIconClasses} data-name={tree.name}></span>
+            <span className={folderIconClasses} data-name={tree.name} style={folderIconStyle}></span>
             <span className="tree-label" data-name={tree.name}>{tree.name}</span>
           </button>
         </div>
