@@ -17,9 +17,9 @@ var Editor = React.createClass({
   },
 
   componentWillReceiveProps: function(nextProps) {
-    if (nextProps.focus) {
-      this.state.myCodeMirror.focus();
-    }
+    // if (nextProps.focus) {
+    //   this.state.myCodeMirror.focus();
+    // }
   },
 
   componentDidMount: function() {

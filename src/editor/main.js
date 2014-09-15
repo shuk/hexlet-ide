@@ -9,6 +9,7 @@ require("fuelux/dist/css/fuelux.css");
 require("codemirror/lib/codemirror.css");
 
 var rpc = require("./rpc");
+var websocket = require("./socket");
 
 var key = require("keymaster");
 
@@ -25,44 +26,28 @@ var React = require("react/addons");
 
 var Ide = require("editor/components/Ide");
 var TreeActions = require("editor/actions/TreeActions");
+var TerminalsActions = require("editor/actions/TerminalsActions");
 
 rpc.ready(function(proxy) {
   TreeActions.loadTree();
 });
 
+websocket.on('connect', function() {
+  TerminalsActions.startCreateTerminal();
+
+  websocket.on("terminalCreated", function(msg) {
+    TerminalsActions.finishCreateTerminal(msg);
+  });
+
+  websocket.on("data", function(msg) {
+    TerminalsActions.finishUpdateTerminal(msg);
+  });
+
+  websocket.on("disconnect", function() {
+    //TODO: maybe destroy terminals or store action in buffer
+  });
+});
+
 $(function() {
   React.renderComponent(<Ide />, $("#hexlet-ide").get(0));
 });
-
-window.addEventListener('load', function() {
-  var socket = io.connect();
-  socket.on('connect', function() {
-    var term = new Terminal({
-      cols: 80,
-      rows: 24,
-      screenKeys: true,
-      useStyle: true,
-      cursorBlink: true
-    });
-
-    term.on('data', function(data) {
-      socket.emit('data', data);
-    });
-
-    term.on('title', function(title) {
-      document.title = title;
-    });
-
-    term.open(document.getElementById("terminal"));
-
-    term.write('\x1b[31mWelcome to term.js!\x1b[m\r\n');
-
-    socket.on('data', function(data) {
-      term.write(data);
-    });
-
-    socket.on('disconnect', function() {
-      term.destroy();
-    });
-  });
-}, false);
