@@ -1,10 +1,10 @@
 /* global after require before define describe it */
 
-require("./testHelper");
+var h = require("./testHelper");
 
 var Browser = require("zombie");
 // var assert = require("assert");
-var b = Browser.create({ debug: true, site: "http://localhost:3001"});
+var b = Browser.create({ debug: true, site: "http://localhost:" + h.port });
 
 describe("test tree", function(){
   this.timeout(10000);

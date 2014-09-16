@@ -6,16 +6,27 @@ var fs = require("fs-extra");
 var fixturesDir = "./test/fixtures/project/";
 var testDir = "/var/tmp/test_dir";
 
-before(function() {
-  fs.copySync(fixturesDir, testDir);
+var helper = {
+  port: process.env.PORT || 8080
+};
 
-  require("../src/backend/server")({
-    port: 3001,
-    rootDir: testDir
-  });
+before(function() {
+
+  if (process.env.NODE_ENV === "travis") {
+    fs.copySync(fixturesDir, testDir);
+
+    require("../src/backend/server")({
+      port: helper.port,
+      rootDir: testDir
+    });
+  }
 });
 
 
 after(function() {
-  fs.removeSync(testDir);
+  if (process.env.NODE_ENV === "travis") {
+    fs.removeSync(testDir);
+  }
 });
+
+module.exports = helper;
