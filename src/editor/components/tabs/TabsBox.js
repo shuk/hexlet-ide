@@ -79,9 +79,12 @@ var TabsBox = React.createClass({
       });
 
       return (<li key={"tab_" + tab.id} className={tabClasses}>
-        <a href="#" onDoubleClick={this.handleCloseTab.bind(this, tab)} onClick={this.selectTab.bind(this, tab)}>
-          {tab.name}
-          {tab.dirty ? "*" : null}
+        <a href="#">
+          <span onDoubleClick={this.handleCloseTab.bind(this, tab)} onClick={this.selectTab.bind(this, tab)}>
+            {tab.name}
+            {tab.dirty ? "*" : ""}
+          </span>
+          <span className="glyphicon glyphicon-remove" onClick={this.handleCloseTab.bind(this, tab)}></span>
         </a>
       </li>);
     }, this);

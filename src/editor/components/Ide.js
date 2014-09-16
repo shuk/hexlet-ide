@@ -16,15 +16,15 @@ var Ide = React.createClass({
     return (
       <div>
         <div className="row" onClick={this.handleGlobalClick}>
-          <div className="col-md-4">
+          <div className="col-md-4 file-tree-box">
             <TreeBox />
           </div>
-          <div className="col-md-8">
+          <div className="col-md-8 tabs-box">
             <TabsBox />
           </div>
         </div>
         <div className="row">
-          <div className="col-md-12">
+          <div className="col-md-12 terminals-box">
             <TerminalsBox />
           </div>
         </div>

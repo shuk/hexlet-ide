@@ -1,4 +1,4 @@
-/* global require */
+/* global require module */
 
 // var ChatConstants = require('../constants/ChatConstants');
 var Dispatcher = require("flux/lib/Dispatcher");
@@ -31,6 +31,14 @@ var AppDispatcher = copyProperties(new Dispatcher(), {
   //   };
   //   this.dispatch(payload);
   // }
+  //
+  registerHandler: function(actionType, callback) {
+    this.register(function(payload) {
+      if (payload.actionType === actionType) {
+        callback(payload);
+      }
+    });
+  }
 
 });
 

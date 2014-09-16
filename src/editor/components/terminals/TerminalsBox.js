@@ -51,9 +51,11 @@ var TerminalsBox = React.createClass({
   render: function() {
     return (
       <div>
-        <button onClick={this.createTerminal}>Create terminal</button>
         <ul className="nav nav-tabs" role="tablist">
           {this.renderTabHeaders()}
+          <li key="tab_create">
+            <a href="#" onClick={this.createTerminal}>Create terminal</a>
+          </li>
         </ul>
         <div className="tab-content">
           {this.renderTerminals()}
