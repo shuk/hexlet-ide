@@ -66,8 +66,8 @@ AppDispatcher.registerHandler(ActionTypes.TABS_MAKE_CURRENT, function(payload) {
 AppDispatcher.registerHandler(ActionTypes.TABS_CLOSE, function(payload) {
   tabs = _.filter(tabs, function(t) { return t.id !== payload.id; });
 
-  var tab = _.last(tabs);
-  if (tab) {
+  if (tabs.length > 0) {
+    var tab = _.last(tabs);
     tab.current = true;
   }
 
