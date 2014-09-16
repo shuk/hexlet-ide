@@ -8,4 +8,3 @@ install: npm install && bower install
 before_script: gulp webpack
 env:
   - NODE_ENV=travis
-  - PORT=3001
