@@ -36,6 +36,7 @@
         "pty.js": "git://github.com/chjj/pty.js"
     },
     "devDependencies": {
+        "bower": "*",
         "zombie": "*",
         "nodemon": "*",
         "gulp": "*",
