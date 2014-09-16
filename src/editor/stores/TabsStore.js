@@ -87,6 +87,9 @@ AppDispatcher.register(function(payload) {
     case ActionTypes.TABS_CLOSE:
       tabs = _.filter(tabs, function(t) { return t.id !== payload.id; });
 
+    var tab = _.last(tabs);
+    tab.current = true;
+
     TabsStore.emitChange();
     break;
 
