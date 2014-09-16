@@ -12,6 +12,7 @@ var helper = {
 };
 
 before(function(done) {
+  this.timeout(10000);
 
   if (process.env.NODE_ENV === "travis") {
     fs.copySync(fixturesDir, testDir);
