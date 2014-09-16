@@ -1,61 +1,62 @@
 {
-    "name": "hexlet-ide",
-    "subdomain": "hexlet",
-    "engines": {
-        "node": "0.10.x"
-    },
-    "version": "0.0.1",
-    "description": "Web IDE",
-    "keywords": [],
-    "scripts": {
-        "start": "bin/hexlet-ide.js -p 8080 -r /var/tmp",
-        "test": "./node_modules/.bin/mocha"
-    },
-    "bin": {
-        "hexlet-ide": "./bin/hexlet-ide.js"
-    },
-    "dependencies": {
-        "socket.io": "*",
-        "term.js": "*",
-        "codemirror": "*",
-        "eureca.io": "*",
-        "engine.io": "*",
-        "primus": "*",
-        "express": "*",
-        "flux": "*",
-        "immutable": "*",
-        "jquery": "*",
-        "lodash": "*",
-        "react": "*",
-        "jade": "*",
-        "tree-model": "*",
-        "commander": "*",
-        "findit": "*",
-        "rimraf": "*",
-        "keymaster": "*",
-        "pty.js": "git://github.com/chjj/pty.js"
-    },
-    "devDependencies": {
-        "bower": "*",
-        "zombie": "*",
-        "nodemon": "*",
-        "gulp": "*",
-        "mocha": "*",
-        "webpack": "*",
-        "webpack-dev-server": "*",
-        "webpack-dev-middleware": "*",
-        "style-loader": "*",
-        "css-loader": "*",
-        "less-loader": "*",
-        "url-loader": "*",
-        "jsx-loader": "*",
-        "gulp-webpack": "*",
-        "gulp-cjsx": "*",
-        "gulp-util": "*",
-        "gulp-eslint": "*",
-        "gulp-sass": "*",
-        "gulp-watch": "*",
-        "gulp-download": "*",
-        "gulp-nodemon": "*"
-    }
+  "name": "hexlet-ide",
+  "subdomain": "hexlet",
+  "engines": {
+    "node": "0.10.x"
+  },
+  "version": "0.0.1-9",
+  "description": "Web IDE",
+  "keywords": [],
+  "scripts": {
+    "start": "bin/hexlet-ide.js -p 8080 -r /var/tmp",
+    "test": "./node_modules/.bin/mocha"
+  },
+  "bin": {
+    "hexlet-ide": "./bin/hexlet-ide.js"
+  },
+  "dependencies": {
+    "codemirror": "*",
+    "commander": "*",
+    "engine.io": "*",
+    "eureca.io": "*",
+    "express": "*",
+    "findit": "*",
+    "flux": "*",
+    "fs-extra": "^0.11.1",
+    "immutable": "*",
+    "jade": "*",
+    "jquery": "*",
+    "keymaster": "*",
+    "lodash": "*",
+    "primus": "*",
+    "pty.js": "git://github.com/chjj/pty.js",
+    "react": "*",
+    "rimraf": "*",
+    "socket.io": "*",
+    "socket.io-client": "*",
+    "term.js": "*",
+    "tree-model": "*"
+  },
+  "devDependencies": {
+    "zombie": "*",
+    "nodemon": "*",
+    "gulp": "*",
+    "mocha": "*",
+    "webpack": "*",
+    "webpack-dev-server": "*",
+    "webpack-dev-middleware": "*",
+    "style-loader": "*",
+    "css-loader": "*",
+    "less-loader": "*",
+    "url-loader": "*",
+    "jsx-loader": "*",
+    "gulp-webpack": "*",
+    "gulp-cjsx": "*",
+    "gulp-util": "*",
+    "gulp-eslint": "*",
+    "gulp-sass": "*",
+    "gulp-watch": "*",
+    "gulp-download": "*",
+    "gulp-nodemon": "*"
+  }
 }

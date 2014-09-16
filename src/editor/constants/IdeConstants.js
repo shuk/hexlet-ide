@@ -24,7 +24,13 @@ module.exports = {
 
     TABS_MAKE_CURRENT: null,
     TABS_SAVE_CURRENT: null,
-    TABS_EDIT_CURRENT: null
+    TABS_EDIT_CURRENT: null,
     // TABS_FLUSH_CONTENT: null
+
+    TERMINALS_CREATE_TERMINAL: null,
+    TERMINALS_UPDATE_TERMINAL: null,
+    TERMINALS_SELECT_TERMINAL: null,
+    TERMINALS_CLOSE_TERMINAL: null
+
   })
 };

@@ -1,4 +1,4 @@
 test:
-	./node_modules/.bin/mocha
+	npm test
 
 .PHONY: test

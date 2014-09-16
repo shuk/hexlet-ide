@@ -20,7 +20,7 @@ var s = function(options) {
   var routes = require("./routes/index");
   app.use("/", routes);
 
-  if (process.env.NODE_ENV === "develop") {
+  if (process.env.NODE_ENV === "develop" || process.env.NODE_ENV === "test") {
     var webpack = require("webpack");
     var webpackConfig = require("../../webpack.config.js");
     var compiler = webpack(webpackConfig);
