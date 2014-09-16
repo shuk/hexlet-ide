@@ -1,24 +1,16 @@
-/* global require module */
-
-var EventEmitter = require("events").EventEmitter;
-var merge = require("react/lib/merge");
-// var Immutable = require("immutable");
-// var _ = require("lodash");
+/* global require module Exception */
 var TreeModel = require("tree-model");
 var shared = require("shared");
 
 var AppDispatcher = require("editor/dispatcher/AppDispatcher");
-var IdeConstants = require("editor/constants/IdeConstants");
-var ActionTypes = IdeConstants.ActionTypes;
-
-var CHANGE_EVENT = "change";
+var ActionTypes = require("editor/constants/IdeConstants").ActionTypes;
+var BaseStore = require("./BaseStore");
 
 var contextMenu = false;
-
 var tree = new TreeModel(shared.treeOptions);
 var root;
 
-var TreeStore = merge(EventEmitter.prototype, {
+var TreeStore = BaseStore.extend({
   getRoot: function() {
     return root !== undefined ? root.model : root;
   },
@@ -30,74 +22,64 @@ var TreeStore = merge(EventEmitter.prototype, {
 
   getContextMenu: function() {
     return contextMenu;
-  },
-
-  emitChange: function() {
-    this.emit(CHANGE_EVENT);
-  },
-
-  addChangeListener: function(callback) {
-    this.on(CHANGE_EVENT, callback);
-  },
-
-  removeChangeListener: function(callback) {
-    this.removeListener(CHANGE_EVENT, callback);
   }
 });
 
-AppDispatcher.register(function(payload) {
-  switch(payload.actionType) {
-    case ActionTypes.TREE_LOAD:
-      var item = payload.item;
-    root = tree.parse(item);
-    break;
-    case ActionTypes.TREE_TOGGLE_FOLDER_STATE:
-      var id = payload.id;
-    var node = root.first(function(node) { return node.model.id === id; });
-    var model = node.model;
-    model.state = (model.state === "opened") ? "closed" : "opened";
-    break;
+AppDispatcher.registerHandler(ActionTypes.TREE_LOAD, function(payload) {
+  var item = payload.item;
+  root = tree.parse(item);
+  TreeStore.emitChange();
+});
 
-    case ActionTypes.TREE_OPEN_CONTEXT_MENU:
-      contextMenu = {id: payload.id, type: payload.type, x: payload.x, y: payload.y};
-    break;
+AppDispatcher.registerHandler(ActionTypes.TREE_TOGGLE_FOLDER_STATE, function(payload) {
+  var id = payload.id;
+  var node = root.first(function(node) { return node.model.id === id; });
+  var model = node.model;
+  model.state = (model.state === "opened") ? "closed" : "opened";
+  TreeStore.emitChange();
+});
 
-    case ActionTypes.IDE_GLOBAL_CLICK:
-      contextMenu = false;
-    break;
+AppDispatcher.registerHandler(ActionTypes.TREE_OPEN_CONTEXT_MENU, function(payload) {
+  contextMenu = {id: payload.id, type: payload.type, x: payload.x, y: payload.y};
+  TreeStore.emitChange();
+});
 
-    case ActionTypes.TREE_CREATE_FOLDER:
-      var parentId = payload.parentId;
-    var item = payload.item;
-    var node = root.first(function(node) { return node.model.id === parentId; });
-    var newNode = tree.parse(item);
-    node.addChild(newNode);
-    break;
+AppDispatcher.registerHandler(ActionTypes.IDE_GLOBAL_CLICK, function() {
+  contextMenu = false;
+  TreeStore.emitChange();
+});
 
-    case ActionTypes.TREE_REMOVE_FOLDER:
-      var id = payload.id;
-    var node = root.first(function(node) { return node.model.id === id; });
-    node.drop();
-    break;
+AppDispatcher.registerHandler(ActionTypes.TREE_CREATE_FOLDER, function(payload) {
+  var parentId = payload.parentId;
+  var item = payload.item;
+  var node = root.first(function(node) { return node.model.id === parentId; });
+  var newNode = tree.parse(item);
+  node.addChild(newNode);
+  TreeStore.emitChange();
+});
 
-    case ActionTypes.TREE_CREATE_FILE:
-      var parentId = payload.parentId;
-    var item = payload.item;
-    var node = root.first(function(node) { return node.model.id === parentId; });
-    var newNode = tree.parse(item);
-    node.addChild(newNode);
-    break;
+AppDispatcher.registerHandler(ActionTypes.TREE_REMOVE_FOLDER, function(payload) {
+  var id = payload.id;
+  var node = root.first(function(node) { return node.model.id === id; });
+  node.drop();
+  TreeStore.emitChange();
+});
 
-    case ActionTypes.TREE_REMOVE_FILE:
-      break;
+AppDispatcher.registerHandler(ActionTypes.TREE_CREATE_FILE, function(payload) {
+  var parentId = payload.parentId;
+  var item = payload.item;
+  var node = root.first(function(node) { return node.model.id === parentId; });
+  var newNode = tree.parse(item);
+  node.addChild(newNode);
+  TreeStore.emitChange();
+});
 
-    case ActionTypes.TREE_RELOAD:
-      // TODO
-      break;
+AppDispatcher.registerHandler(ActionTypes.TREE_REMOVE_FILE, function() {
+  throw new Exception("Not implemented!");
+});
 
-    default:
-  }
-    TreeStore.emitChange();
+AppDispatcher.registerHandler(ActionTypes.TREE_RELOAD, function() {
+  throw new Exception("Not implemented!");
 });
 
 module.exports = TreeStore;

@@ -18,8 +18,6 @@ var TerminalsStore = BaseStore.extend({
   }
 });
 
-
-
 AppDispatcher.registerHandler(ActionTypes.TERMINALS_CREATE_TERMINAL, function(payload) {
   terminals[payload.id] = {
     id: payload.id,

@@ -1,19 +1,12 @@
 /* global require module */
-
-var EventEmitter = require("events").EventEmitter;
-var merge = require("react/lib/merge");
-// var Immutable = require("immutable");
-
 var AppDispatcher = require("editor/dispatcher/AppDispatcher");
-var IdeConstants = require("editor/constants/IdeConstants");
-var ActionTypes = IdeConstants.ActionTypes;
-
-var CHANGE_EVENT = "change";
+var BaseStore = require("./BaseStore");
+var ActionTypes = require("editor/constants/IdeConstants").ActionTypes;
 
 var modal = false;
 var currentScope = null;
 
-var ModalStore = merge(EventEmitter.prototype, {
+var ModalStore = BaseStore.extend({
   get: function(scope) {
     if (!modal) {
       return false;
@@ -22,34 +15,17 @@ var ModalStore = merge(EventEmitter.prototype, {
     } else {
       return false;
     }
-  },
-
-  emitChange: function() {
-    this.emit(CHANGE_EVENT);
-  },
-
-  addChangeListener: function(callback) {
-    this.on(CHANGE_EVENT, callback);
-  },
-
-  removeChangeListener: function(callback) {
-    this.removeListener(CHANGE_EVENT, callback);
   }
 });
 
-AppDispatcher.register(function(payload) {
-  switch(payload.actionType) {
+AppDispatcher.registerHandler(ActionTypes.MODAL_CLOSE, function() {
+  modal = false;
+  ModalStore.emitChange();
+});
 
-    case ActionTypes.MODAL_CLOSE:
-      modal = false;
-    break;
-
-    case ActionTypes.MODAL_OPEN:
-      modal = payload.data;
-    currentScope = payload.scope;
-    break;
-  }
-
+AppDispatcher.registerHandler(ActionTypes.MODAL_OPEN, function(payload) {
+  modal = payload.data;
+  currentScope = payload.scope;
   ModalStore.emitChange();
 });
 
