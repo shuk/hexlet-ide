@@ -41,57 +41,60 @@ var TabsStore = merge(EventEmitter.prototype, {
   }
 });
 
+
 AppDispatcher.register(function(payload) {
   switch(payload.actionType) {
 
     case ActionTypes.TREE_OPEN_FILE:
       tabs.map(function(t) { t.current = false; });
 
-    var item = payload.item;
-    var content = payload.content;
+      var item = payload.item;
+      var content = payload.content;
 
-    var tab = _.find(tabs, {id: item.id});
-    if (tab === undefined) {
-      tabs.push({id: item.id, dirty: false, name: item.name, current: true, content: content});
-    } else {
-      tab.current = true;
-    }
+      var tab = _.find(tabs, {id: item.id});
+      if (tab === undefined) {
+        tabs.push({id: item.id, dirty: false, name: item.name, current: true, content: content});
+      } else {
+        tab.current = true;
+      }
 
-    TabsStore.emitChange();
-    break;
+      TabsStore.emitChange();
+      break;
 
     case ActionTypes.TABS_EDIT_CURRENT:
       var tab = _.find(tabs, {id: payload.id});
-    tab.content = payload.content;
-    tab.dirty = true;
+      tab.content = payload.content;
+      tab.dirty = true;
 
-    TabsStore.emitChange();
-    break;
+      TabsStore.emitChange();
+      break;
 
     case ActionTypes.TABS_SAVE_CURRENT:
       var tab = _.find(tabs, {id: payload.id});
-    tab.dirty = false;
+      tab.dirty = false;
 
-    TabsStore.emitChange();
-    break;
+      TabsStore.emitChange();
+      break;
 
     case ActionTypes.TABS_MAKE_CURRENT:
       tabs.map(function(t) { t.current = false; });
 
-    var tab = _.find(tabs, {id: payload.id});
-    tab.current = true;
+      var tab = _.find(tabs, {id: payload.id});
+      tab.current = true;
 
-    TabsStore.emitChange();
-    break;
+      TabsStore.emitChange();
+      break;
 
     case ActionTypes.TABS_CLOSE:
       tabs = _.filter(tabs, function(t) { return t.id !== payload.id; });
 
-    var tab = _.last(tabs);
-    tab.current = true;
+      var tab = _.last(tabs);
+      if (tab) {
+        tab.current = true;
+      }
 
-    TabsStore.emitChange();
-    break;
+      TabsStore.emitChange();
+      break;
 
     // case ActionTypes.TABS_FLUSH_CONTENT:
     //     tab = tabs[payload.id];
