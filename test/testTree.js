@@ -1,27 +1,31 @@
-/* global after require beforeEach define describe it */
+/* global after require before define describe it */
 
 require("./testHelper");
 
 var Browser = require("zombie");
 // var assert = require("assert");
-var b = Browser.create({debug: false, site: "http://localhost:8080"});
+var b = Browser.create({ debug: true, site: "http://localhost:3001"});
 
 describe("test tree", function(){
   this.timeout(10000);
   var p;
-  beforeEach(function() {
-    p = b.visit("/");
+
+  function waitTreeLoaded(window) {
+    return window.document.querySelector(".tree-branch-name");
+  }
+
+  before(function(done) {
+    p = b.visit("/", done);
   });
 
   it("open/close folder", function(done) {
-    p.then(function() {
+    b.wait(waitTreeLoaded, function() {
       b.fire("[data-name='folder1'].tree-branch-name", "click");
       b.assert.element("button span[data-name='folder1'].glyphicon-folder-open");
 
       b.fire("[data-name='folder1'].tree-branch-name", "click");
       b.assert.element("button span[data-name='folder1'].glyphicon-folder-close");
-    })
-    .done(done);
+    }).done(done);
   });
 
   it("create/remove folder", function(done) {

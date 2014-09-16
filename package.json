@@ -33,6 +33,7 @@
     "react": "*",
     "rimraf": "*",
     "socket.io": "*",
+    "socket.io-client": "*",
     "term.js": "*",
     "tree-model": "*"
   },

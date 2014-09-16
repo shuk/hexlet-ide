@@ -1,23 +1,21 @@
 /* global require process module __dirname before beforeEach afterEach setTimeout */
+// process.env.NODE_ENV = "test";
 
 var fs = require("fs-extra");
 
-var fixturesDir = "./test/fixtures";
+var fixturesDir = "./test/fixtures/project/";
 var testDir = "/var/tmp/test_dir";
 
 before(function() {
   fs.copySync(fixturesDir, testDir);
 
   require("../src/backend/server")({
-    port: 8080,
+    port: 3001,
     rootDir: testDir
   });
 });
 
-beforeEach(function() {
-  fs.copySync(fixturesDir, testDir);
-});
 
-afterEach(function() {
+after(function() {
   fs.removeSync(testDir);
 });

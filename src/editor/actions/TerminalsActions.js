@@ -18,7 +18,7 @@ var TerminalsActions = {
   },
 
   startUpdateTerminal: function(msg) {
-    socket.emit("data", msg);
+    socket.emit("updateTerminal", msg);
   },
 
   finishUpdateTerminal: function(msg) {

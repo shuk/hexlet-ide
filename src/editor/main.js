@@ -9,7 +9,7 @@ require("fuelux/dist/css/fuelux.css");
 require("codemirror/lib/codemirror.css");
 
 var rpc = require("./rpc");
-var websocket = require("./socket");
+var socket = require("./socket");
 
 var key = require("keymaster");
 
@@ -32,20 +32,20 @@ rpc.ready(function(proxy) {
   TreeActions.loadTree();
 });
 
-websocket.on('connect', function() {
+socket.on('connection', function() {
   TerminalsActions.startCreateTerminal();
+});
 
-  websocket.on("terminalCreated", function(msg) {
-    TerminalsActions.finishCreateTerminal(msg);
-  });
+socket.on("terminalCreated", function(msg) {
+  TerminalsActions.finishCreateTerminal(msg);
+});
 
-  websocket.on("data", function(msg) {
-    TerminalsActions.finishUpdateTerminal(msg);
-  });
+socket.on("terminalUpdated", function(msg) {
+  TerminalsActions.finishUpdateTerminal(msg);
+});
 
-  websocket.on("disconnect", function() {
-    //TODO: maybe destroy terminals or store action in buffer
-  });
+socket.on("disconnect", function() {
+  //TODO: maybe destroy terminals or store action in buffer
 });
 
 $(function() {
