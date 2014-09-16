@@ -1,0 +1,41 @@
+---
+-
+  hosts: webservers
+
+  vars:
+    project_root: /var/www/hexlet-ide
+
+  tasks:
+    - shell: ssh-keyscan -H github.com >> /etc/ssh/ssh_known_hosts
+
+    - name: create project root
+      file: dest={{ project_root }} state=directory owner={{ deploy_user }}
+
+    - name: clone project
+      sudo: yes
+      sudo_user: "{{ deploy_user }}"
+      git: repo=https://github.com/hexlet/hexlet-ide.git
+        accept_hostkey=yes
+        dest={{ project_root }}
+      tags: [build]
+
+    - name: install npm
+      npm: name={{ item }} state=latest global=yes
+      with_items:
+        - bower
+        - gulp
+
+    - name: install npm deps
+      sudo: yes
+      sudo_user: "{{ deploy_user }}"
+      shell: "cd {{ project_root }} && npm install"
+
+    - name: install bower deps
+      sudo: yes
+      sudo_user: "{{ deploy_user }}"
+      shell: "cd {{ project_root }} && bower install"
+
+    - name: build
+      sudo: yes
+      sudo_user: "{{ deploy_user }}"
+      shell: "cd {{ project_root }} && gulp webpack"

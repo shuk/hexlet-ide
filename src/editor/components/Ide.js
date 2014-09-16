@@ -4,6 +4,7 @@ var React = require("react/addons");
 
 var TreeBox = require("editor/components/tree/TreeBox");
 var TabsBox = require("editor/components/tabs/TabsBox");
+var TerminalsBox = require("editor/components/terminals/TerminalsBox");
 var IdeActions = require("editor/actions/IdeActions");
 
 var Ide = React.createClass({
@@ -24,7 +25,7 @@ var Ide = React.createClass({
         </div>
         <div className="row">
           <div className="col-md-12">
-            <div id="terminal"></div>
+            <TerminalsBox />
           </div>
         </div>
       </div>
