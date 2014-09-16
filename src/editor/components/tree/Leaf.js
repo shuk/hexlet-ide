@@ -28,7 +28,7 @@ var Leaf = React.createClass({
                 <button className="tree-item-name"
                     onContextMenu={this.handleContextMenu.bind(this, leaf.id, "file")}
                     onDoubleClick={this.handleOpenFile.bind(this, leaf)}>
-                    <span className="glyphicon icon-item fueluxicon-bullet"></span>
+                    <span className="glyphicon icon-file glyphicon-file"></span>
                     <span className="tree-label">{leaf.name}</span>
                 </button>
             </li>
