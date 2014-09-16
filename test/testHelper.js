@@ -5,11 +5,11 @@ var Browser = require("zombie");
 var fixturesDir = "./test/fixtures/project/";
 var testDir = "/var/tmp/test_dir";
 
-var helper = {
-  port: process.env.PORT || 8080,
-  baseUrl: "http://localhost:" + process.env.PORT || 8080,
-  getBrowser: function() { return helper.browser; }
-};
+var helper = {};
+helper.port = process.env.PORT || 8080;
+helper.baseUrl = "http://localhost:" + helper.port;
+helper.browser = Browser.create({ debug: true, site: helper.baseUrl });
+helper.getBrowser = function() { return helper.browser; };
 
 before(function(done) {
   this.timeout(10000);
@@ -23,7 +23,6 @@ before(function(done) {
     });
   }
 
-  helper.browser = Browser.create({ debug: true, site: helper.baseUrl });
   helper.browser.visit("/", done);
 });
 
