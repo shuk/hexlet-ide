@@ -1,0 +1,6 @@
+[webservers]
+staging.hexlet.io ansible_ssh_user=root
+
+[all:vars]
+deploy_user=hexlet_staging
+server_name=hexlet-ide-staging.hexlet.io

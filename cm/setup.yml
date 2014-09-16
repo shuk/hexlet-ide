@@ -1,0 +1,23 @@
+-
+  hosts: webservers
+
+  vars:
+    project_root: /var/www/hexlet-ide
+
+  tasks:
+    - name: update vhost
+      template: src=templates/nginx/hexlet-ide.conf.j2 dest=/etc/nginx/conf.d/hexlet-ide.conf
+      notify:
+        - reload nginx
+      tags: [nginx]
+
+    - name: add nodejs repo
+      apt_repository: repo='ppa:chris-lea/node.js' state=present
+
+    - name: install nodejs
+      apt: pkg=nodejs state=latest update_cache=yes
+
+
+  handlers:
+    - name: reload nginx
+      service: name=nginx state=reloaded
