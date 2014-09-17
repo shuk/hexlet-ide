@@ -1,25 +1,30 @@
 /** @jsx React.DOM */
-
 var React = require("react/addons");
 
+var WatchStoreMixin = require("editor/mixins/WatchStore");
+var ContextMenuStore = require("editor/stores/ContextMenuStore");
+
 var ContextMenu = React.createClass({
-  propTypes:{
-    x: React.PropTypes.number.isRequired,
-    y: React.PropTypes.number.isRequired
+  mixins: [ WatchStoreMixin(ContextMenuStore) ],
+
+  getFluxState: function() {
+    return ContextMenuStore.getState();
   },
 
   render: function() {
+    if (!this.state.isVisible) return null;
+
     var menuStyle = {
       position: "fixed",
       zIndex: 100,
-      top: this.props.y,
-      left: this.props.x
+      top: this.state.coords.y,
+      left: this.state.coords.x
     };
 
     return (
       <div style={menuStyle} className="open">
         <ul className="dropdown-menu" role="menu">
-          {this.props.children.reduce(function(acc, group, index, array) {
+          {this.state.options.reduce(function(acc, group, index, array) {
             var boundedGroup = group.map(function(item) {
               return <li><a href="#" data-name={item.title} onClick={item.onClick}>{item.title}</a></li>;
             })
@@ -37,4 +42,3 @@ var ContextMenu = React.createClass({
 });
 
 module.exports = ContextMenu;
-

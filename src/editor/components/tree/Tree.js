@@ -13,9 +13,8 @@ var Tree = React.createClass({
     TreeActions.toggleFolderState(id);
   },
 
-  handleContextMenu: function(id, type, e) {
-    e.preventDefault();
-    TreeActions.openContextMenu(id, type, e.clientX, e.clientY);
+  handleContextMenu: function(e) {
+    this.props.handleContextMenu(e, this.props.tree);
   },
 
   render: function() {
@@ -49,7 +48,7 @@ var Tree = React.createClass({
       <li className={treeBranchClasses} data-template="treebranch" data-name={tree.name} role="treeitem" aria-expanded="false">
         <div className="tree-branch-header">
           <button className="tree-branch-name" data-name={tree.name}
-            onContextMenu={this.handleContextMenu.bind(this, tree.id, "folder")}
+            onContextMenu={this.handleContextMenu}
             onClick={this.handleToggleFolderState.bind(this, tree.id)}>
             <span className="glyphicon icon-caret glyphicon-play"></span>
             <span className={folderIconClasses} data-name={tree.name}> </span>
@@ -62,15 +61,15 @@ var Tree = React.createClass({
             {tree.children.map(function(item) {
               switch(item.type) {
                 case "folder":
-                  return <Tree key={"tree_" + item.id} tree={item} />
+                  return <Tree key={"tree_" + item.id} tree={item} handleContextMenu={this.props.handleContextMenu} />
                   break;
                 case "file":
-                  return <Leaf key={"leaf_" + item.id} leaf={item} />
+                  return <Leaf key={"leaf_" + item.id} leaf={item} handleContextMenu={this.props.handleContextMenu} />
                   break;
                 default:
                   throw "xxx"
               }
-            })}
+            }, this)}
           </ul>
           : null}
         </li>

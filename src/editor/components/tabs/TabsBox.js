@@ -6,28 +6,25 @@ var React = require("react/addons");
 // var ReactPropTypes = React.PropTypes;
 var key = require("keymaster");
 
-var TabsStore = require("editor/stores/TabsStore");
-var Editor = require("editor/components/Editor");
-var TabsActions = require("editor/actions/TabsActions");
-var Modal = require("editor/components/Modal");
-var ModalStore = require("editor/stores/ModalStore");
+var WatchStoreMixin = require("editor/mixins/WatchStore");
 
-function getState() {
-  return {
-    tabs: TabsStore.getAll(),
-    modalData: ModalStore.get("tabs"),
-    current: TabsStore.getCurrent()
-  }
-}
+var Editor = require("editor/components/Editor");
+var TabsStore = require("editor/stores/TabsStore");
+var TabsActions = require("editor/actions/TabsActions");
+var ModalActions = require("editor/actions/ModalActions");
 
 var TabsBox = React.createClass({
   // propTypes: {
   // tabsData: React.PropTypes.renderable.isRequired
   // defaultCollapsed: React.PropTypes.bool,
   // },
+  mixins: [ WatchStoreMixin(TabsStore) ],
 
-  getInitialState: function() {
-    return getState();
+  getFluxState: function() {
+    return {
+      tabs: TabsStore.getAll(),
+      current: TabsStore.getCurrent()
+    }
   },
 
   handleChangeEditorValue: function(current, content) {
@@ -42,14 +39,18 @@ var TabsBox = React.createClass({
     TabsActions.makeCurrent(tab);
   },
 
-  handleForceCloseTab: function() {
-    TabsActions.closeTab(this.state.current);
-  },
-
   handleCloseTab: function(e) {
     var current = this.state.current;
     if (this.state.current.dirty) {
-      TabsActions.openSavingModalForDirtyTab(current);
+      ModalActions.showModal({
+        title: "Close unsaved tab",
+        onApply: function() {
+          TabsActions.closeTab(current);
+        },
+        content: function() {
+          return <p>are you sure? (unsaved data will be lost)</p>;
+        }
+      });
     } else {
       TabsActions.closeTab(current);
     }
@@ -61,8 +62,6 @@ var TabsBox = React.createClass({
 
     var tabs = this.state.tabs;
     var current = this.state.current;
-
-    var modalData = this.state.modalData;
 
     modes = {
       "js": "javascript",
@@ -91,12 +90,6 @@ var TabsBox = React.createClass({
 
     return (
       <div>
-        {modalData ?
-          <Modal title={"Close unsaved tab"} onApply={this.handleForceCloseTab}>
-            {"are you sure? (unsaved data will be lost)"}
-          </Modal>
-          : null}
-
           <ul className="nav nav-tabs" role="tablist">
             {items}
           </ul>
@@ -121,11 +114,6 @@ var TabsBox = React.createClass({
     );
   },
 
-  componentDidMount: function() {
-    TabsStore.addChangeListener(this._onChange);
-    ModalStore.addChangeListener(this._onChange);
-  },
-
   componentWillUpdate: function(nextProps, nextState) {
     var $this = this;
 
@@ -134,15 +122,6 @@ var TabsBox = React.createClass({
     } else {
       key("ctrl+s", function(){ $this.handleSaveFile(); return false });
     }
-  },
-
-  componentWillUnmount: function() {
-    TabsStore.removeChangeListener(this._onChange);
-    ModalStore.removeChangeListener(this._onChange);
-  },
-
-  _onChange: function() {
-    this.setState(getState());
   }
 });
 

@@ -6,7 +6,6 @@ var AppDispatcher = require("editor/dispatcher/AppDispatcher");
 var ActionTypes = require("editor/constants/IdeConstants").ActionTypes;
 var BaseStore = require("./BaseStore");
 
-var contextMenu = false;
 var tree = new TreeModel(shared.treeOptions);
 var root;
 
@@ -18,10 +17,6 @@ var TreeStore = BaseStore.extend({
   getPath: function(id) {
     var node = root.first(function(node) { return node.model.id === id; });
     return node.getPath().map(function(node){ return node.model.name; }).join("/");
-  },
-
-  getContextMenu: function() {
-    return contextMenu;
   }
 });
 
@@ -36,16 +31,6 @@ AppDispatcher.registerHandler(ActionTypes.TREE_TOGGLE_FOLDER_STATE, function(pay
   var node = root.first(function(node) { return node.model.id === id; });
   var model = node.model;
   model.state = (model.state === "opened") ? "closed" : "opened";
-  TreeStore.emitChange();
-});
-
-AppDispatcher.registerHandler(ActionTypes.TREE_OPEN_CONTEXT_MENU, function(payload) {
-  contextMenu = {id: payload.id, type: payload.type, x: payload.x, y: payload.y};
-  TreeStore.emitChange();
-});
-
-AppDispatcher.registerHandler(ActionTypes.IDE_GLOBAL_CLICK, function() {
-  contextMenu = false;
   TreeStore.emitChange();
 });
 

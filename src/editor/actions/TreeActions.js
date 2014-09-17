@@ -43,16 +43,6 @@ var TreeActions = {
     });
   },
 
-  openContextMenu: function(id, type, x, y) {
-    AppDispatcher.dispatch({
-      actionType: ActionTypes.TREE_OPEN_CONTEXT_MENU,
-      id: id,
-      type: type,
-      x: x,
-      y: y
-    });
-  },
-
   openCreateFolderModal: function(id) {
     AppDispatcher.dispatch({
       actionType: ActionTypes.MODAL_OPEN,
