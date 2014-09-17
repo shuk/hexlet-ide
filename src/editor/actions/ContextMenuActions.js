@@ -4,17 +4,19 @@ var AppDispatcher = require("editor/dispatcher/AppDispatcher");
 var ActionTypes = require("editor/constants/IdeConstants").ActionTypes;
 
 module.exports = {
-  showModal: function(options) {
+  showContextMenu: function(coords, options) {
     "use strict";
     AppDispatcher.dispatch({
-      actionType: ActionTypes.MODAL_OPEN,
+      actionType: ActionTypes.CONTEXT_MENU_SHOW,
+      coords: coords,
       options: options
     });
   },
-  close: function() {
+
+  hideContextMenu: function() {
     "use strict";
     AppDispatcher.dispatch({
-      actionType: ActionTypes.MODAL_CLOSE
+      actionType: ActionTypes.CONTEXT_MENU_HIDE
     });
   }
 };

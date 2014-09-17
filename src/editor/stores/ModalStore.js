@@ -3,29 +3,33 @@ var AppDispatcher = require("editor/dispatcher/AppDispatcher");
 var BaseStore = require("./BaseStore");
 var ActionTypes = require("editor/constants/IdeConstants").ActionTypes;
 
-var modal = false;
-var currentScope = null;
+var state = {
+  isVisible: false,
+  content: function() {
+    return null;
+  },
+  title: "",
+  onApply: function() {},
+  onClose: function() {}
+};
 
 var ModalStore = BaseStore.extend({
-  get: function(scope) {
-    if (!modal) {
-      return false;
-    } else if (scope === currentScope) {
-      return modal;
-    } else {
-      return false;
-    }
+  getState: function() {
+    return state;
   }
 });
 
 AppDispatcher.registerHandler(ActionTypes.MODAL_CLOSE, function() {
-  modal = false;
+  state.isVisible = false;
   ModalStore.emitChange();
 });
 
 AppDispatcher.registerHandler(ActionTypes.MODAL_OPEN, function(payload) {
-  modal = payload.data;
-  currentScope = payload.scope;
+  state.isVisible = true;
+  state.content = payload.options.content;
+  state.onApply = payload.options.onApply;
+  state.onClose = payload.options.onClose;
+  state.title = payload.options.title;
   ModalStore.emitChange();
 });
 
