@@ -6,7 +6,7 @@ var ActionTypes = IdeConstants.ActionTypes;
 var TreeStore = require("editor/stores/TreeStore");
 var rpc = require("editor/rpc");
 
-var TabsActions = {
+module.exports = {
   // flushTabContent: function(id, content) {
   //     "use strict";
   //     AppDispatcher.dispatch({
@@ -16,52 +16,39 @@ var TabsActions = {
   //     });
   // },
 
-  closeTab: function(tab) {
+  closeEditor: function(editor) {
     "use strict";
     AppDispatcher.dispatch({
-      actionType: ActionTypes.TABS_CLOSE,
-      id: tab.id
+      actionType: ActionTypes.EDITORS_CLOSE,
+      id: editor.id
     });
   },
 
-  makeCurrent: function(tab) {
+  makeCurrent: function(editor) {
     "use strict";
     AppDispatcher.dispatch({
-      actionType: ActionTypes.TABS_MAKE_CURRENT,
-      id: tab.id
+      actionType: ActionTypes.EDITORS_MAKE_CURRENT,
+      id: editor.id
     });
   },
 
-  save: function(tab) {
+  save: function(editor) {
     "use strict";
-    var filePath = TreeStore.getPath(tab.id);
-    rpc.fs.write(filePath, tab.content).onReady(function() {
+    var filePath = TreeStore.getPath(editor.id);
+    rpc.fs.write(filePath, editor.content).onReady(function() {
       AppDispatcher.dispatch({
-        actionType: ActionTypes.TABS_SAVE_CURRENT,
-        id: tab.id
+        actionType: ActionTypes.EDITORS_SAVE_CURRENT,
+        id: editor.id
       });
     });
   },
 
-  openSavingModalForDirtyTab: function(id) {
-    AppDispatcher.dispatch({
-      actionType: ActionTypes.MODAL_OPEN,
-      scope: "tabs",
-      data: {
-        id: id,
-        type: ActionTypes.TABS_OPEN_SAVING_MODAL_FOR_DIRTY_TAB
-      }
-    });
-  },
-
-  edit: function(tab, content) {
+  edit: function(editor, content) {
     "use strict";
     AppDispatcher.dispatch({
-      actionType: ActionTypes.TABS_EDIT_CURRENT,
-      id: tab.id,
+      actionType: ActionTypes.EDITORS_EDIT_CURRENT,
+      id: editor.id,
       content: content
     });
   }
 };
-
-module.exports = TabsActions;

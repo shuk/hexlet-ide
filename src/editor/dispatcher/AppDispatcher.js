@@ -33,6 +33,9 @@ var AppDispatcher = copyProperties(new Dispatcher(), {
   // }
   //
   registerHandler: function(actionType, callback) {
+    if (!actionType) {
+      throw "ActionType is undefined!!!";
+    }
     this.register(function(payload) {
       if (payload.actionType === actionType) {
         callback(payload);

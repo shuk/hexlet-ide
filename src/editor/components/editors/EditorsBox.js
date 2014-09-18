@@ -8,35 +8,36 @@ var key = require("keymaster");
 
 var WatchStoreMixin = require("editor/mixins/WatchStore");
 
-var Editor = require("editor/components/Editor");
-var TabsStore = require("editor/stores/TabsStore");
-var TabsActions = require("editor/actions/TabsActions");
+var Editor = require("./Editor");
+
+var EditorsStore = require("editor/stores/EditorsStore");
+var EditorsActions = require("editor/actions/EditorsActions");
 var ModalActions = require("editor/actions/ModalActions");
 
-var TabsBox = React.createClass({
+var EditorsBox = React.createClass({
   // propTypes: {
   // tabsData: React.PropTypes.renderable.isRequired
   // defaultCollapsed: React.PropTypes.bool,
   // },
-  mixins: [ WatchStoreMixin(TabsStore) ],
+  mixins: [ WatchStoreMixin(EditorsStore) ],
 
   getFluxState: function() {
     return {
-      tabs: TabsStore.getAll(),
-      current: TabsStore.getCurrent()
+      editors: EditorsStore.getAll(),
+      current: EditorsStore.getCurrent()
     }
   },
 
   handleChangeEditorValue: function(current, content) {
-    TabsActions.edit(current, content);
+    EditorsActions.edit(current, content);
   },
 
   handleSaveFile: function() {
-    TabsActions.save(this.state.current);
+    EditorsActions.save(this.state.current);
   },
 
-  selectTab: function(tab, e) {
-    TabsActions.makeCurrent(tab);
+  selectEditor: function(editor, e) {
+    EditorsActions.makeCurrent(editor);
   },
 
   handleCloseTab: function(e) {
@@ -45,14 +46,14 @@ var TabsBox = React.createClass({
       ModalActions.showModal({
         title: "Close unsaved tab",
         onApply: function() {
-          TabsActions.closeTab(current);
+          EditorsActions.closeEditor(current);
         },
         content: function() {
           return <p>are you sure? (unsaved data will be lost)</p>;
         }
       });
     } else {
-      TabsActions.closeTab(current);
+      EditorsActions.closeEditor(current);
     }
     // TabsActions.flushTabContent(this.state.current.id, this.state.value);
   },
@@ -60,7 +61,7 @@ var TabsBox = React.createClass({
   render: function() {
     var cx = React.addons.classSet;
 
-    var tabs = this.state.tabs;
+    var editors = this.state.editors;
     var current = this.state.current;
 
     modes = {
@@ -72,18 +73,18 @@ var TabsBox = React.createClass({
       mode = modes[_.last(current.name.split("."))];
     }
 
-    var items = tabs.map(function(tab) {
-      var tabClasses = cx({
-        "active": tab.current,
+    var items = editors.map(function(editor) {
+      var classes = cx({
+        "active": editor.current,
       });
 
-      return (<li key={"tab_" + tab.id} className={tabClasses}>
+      return (<li key={"editor_" + editor.id} className={classes}>
         <a href="#">
-          <span onDoubleClick={this.handleCloseTab.bind(this, tab)} onClick={this.selectTab.bind(this, tab)}>
-            {tab.name}
-            {tab.dirty ? "*" : ""}
+          <span onDoubleClick={this.handleCloseTab.bind(this, editor)} onClick={this.selectEditor.bind(this, editor)}>
+            {editor.name}
+            {editor.dirty ? "*" : ""}
           </span>
-          <span className="glyphicon glyphicon-remove" onClick={this.handleCloseTab.bind(this, tab)}></span>
+          <span className="glyphicon glyphicon-remove" onClick={this.handleCloseTab.bind(this, editor)}></span>
         </a>
       </li>);
     }, this);
@@ -94,18 +95,18 @@ var TabsBox = React.createClass({
             {items}
           </ul>
           <div className="tab-content">
-            {tabs.map(function(tab) {
+            {editors.map(function(editor) {
               var classes = cx({
                 "tab-pane": true,
-                "fade active in": tab.current
+                "fade active in": editor.current
               });
 
               return (
-                <div className={classes} key={tab.id}>
+                <div className={classes} key={editor.id}>
                   <Editor mode={mode}
-                    focus={tab.current}
-                    onChangeValue={this.handleChangeEditorValue.bind(this, tab)}
-                    initContent={tab.content} />
+                    focus={editor.current}
+                    onChangeValue={this.handleChangeEditorValue.bind(this, editor)}
+                    initContent={editor.content} />
                 </div>
                 );
             }, this)}
@@ -125,4 +126,4 @@ var TabsBox = React.createClass({
   }
 });
 
-module.exports = TabsBox;
+module.exports = EditorsBox;

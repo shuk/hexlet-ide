@@ -7,6 +7,7 @@ module.exports = {
     IDE_GLOBAL_CLICK: null,
 
     TREE_LOAD: null,
+    TREE_RELOAD: null,
     TREE_TOGGLE_FOLDER_STATE: null,
     TREE_OPEN_FILE: null,
     TREE_OPEN_CONTEXT_MENU: null,
@@ -22,10 +23,11 @@ module.exports = {
     MODAL_CLOSE: null,
     MODAL_OPEN: null,
 
-    TABS_MAKE_CURRENT: null,
-    TABS_SAVE_CURRENT: null,
-    TABS_EDIT_CURRENT: null,
-    // TABS_FLUSH_CONTENT: null
+    EDITORS_CLOSE: null,
+    EDITORS_MAKE_CURRENT: null,
+    EDITORS_SAVE_CURRENT: null,
+    EDITORS_EDIT_CURRENT: null,
+    // EDITORS_FLUSH_CONTENT: null
 
     TERMINALS_CREATE_TERMINAL: null,
     TERMINALS_UPDATE_TERMINAL: null,

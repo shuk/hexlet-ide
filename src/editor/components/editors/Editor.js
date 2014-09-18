@@ -3,8 +3,6 @@
 var React = require("react/addons");
 var CodeMirror = require("codemirror");
 
-var TabsActions = require("editor/actions/TabsActions");
-
 var Editor = React.createClass({
   render: function() {
     return (

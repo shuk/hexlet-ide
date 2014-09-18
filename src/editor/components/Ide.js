@@ -3,7 +3,7 @@
 var React = require("react/addons");
 
 var TreeBox = require("editor/components/tree/TreeBox");
-var TabsBox = require("editor/components/tabs/TabsBox");
+var EditorsBox = require("editor/components/editors/EditorsBox");
 var ContextMenu = require("editor/components/ContextMenu");
 var Modal = require("editor/components/Modal");
 
@@ -25,7 +25,7 @@ var Ide = React.createClass({
             <TreeBox />
           </div>
           <div className="col-md-8 tabs-box">
-            <TabsBox />
+            <EditorsBox />
           </div>
         </div>
         <div className="row">
