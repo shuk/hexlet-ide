@@ -43,50 +43,6 @@ var TreeActions = {
     });
   },
 
-  openCreateFolderModal: function(id) {
-    AppDispatcher.dispatch({
-      actionType: ActionTypes.MODAL_OPEN,
-      scope: "tree",
-      data: {
-        id: id,
-        type: ActionTypes.TREE_OPEN_CREATE_FOLDER_MODAL
-      }
-    });
-  },
-
-  openRemoveFolderModal: function(id) {
-    AppDispatcher.dispatch({
-      actionType: ActionTypes.MODAL_OPEN,
-      scope: "tree",
-      data: {
-        id: id,
-        type: ActionTypes.TREE_OPEN_REMOVE_FOLDER_MODAL
-      }
-    });
-  },
-
-  openCreateFileModal: function(id) {
-    AppDispatcher.dispatch({
-      actionType: ActionTypes.MODAL_OPEN,
-      scope: "tree",
-      data: {
-        id: id,
-        type: ActionTypes.TREE_OPEN_CREATE_FILE_MODAL
-      }
-    });
-  },
-
-  openRemoveFileModal: function(id) {
-    AppDispatcher.dispatch({
-      actionType: ActionTypes.MODAL_OPEN,
-      scope: "tree",
-      data: {
-        id: id,
-        type: ActionTypes.TREE_OPEN_REMOVE_FILE_MODAL
-      }
-    });
-  },
-
   createFolder: function(parentId, name) {
     // var rpc = new Eureca.Client();
     var parentFolder = TreeStore.getPath(parentId);
@@ -126,6 +82,19 @@ var TreeActions = {
   },
 
   removeFile: function() {
+  },
+
+  rename: function(parentId, name) {
+    var parentPath = TreeStore.getPath(parentId);
+    rpc.fs.rename(parentPath, name).onReady(function(result) {
+      // FIXME check result
+      AppDispatcher.dispatch({
+        actionType: ActionTypes.TREE_RENAME,
+        parentId: parentId,
+        item: result
+      });
+    });
+
   }
 };
 

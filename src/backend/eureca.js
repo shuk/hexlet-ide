@@ -1,14 +1,14 @@
 /* global module require */
+var _ = require("lodash");
+var path = require("path");
+var fs = require("fs-extra");
+var TreeModel = require("tree-model");
+var rimraf = require("rimraf");
+var EurecaServer = require("eureca.io").EurecaServer;
+
+var shared = require("../shared");
 
 var eureca = function(server, options) {
-    var path = require("path");
-    var fs = require("fs");
-
-    var TreeModel = require("tree-model");
-    var rimraf = require("rimraf");
-    var EurecaServer = require("eureca.io").EurecaServer;
-
-    var shared = require("../shared");
     var eurecaServer = new EurecaServer();
     eurecaServer.attach(server);
 
@@ -102,6 +102,23 @@ var eureca = function(server, options) {
                 state: "closed"
             };
             return item;
+        },
+
+        rename: function(filePath, name) {
+          var context = this;
+          context.async = true;
+
+          var fullPath = path.join(path.dirname(options.rootDir), filePath);
+          var newPath = path.join(path.dirname(fullPath), name);
+          fs.move(fullPath, newPath, function() {
+            var item = {
+              id: fs.statSync(newPath).ino,
+              path: newPath,
+              name: name
+            };
+            context.return(item);
+          });
+
         }
     };
     return EurecaServer;

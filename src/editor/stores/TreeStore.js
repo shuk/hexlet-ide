@@ -1,4 +1,5 @@
 /* global require module Exception */
+var _ = require("lodash");
 var TreeModel = require("tree-model");
 var shared = require("shared");
 
@@ -56,6 +57,14 @@ AppDispatcher.registerHandler(ActionTypes.TREE_CREATE_FILE, function(payload) {
   var node = root.first(function(node) { return node.model.id === parentId; });
   var newNode = tree.parse(item);
   node.addChild(newNode);
+  TreeStore.emitChange();
+});
+
+AppDispatcher.registerHandler(ActionTypes.TREE_RENAME, function(payload) {
+  var parentId = payload.parentId;
+  var item = payload.item;
+  var node = root.first(function(node) { return node.model.id === parentId; });
+  _.extend(node.model, item);
   TreeStore.emitChange();
 });
 

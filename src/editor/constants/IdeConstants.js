@@ -19,6 +19,7 @@ module.exports = {
     TREE_REMOVE_FILE: null,
     TREE_CREATE_FOLDER: null,
     TREE_REMOVE_FOLDER: null,
+    TREE_RENAME: null,
 
     MODAL_CLOSE: null,
     MODAL_OPEN: null,

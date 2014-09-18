@@ -41,6 +41,22 @@ var TreeBox = React.createClass({
     });
   },
 
+  handleOpenRenameModal: function(item) {
+    ModalActions.showModal({
+      title: "Rename",
+      onApply: function(modal) {
+        TreeActions.rename(item.id, modal.refs.nameInput.getDOMNode().value);
+      },
+      content: function() {
+        return (
+          <form action="">
+            <input type="text" name="folderName" ref="nameInput" defaultValue={item.name} />
+          </form>
+        );
+      }
+    });
+  },
+
   handleOpenRemoveFolderModal: function(id) {
     ModalActions.showModal({
       title: "Remove folder",
@@ -79,17 +95,26 @@ var TreeBox = React.createClass({
     });
   },
 
-  getContextMenuItems: function(item, type) {
-    contextMenuChildren = [];
-    contextMenuChildren.push([
-      {onClick: this.handleOpenCreateFolderModal.bind(this, item.id), title: "new folder"},
-      {onClick: this.handleOpenCreateFileModal.bind(this, item.id), title: "new file"}
-    ]);
+  getContextMenuItems: function(item) {
+    var contextMenuChildren = [];
+
+    if (item.type === "folder") {
+      contextMenuChildren.push([
+        {onClick: this.handleOpenCreateFolderModal.bind(this, item.id), title: "New folder"},
+        {onClick: this.handleOpenCreateFileModal.bind(this, item.id), title: "New file"}
+      ]);
+
+      contextMenuChildren.push([
+        {onClick: this.handleOpenRemoveFolderModal.bind(this, item.id), title: "Remove folder"},
+        {onClick: this.handleOpenRenameModal.bind(this, item), title: "Rename"}
+      ]);
+    }
 
     if (item.type === "file") {
-      contextMenuChildren.push([{onClick: this.handleOpenRemoveFolderModal.bind(this, item.id), title: "remove file"}]);
-    } else if (item.type === "folder") {
-      contextMenuChildren.push([{onClick: this.handleOpenRemoveFolderModal.bind(this, item.id), title: "remove folder"}]);
+      contextMenuChildren.push([
+        {onClick: this.handleOpenRemoveFileModal.bind(this, item.id), title: "Remove file"},
+        {onClick: this.handleOpenRenameModal.bind(this, item), title: "Rename"}
+      ]);
     }
 
     return contextMenuChildren;
