@@ -9,7 +9,8 @@
   "keywords": [],
   "scripts": {
     "start": "bin/hexlet-ide.js -p 8080 -r /var/tmp",
-    "test": "./node_modules/.bin/mocha"
+    "test": "./node_modules/.bin/mocha",
+    "prepublish": "gulp webpack"
   },
   "bin": {
     "hexlet-ide": "./bin/hexlet-ide.js"
