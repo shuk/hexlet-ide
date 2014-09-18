@@ -56,14 +56,16 @@ var TreeActions = {
     });
   },
 
-  removeFolder: function(id) {
+  remove: function(id) {
     // var rpc = new Eureca.Client();
     var folderPath = TreeStore.getPath(id);
+    var files = TreeStore.getFilesForPath(id);
     rpc.fs.unlink(folderPath).onReady(function(result) {
       // FIXME check result
       AppDispatcher.dispatch({
-        actionType: ActionTypes.TREE_REMOVE_FOLDER,
-        id: id
+        actionType: ActionTypes.TREE_REMOVE,
+        id: id,
+        removedFiles: files
       });
     });
   },
@@ -81,9 +83,6 @@ var TreeActions = {
     });
   },
 
-  removeFile: function() {
-  },
-
   rename: function(parentId, name) {
     var parentPath = TreeStore.getPath(parentId);
     rpc.fs.rename(parentPath, name).onReady(function(result) {
@@ -94,7 +93,6 @@ var TreeActions = {
         item: result
       });
     });
-
   }
 };
 

@@ -51,7 +51,7 @@ AppDispatcher.registerHandler(ActionTypes.EDITORS_SAVE_CURRENT, function(payload
 AppDispatcher.registerHandler(ActionTypes.EDITORS_MAKE_CURRENT, function(payload) {
   editors.map(function(t) { t.current = false; });
 
-  var editor = _.find(editor, {id: payload.id});
+  var editor = _.find(editors, {id: payload.id});
   editor.current = true;
 
   EditorsStore.emitChange();
@@ -61,6 +61,22 @@ AppDispatcher.registerHandler(ActionTypes.EDITORS_CLOSE, function(payload) {
   editors = _.filter(editors, function(t) { return t.id !== payload.id; });
 
   if (editors.length > 0) {
+    var editor = _.last(editors);
+    editor.current = true;
+  }
+
+  EditorsStore.emitChange();
+});
+
+AppDispatcher.registerHandler(ActionTypes.TREE_REMOVE, function(payload) {
+  var currentEditor = EditorsStore.getCurrent();
+
+  var removedFiles = payload.removedFiles;
+  editors = _.filter(editors, function(t) { return !_.contains(removedFiles, t.id); });
+
+  var needSelectNewEditor = !_.contains(editors, currentEditor) && editors.length > 0;
+
+  if (needSelectNewEditor) {
     var editor = _.last(editors);
     editor.current = true;
   }

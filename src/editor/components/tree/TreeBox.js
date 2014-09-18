@@ -61,7 +61,7 @@ var TreeBox = React.createClass({
     ModalActions.showModal({
       title: "Remove folder",
       onApply: function(modal) {
-        TreeActions.removeFolder(id);
+        TreeActions.remove(id);
       },
       content: function() {
         return <p>Are you sure?</p>;
@@ -87,7 +87,7 @@ var TreeBox = React.createClass({
     ModalActions.showModal({
       title: "Remove file",
       onApply: function(modal) {
-        TreeActions.removeFile(id);
+        TreeActions.remove(id);
       },
       content: function() {
         return <p>Are you sure?</p>;

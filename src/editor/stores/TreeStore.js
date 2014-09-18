@@ -18,6 +18,19 @@ var TreeStore = BaseStore.extend({
   getPath: function(id) {
     var node = root.first(function(node) { return node.model.id === id; });
     return node.getPath().map(function(node){ return node.model.name; }).join("/");
+  },
+
+  getFilesForPath: function(id) {
+    var parentNode = root.first(function(node) { return node.model.id === id; });
+    if (parentNode.model.type === "file") {
+      return [parentNode.model.id];
+    } else if (parentNode.model.type === "folder") {
+      return parentNode.all(function(node) {
+        return node.model.type === "file";
+      }).map(function(node) {
+        return node.model.id;
+      });
+    }
   }
 });
 
@@ -44,7 +57,7 @@ AppDispatcher.registerHandler(ActionTypes.TREE_CREATE_FOLDER, function(payload) 
   TreeStore.emitChange();
 });
 
-AppDispatcher.registerHandler(ActionTypes.TREE_REMOVE_FOLDER, function(payload) {
+AppDispatcher.registerHandler(ActionTypes.TREE_REMOVE, function(payload) {
   var id = payload.id;
   var node = root.first(function(node) { return node.model.id === id; });
   node.drop();
@@ -66,10 +79,6 @@ AppDispatcher.registerHandler(ActionTypes.TREE_RENAME, function(payload) {
   var node = root.first(function(node) { return node.model.id === parentId; });
   _.extend(node.model, item);
   TreeStore.emitChange();
-});
-
-AppDispatcher.registerHandler(ActionTypes.TREE_REMOVE_FILE, function() {
-  throw new Exception("Not implemented!");
 });
 
 AppDispatcher.registerHandler(ActionTypes.TREE_RELOAD, function() {
