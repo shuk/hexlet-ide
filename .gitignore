@@ -6,3 +6,6 @@ dev/css
 dev/js
 dev/fonts
 *.log
+
+assets/main.js
+assets/main.js.map
