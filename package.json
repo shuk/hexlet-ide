@@ -37,8 +37,10 @@
     "socket.io-client": "*",
     "term.js": "*",
     "tree-model": "*",
+    "morgan": "*",
     "express-debug": "*"
   },
+
   "devDependencies": {
     "zombie": "*",
     "nodemon": "*",
