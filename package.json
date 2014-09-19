@@ -36,7 +36,8 @@
     "socket.io": "*",
     "socket.io-client": "*",
     "term.js": "*",
-    "tree-model": "*"
+    "tree-model": "*",
+    "express-debug": "*"
   },
   "devDependencies": {
     "zombie": "*",

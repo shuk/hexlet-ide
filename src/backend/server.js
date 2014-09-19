@@ -21,6 +21,10 @@ var s = function(options) {
   app.use("/", routes);
 
   if (process.env.NODE_ENV === "develop" || process.env.NODE_ENV === "test") {
+    require("express-debug")(app, {
+      panels: ["locals", "request", "session", "template", "nav"]
+    });
+
     var webpack = require("webpack");
     var webpackConfig = require("../../webpack.config.js");
     var compiler = webpack(webpackConfig);
