@@ -69,7 +69,11 @@ var TerminalsBox = React.createClass({
   },
 
   createTerminal: function() {
-    TerminalsActions.startCreateTerminal();
+    //FIXME: вынести куда нибудь в конфиг
+    TerminalsActions.startCreateTerminal({
+      cols: 160,
+      rows: 24
+    });
   },
 
   closeTerminal: function(terminal) {

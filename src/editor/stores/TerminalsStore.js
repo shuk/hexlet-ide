@@ -22,8 +22,8 @@ AppDispatcher.registerHandler(ActionTypes.TERMINALS_CREATE_TERMINAL, function(pa
   terminals[payload.id] = {
     id: payload.id,
     terminal: new Terminal({
-      cols: 80,
-      rows: 24,
+      cols: payload.params.cols,
+      rows: payload.params.rows,
       screenKeys: true,
       useStyle: true,
       cursorBlink: true

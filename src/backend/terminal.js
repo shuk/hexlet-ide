@@ -5,13 +5,13 @@ var pty = require("pty.js");
 
 var terminals = {};
 
-function createTerminal(socket, options) { "use strict";
+function createTerminal(socket, options, params) { "use strict";
   var terminal = pty.fork(process.env.SHELL || "sh", [], {
     name: require("fs").existsSync("/usr/share/terminfo/x/xterm-256color")
     ? "xterm-256color"
     : "xterm",
-    cols: 80,
-    rows: 24,
+    cols: params.cols,
+    rows: params.rows,
     cwd: options.rootDir
   });
 
@@ -30,10 +30,10 @@ module.exports = function(server, app, options) {
   io.set("transports", ["websocket", "xhr-polling", "jsonp-polling", "polling"]);
 
   io.on("connection", function(socket) {
-    socket.on("createTerminal", function() {
-      var terminal = createTerminal(socket, options);
+    socket.on("createTerminal", function(params) {
+      var terminal = createTerminal(socket, options, params);
       console.log("Created shell with pty master/slave pair (master: %d, pid: %d)", terminal.fd, terminal.pid);
-      socket.emit("terminalCreated", { id: terminal.pid });
+      socket.emit("terminalCreated", { id: terminal.pid, params: params });
     });
 
     socket.on("updateTerminal", function(msg) {
