@@ -21,6 +21,7 @@
     "engine.io": "*",
     "eureca.io": "*",
     "express": "*",
+    "express-debug": "*",
     "findit": "*",
     "flux": "*",
     "fs-extra": "^0.11.1",
@@ -29,6 +30,7 @@
     "jquery": "*",
     "keymaster": "*",
     "lodash": "*",
+    "morgan": "*",
     "primus": "*",
     "pty.js": "git://github.com/chjj/pty.js",
     "react": "*",
@@ -37,10 +39,8 @@
     "socket.io-client": "*",
     "term.js": "*",
     "tree-model": "*",
-    "morgan": "*",
-    "express-debug": "*"
+    "when": "^3.4.6"
   },
-
   "devDependencies": {
     "zombie": "*",
     "nodemon": "*",

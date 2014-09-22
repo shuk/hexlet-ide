@@ -8,10 +8,10 @@ var testDir = "/var/tmp/test_dir";
 var helper = {};
 helper.port = process.env.PORT || 8080;
 helper.baseUrl = "http://localhost:" + helper.port;
-helper.browser = Browser.create({ debug: true, site: helper.baseUrl });
+helper.browser = Browser.create({ debug: true, site: helper.baseUrl, waitFor: 3000 });
 helper.getBrowser = function() { return helper.browser; };
 
-before(function(done) {
+before(function() {
   this.timeout(10000);
 
   if (process.env.NODE_ENV === "travis") {
@@ -23,7 +23,7 @@ before(function(done) {
     });
   }
 
-  helper.browser.visit("/", done);
+  helper.browser.visit("/");
 });
 
 after(function() {

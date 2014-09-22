@@ -17,8 +17,9 @@ var s = function(options) {
   console.log("info: starting on port '" + options.port + "'");
   server.listen(options.port);
 
-  require("./eureca")(server, options);
-  require("./terminal")(server, app, options);
+  var io = require("socket.io")(server);
+  require("./rpc")(io, options);
+  require("./terminal")(io, app, options);
 
   var routes = require("./routes/index");
   app.use("/", routes);

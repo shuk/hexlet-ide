@@ -7,5 +7,5 @@ dev/js
 dev/fonts
 *.log
 
-assets/main.js
-assets/main.js.map
+src/backend/public/assets/main.js
+src/backend/public/assets/main.js.map

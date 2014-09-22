@@ -1,6 +1,8 @@
 /* global require module */
 var _ = require("lodash");
 
+var Terminal = require("term.js");
+
 var AppDispatcher = require("editor/dispatcher/AppDispatcher");
 var ActionTypes = require("editor/constants/IdeConstants").ActionTypes;
 
@@ -22,8 +24,8 @@ AppDispatcher.registerHandler(ActionTypes.TERMINALS_CREATE_TERMINAL, function(pa
   terminals[payload.id] = {
     id: payload.id,
     terminal: new Terminal({
-      cols: 80,
-      rows: 24,
+      cols: payload.params.cols,
+      rows: payload.params.rows,
       screenKeys: true,
       useStyle: true,
       cursorBlink: true

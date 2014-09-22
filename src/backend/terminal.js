@@ -5,13 +5,13 @@ var pty = require("pty.js");
 
 var terminals = {};
 
-function createTerminal(socket, options) { "use strict";
+function createTerminal(socket, options, params) { "use strict";
   var terminal = pty.fork(process.env.SHELL || "sh", [], {
     name: require("fs").existsSync("/usr/share/terminfo/x/xterm-256color")
     ? "xterm-256color"
     : "xterm",
-    cols: 80,
-    rows: 24,
+    cols: params.cols,
+    rows: params.rows,
     cwd: options.rootDir
   });
 
@@ -23,29 +23,28 @@ function createTerminal(socket, options) { "use strict";
   return terminal;
 }
 
-module.exports = function(server, app, options) {
-  app.use(term.middleware());
-
-  var io = require("socket.io")(server);
-  io.set("transports", ["websocket", "xhr-polling", "jsonp-polling", "polling"]);
-
+module.exports = function(io, app, options) {
   io.on("connection", function(socket) {
-    socket.on("createTerminal", function() {
-      var terminal = createTerminal(socket, options);
+    socket.on("createTerminal", function(params) {
+      var terminal = createTerminal(socket, options, params);
       console.log("Created shell with pty master/slave pair (master: %d, pid: %d)", terminal.fd, terminal.pid);
-      socket.emit("terminalCreated", { id: terminal.pid });
+      socket.emit("terminalCreated", { id: terminal.pid, params: params });
     });
 
     socket.on("updateTerminal", function(msg) {
       var terminal = terminals[msg.id];
-      terminal.write(msg.data);
+      if (terminal) {
+        terminal.write(msg.data);
+      }
     });
 
     socket.on("closeTerminal", function(msg) {
       var terminal = terminals[msg.id];
-      terminal.destroy();
-      delete terminals[msg.id];
-      console.log("Destroy shell pty with (master: %d, pid: %d)", terminal.fd, terminal.pid);
+      if (terminal) {
+        terminal.destroy();
+        delete terminals[msg.id];
+        console.log("Destroy shell pty with (master: %d, pid: %d)", terminal.fd, terminal.pid);
+      }
     });
   });
 };

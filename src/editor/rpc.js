@@ -1,3 +1,8 @@
-/* global module Eureca */
+/* global module require */
 
-module.exports = new Eureca.Client();
+var io = require("socket.io-client");
+var rpc = require("../rpc");
+
+var socket = io.connect();
+
+module.exports = rpc.createClient(socket);

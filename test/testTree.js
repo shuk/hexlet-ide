@@ -16,16 +16,17 @@ describe("test tree", function(){
 
       b().fire("[data-name='folder1'].tree-branch-name", "click");
       b().assert.element("button span[data-name='folder1'].glyphicon-folder-close");
-    }).done(done);
+      done();
+    }); //.done(done);
   });
 
   it("create/remove folder", function(done) {
     b().wait(waitTreeLoaded, function() {
-      // b.fire("[data-name='project'].tree-branch-name", "contextmenu");
-      // b.fire("[data-name='new folder']", "click");
-      // b.fill("folderName", "folder2");
-      // b.pressButton("Apply");
-      // b.assert.element("[data-name='folder2'].tree-label");
+      // b().fire("[data-name='project'].tree-branch-name", "contextmenu");
+      // b().fire(".dropdown-menu a[data-name='New folder']", "click");
+      // b().fill("folderName", "folder2");
+      // b().pressButton("Apply");
+      // b().assert.element("[data-name='folder2'].tree-label");
       // create
       // remove
     }).done(done);

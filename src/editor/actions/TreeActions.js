@@ -12,7 +12,7 @@ var ActionTypes = IdeConstants.ActionTypes;
 
 var TreeActions = {
   loadTree: function() {
-    rpc.fs.tree().onReady(function(result) {
+    rpc.fs.tree().then(function(result) {
       // FIXME check result
       AppDispatcher.dispatch({
         actionType: ActionTypes.TREE_LOAD,
@@ -32,9 +32,8 @@ var TreeActions = {
   openFile: function(item) {
     "use strict";
 
-    // var rpc = new Eureca.Client();
     // FIXME calculate path
-    rpc.fs.read(item.path).onReady(function(result) {
+    rpc.fs.read(item.path).then(function(result) {
       AppDispatcher.dispatch({
         actionType: ActionTypes.TREE_OPEN_FILE,
         item: item,
@@ -46,7 +45,7 @@ var TreeActions = {
   createFolder: function(parentId, name) {
     // var rpc = new Eureca.Client();
     var parentFolder = TreeStore.getPath(parentId);
-    rpc.fs.mkdir(path.join(parentFolder, name)).onReady(function(result) {
+    rpc.fs.mkdir(path.join(parentFolder, name)).then(function(result) {
       // FIXME check result
       AppDispatcher.dispatch({
         actionType: ActionTypes.TREE_CREATE_FOLDER,
@@ -60,7 +59,7 @@ var TreeActions = {
     // var rpc = new Eureca.Client();
     var folderPath = TreeStore.getPath(id);
     var files = TreeStore.getFilesForPath(id);
-    rpc.fs.unlink(folderPath).onReady(function(result) {
+    rpc.fs.unlink(folderPath).then(function(result) {
       // FIXME check result
       AppDispatcher.dispatch({
         actionType: ActionTypes.TREE_REMOVE,
@@ -73,7 +72,7 @@ var TreeActions = {
   createFile: function(parentId, name) {
     // var rpc = new Eureca.Client();
     var parentFolder = TreeStore.getPath(parentId);
-    rpc.fs.touch(path.join(parentFolder, name)).onReady(function(result) {
+    rpc.fs.touch(path.join(parentFolder, name)).then(function(result) {
       // FIXME check result
       AppDispatcher.dispatch({
         actionType: ActionTypes.TREE_CREATE_FILE,
@@ -85,7 +84,7 @@ var TreeActions = {
 
   rename: function(parentId, name) {
     var parentPath = TreeStore.getPath(parentId);
-    rpc.fs.rename(parentPath, name).onReady(function(result) {
+    rpc.fs.rename(parentPath, name).then(function(result) {
       // FIXME check result
       AppDispatcher.dispatch({
         actionType: ActionTypes.TREE_RENAME,

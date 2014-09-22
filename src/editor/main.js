@@ -1,15 +1,9 @@
 /** @jsx React.DOM */
 
 /* global require */
-
-var $ = jQuery = require("jquery/dist/jquery");
-
 require("bootstrap/dist/css/bootstrap.css");
 require("fuelux/dist/css/fuelux.css");
 require("codemirror/lib/codemirror.css");
-
-var rpc = require("./rpc");
-var socket = require("./socket");
 
 var key = require("keymaster");
 
@@ -17,37 +11,53 @@ key.filter = function(event) {
   return true;
 }
 
+var $ = jQuery = require("jquery/dist/jquery");
+
 require("codemirror/mode/javascript/javascript");
 require("codemirror/mode/jade/jade");
 
 require("bootstrap/dist/js/bootstrap");
+require("editor/styles/application.css");
 
 var React = require("react/addons");
-
 var Ide = require("editor/components/Ide");
-var TreeActions = require("editor/actions/TreeActions");
-var TerminalsActions = require("editor/actions/TerminalsActions");
 
-rpc.ready(function(proxy) {
-  TreeActions.loadTree();
-});
+function bindServerEvents() {
+  var rpc = require("./rpc");
+  var socket = require("./socket");
 
-socket.on('connection', function() {
-  TerminalsActions.startCreateTerminal();
-});
+  var TreeActions = require("editor/actions/TreeActions");
+  var TerminalsActions = require("editor/actions/TerminalsActions");
 
-socket.on("terminalCreated", function(msg) {
-  TerminalsActions.finishCreateTerminal(msg);
-});
+  rpc.ready(function(proxy) {
+    TreeActions.loadTree();
+  });
 
-socket.on("terminalUpdated", function(msg) {
-  TerminalsActions.finishUpdateTerminal(msg);
-});
+  socket.on('connection', function() {
+    TerminalsActions.startCreateTerminal();
+  });
 
-socket.on("disconnect", function() {
-  //TODO: maybe destroy terminals or store action in buffer
-});
+  socket.on("terminalCreated", function(msg) {
+    TerminalsActions.finishCreateTerminal(msg);
+  });
 
-$(function() {
-  React.renderComponent(<Ide />, $("#hexlet-ide").get(0));
-});
+  socket.on("terminalUpdated", function(msg) {
+    TerminalsActions.finishUpdateTerminal(msg);
+  });
+
+  socket.on("disconnect", function() {
+    //TODO: maybe destroy terminals or store action in buffer
+  });
+}
+
+var HexletIde = {
+  create: function(domElement, options) {
+    bindServerEvents();
+    return React.renderComponent(<Ide />, domElement);
+  }
+};
+
+window.HexletIde = HexletIde;
+
+module.exports = HexletIde;
+

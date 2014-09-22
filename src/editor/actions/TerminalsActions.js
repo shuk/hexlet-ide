@@ -6,14 +6,15 @@ var ActionTypes = IdeConstants.ActionTypes;
 var socket = require("editor/socket");
 
 var TerminalsActions = {
-  startCreateTerminal: function() {
-    socket.emit("createTerminal");
+  startCreateTerminal: function(params) {
+    socket.emit("createTerminal", params);
   },
 
   finishCreateTerminal: function(msg) {
     AppDispatcher.dispatch({
       actionType: ActionTypes.TERMINALS_CREATE_TERMINAL,
-      id: msg.id
+      id: msg.id,
+      params: msg.params
     });
   },
 
