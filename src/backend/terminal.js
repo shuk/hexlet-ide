@@ -24,8 +24,6 @@ function createTerminal(socket, options, params) { "use strict";
 }
 
 module.exports = function(io, app, options) {
-  app.use(term.middleware());
-
   io.on("connection", function(socket) {
     socket.on("createTerminal", function(params) {
       var terminal = createTerminal(socket, options, params);
@@ -35,14 +33,18 @@ module.exports = function(io, app, options) {
 
     socket.on("updateTerminal", function(msg) {
       var terminal = terminals[msg.id];
-      terminal.write(msg.data);
+      if (terminal) {
+        terminal.write(msg.data);
+      }
     });
 
     socket.on("closeTerminal", function(msg) {
       var terminal = terminals[msg.id];
-      terminal.destroy();
-      delete terminals[msg.id];
-      console.log("Destroy shell pty with (master: %d, pid: %d)", terminal.fd, terminal.pid);
+      if (terminal) {
+        terminal.destroy();
+        delete terminals[msg.id];
+        console.log("Destroy shell pty with (master: %d, pid: %d)", terminal.fd, terminal.pid);
+      }
     });
   });
 };

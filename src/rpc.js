@@ -12,7 +12,15 @@ function registerServerMethod(socket, methodName, callback) { "use strict";
 }
 
 function generateClientMethod(client, methodName) {
-  client[methodName] = function() {
+  var methodInfo = methodName.split(".");
+  var namespace = methodInfo[0];
+  var name = methodInfo[1];
+
+  if (!client[namespace]) {
+    client[namespace] = {};
+  }
+
+  client[namespace][name] = function() {
     var args = Array.prototype.slice.call(arguments);
 
     return when.promise(function(resolve) {
@@ -45,11 +53,17 @@ Client.prototype.ready = function(callback) {
 module.exports = {
   createServer: function(io, rpcMethods) {
     io.on("connection", function(socket) {
-      _.each(rpcMethods, function(method, methodName) {
-        registerServerMethod(socket, methodName, method);
+
+      var methodNames = [];
+      _.each(rpcMethods, function(methods, namespace) {
+        _.each(methods, function(method, methodName) {
+          var name = namespace + "." + methodName;
+          registerServerMethod(socket, name, method);
+          methodNames.push(name);
+        });
       });
 
-      io.emit("rpcMethods", Object.keys(rpcMethods));
+      io.emit("rpcMethods", methodNames);
     });
   },
 
