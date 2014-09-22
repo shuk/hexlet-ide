@@ -23,11 +23,8 @@ function createTerminal(socket, options, params) { "use strict";
   return terminal;
 }
 
-module.exports = function(server, app, options) {
+module.exports = function(io, app, options) {
   app.use(term.middleware());
-
-  var io = require("socket.io")(server);
-  io.set("transports", ["websocket", "xhr-polling", "jsonp-polling", "polling"]);
 
   io.on("connection", function(socket) {
     socket.on("createTerminal", function(params) {

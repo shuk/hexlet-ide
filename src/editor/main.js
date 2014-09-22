@@ -17,6 +17,7 @@ require("codemirror/mode/javascript/javascript");
 require("codemirror/mode/jade/jade");
 
 require("bootstrap/dist/js/bootstrap");
+require("editor/styles/application.css");
 
 var React = require("react/addons");
 var Ide = require("editor/components/Ide");
