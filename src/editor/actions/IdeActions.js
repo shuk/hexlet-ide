@@ -10,6 +10,13 @@ var IdeActions = {
     AppDispatcher.dispatch({
       actionType: ActionTypes.IDE_GLOBAL_CLICK
     });
+  },
+
+  loadCompleted: function() {
+    "use strict";
+    AppDispatcher.dispatch({
+      actionType: ActionTypes.IDE_LOADED
+    });
   }
 };
 

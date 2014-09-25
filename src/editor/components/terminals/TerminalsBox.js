@@ -7,15 +7,15 @@ var TerminalsStore = require("editor/stores/TerminalsStore");
 
 var Terminal = require("./Terminal");
 
-function getState() {
-  return {
-    terminals: TerminalsStore.getAll()
-  };
-}
+var WatchStoreMixin = require("editor/mixins/WatchStore");
 
 var TerminalsBox = React.createClass({
-  getInitialState: function() {
-    return getState();
+  mixins: [WatchStoreMixin(TerminalsStore)],
+
+  getFluxState: function() {
+    return {
+      terminals: TerminalsStore.getAll()
+    };
   },
 
   renderTabHeaders: function() {
@@ -70,7 +70,7 @@ var TerminalsBox = React.createClass({
 
   createTerminal: function() {
     //FIXME: вынести куда нибудь в конфиг
-    TerminalsActions.startCreateTerminal({
+    TerminalsActions.createTerminal({
       cols: 160,
       rows: 24
     });
@@ -79,18 +79,6 @@ var TerminalsBox = React.createClass({
   closeTerminal: function(terminal) {
     TerminalsActions.closeTerminal(terminal);
   },
-
-  componentDidMount: function() {
-    TerminalsStore.addChangeListener(this._onChange);
-  },
-
-  componentWillUnmount: function() {
-    TerminalsStore.removeChangeListener(this._onChange);
-  },
-
-  _onChange: function() {
-    this.setState(getState());
-  }
 });
 
 module.exports = TerminalsBox;

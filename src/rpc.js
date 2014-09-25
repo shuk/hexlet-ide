@@ -4,7 +4,8 @@ var when = require("when");
 
 function registerServerMethod(socket, methodName, callback) { "use strict";
   socket.on(methodName, function(argsArray) {
-    var promise = when(callback.apply(this, argsArray));
+    var clientInfo = { clientSocket: socket };
+    var promise = when(callback.apply(clientInfo, argsArray));
     promise.then(function(result) {
       socket.emit(methodName + "Done", result);
     });

@@ -27,7 +27,8 @@ var Editor = React.createClass({
       lineNumbers: true,
       // tabSize: 2,
       value: this.props.initContent,
-      mode: this.props.mode
+      mode: this.props.mode,
+      theme: "solarized dark"
     });
 
     myCodeMirror.on("change", function(CodeMirror, object) {

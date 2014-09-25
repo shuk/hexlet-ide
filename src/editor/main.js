@@ -4,6 +4,7 @@
 require("bootstrap/dist/css/bootstrap.css");
 require("fuelux/dist/css/fuelux.css");
 require("codemirror/lib/codemirror.css");
+require("codemirror/theme/solarized.css");
 
 var key = require("keymaster");
 
@@ -22,42 +23,45 @@ require("editor/styles/application.css");
 var React = require("react/addons");
 var Ide = require("editor/components/Ide");
 
-function bindServerEvents() {
-  var rpc = require("./rpc");
-  var socket = require("./socket");
+var TreeActions = require("editor/actions/TreeActions");
+var TerminalsActions = require("editor/actions/TerminalsActions");
+var IdeActions = require("editor/actions/IdeActions");
 
-  var TreeActions = require("editor/actions/TreeActions");
-  var TerminalsActions = require("editor/actions/TerminalsActions");
+function HexletIdeWidget(domElement) {
+  this.domElement = domElement;
+  this.rpc = require("./rpc");
+  this.bindEvents();
+  this.render();
+}
 
-  rpc.ready(function(proxy) {
+HexletIdeWidget.prototype.bindEvents = function() {
+  this.rpc.ready(function(proxy) {
     TreeActions.loadTree();
+    IdeActions.loadCompleted();
   });
 
-  socket.on('connection', function() {
-    TerminalsActions.startCreateTerminal();
-  });
-
-  socket.on("terminalCreated", function(msg) {
-    TerminalsActions.finishCreateTerminal(msg);
-  });
-
-  socket.on("terminalUpdated", function(msg) {
+  //FIXME: это хак, пока не сделано дуплексное RPC между клиентом и сервером
+  this.rpc.socket.on("terminalUpdated", function(msg) {
     TerminalsActions.finishUpdateTerminal(msg);
   });
+}
 
-  socket.on("disconnect", function() {
-    //TODO: maybe destroy terminals or store action in buffer
-  });
+HexletIdeWidget.prototype.render = function() {
+  return React.renderComponent(<Ide />, this.domElement);
+}
+
+HexletIdeWidget.prototype.runCommand = function(cmd) {
+  TerminalsActions.runCommandInNewTerminal(cmd, { cols: 160, row: 16 });
 }
 
 var HexletIde = {
   create: function(domElement, options) {
-    bindServerEvents();
-    return React.renderComponent(<Ide />, domElement);
+    return new HexletIdeWidget(domElement, options);
   }
 };
 
-window.HexletIde = HexletIde;
-
-module.exports = HexletIde;
-
+if (typeof window !== "undefined") {
+  window.HexletIde = HexletIde;
+} else if (typeof module !== "undefined") {
+  module.exports = HexletIde;
+}
