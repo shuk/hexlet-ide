@@ -4,6 +4,7 @@
 require("bootstrap/dist/css/bootstrap.css");
 require("fuelux/dist/css/fuelux.css");
 require("codemirror/lib/codemirror.css");
+require("codemirror/theme/solarized.css");
 
 var key = require("keymaster");
 
@@ -28,9 +29,11 @@ function bindServerEvents() {
 
   var TreeActions = require("editor/actions/TreeActions");
   var TerminalsActions = require("editor/actions/TerminalsActions");
+  var IdeActions = require("editor/actions/IdeActions");
 
   rpc.ready(function(proxy) {
     TreeActions.loadTree();
+    IdeActions.loadCompleted();
   });
 
   socket.on('connection', function() {
@@ -44,10 +47,6 @@ function bindServerEvents() {
   socket.on("terminalUpdated", function(msg) {
     TerminalsActions.finishUpdateTerminal(msg);
   });
-
-  socket.on("disconnect", function() {
-    //TODO: maybe destroy terminals or store action in buffer
-  });
 }
 
 var HexletIde = {
@@ -60,4 +59,3 @@ var HexletIde = {
 window.HexletIde = HexletIde;
 
 module.exports = HexletIde;
-

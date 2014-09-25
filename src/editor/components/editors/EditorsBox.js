@@ -64,15 +64,6 @@ var EditorsBox = React.createClass({
     var editors = this.state.editors;
     var current = this.state.current;
 
-    modes = {
-      "js": "javascript",
-      "jade": "jade"
-    };
-
-    if (current !== undefined) {
-      mode = modes[_.last(current.name.split("."))];
-    }
-
     var items = editors.map(function(editor) {
       var classes = cx({
         "active": editor.current,
@@ -96,6 +87,7 @@ var EditorsBox = React.createClass({
           </ul>
           <div className="tab-content">
             {editors.map(function(editor) {
+              var mode = this.getEditorMode(editor.name);
               var classes = cx({
                 "tab-pane": true,
                 "fade active in": editor.current
@@ -113,6 +105,22 @@ var EditorsBox = React.createClass({
           </div>
         </div>
     );
+  },
+
+  getEditorMode: function(fileName) {
+    var modes = {
+      "js": "javascript",
+      "jade": "jade"
+    };
+
+    var extension = _.last(fileName.split("."));
+    var mode = modes[extension];
+    if (!mode) {
+      console.warn("Mode for file: ",  fileName, " is not defined");
+      return "javascript";
+    }
+
+    return mode;
   },
 
   componentWillUpdate: function(nextProps, nextState) {
