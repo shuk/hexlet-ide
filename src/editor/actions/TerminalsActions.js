@@ -3,23 +3,38 @@
 var AppDispatcher = require("editor/dispatcher/AppDispatcher");
 var IdeConstants = require("editor/constants/IdeConstants");
 var ActionTypes = IdeConstants.ActionTypes;
-var socket = require("editor/socket");
+
+var rpc = require("editor/rpc");
 
 var TerminalsActions = {
-  startCreateTerminal: function(params) {
-    socket.emit("createTerminal", params);
-  },
-
-  finishCreateTerminal: function(msg) {
-    AppDispatcher.dispatch({
-      actionType: ActionTypes.TERMINALS_CREATE_TERMINAL,
-      id: msg.id,
-      params: msg.params
+  createTerminal: function(params) {
+    rpc.terminal.create(params).then(function(msg) {
+      AppDispatcher.dispatch({
+        actionType: ActionTypes.TERMINALS_CREATE_TERMINAL,
+        id: msg.id,
+        params: msg.params
+      });
     });
   },
 
+  runCommandInNewTerminal: function(cmd, params) {
+    rpc.terminal.create(params).then(function(msg) {
+      AppDispatcher.dispatch({
+        actionType: ActionTypes.TERMINALS_CREATE_TERMINAL,
+        id: msg.id,
+        params: msg.params
+      });
+
+      rpc.terminal.update({ id: msg.id, data: cmd + "\n" });
+    });
+  },
+
+  runCommand: function(terminal, cmd) {
+    rpc.terminal.update({ id: terminal.id, data: cmd + "\n" });
+  },
+
   startUpdateTerminal: function(msg) {
-    socket.emit("updateTerminal", msg);
+    rpc.terminal.update(msg);
   },
 
   finishUpdateTerminal: function(msg) {
@@ -38,10 +53,11 @@ var TerminalsActions = {
   },
 
   closeTerminal: function(terminal) {
-    socket.emit("closeTerminal", { id: terminal.id });
-    AppDispatcher.dispatch({
-      actionType: ActionTypes.TERMINALS_CLOSE_TERMINAL,
-      id: terminal.id
+    rpc.terminal.destroy({id: terminal.id }).then(function() {
+      AppDispatcher.dispatch({
+        actionType: ActionTypes.TERMINALS_CLOSE_TERMINAL,
+        id: terminal.id
+      });
     });
   }
 };

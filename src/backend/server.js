@@ -19,7 +19,6 @@ var s = function(options) {
 
   var io = require("socket.io")(server);
   require("./rpc")(io, options);
-  require("./terminal")(io, app, options);
 
   var routes = require("./routes/index");
   app.use("/", routes);

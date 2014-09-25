@@ -1,11 +1,10 @@
 /* global require process module console */
-
-var term = require("term.js");
 var pty = require("pty.js");
 
 var terminals = {};
 
 function createTerminal(socket, options, params) { "use strict";
+
   var terminal = pty.fork(process.env.SHELL || "sh", [], {
     name: require("fs").existsSync("/usr/share/terminfo/x/xterm-256color")
     ? "xterm-256color"
@@ -16,6 +15,7 @@ function createTerminal(socket, options, params) { "use strict";
   });
 
   terminal.on("data", function(data) {
+    //FIXME: хак, пока нет дуплексной связи между сервером и клиентом
     socket.emit("terminalUpdated", { id: terminal.pid, data: data });
   });
 
@@ -23,28 +23,28 @@ function createTerminal(socket, options, params) { "use strict";
   return terminal;
 }
 
-module.exports = function(io, app, options) {
-  io.on("connection", function(socket) {
-    socket.on("createTerminal", function(params) {
-      var terminal = createTerminal(socket, options, params);
+module.exports = function(options) {
+  return {
+    create: function(params) {
+      var terminal = createTerminal(this.clientSocket, options, params);
       console.log("Created shell with pty master/slave pair (master: %d, pid: %d)", terminal.fd, terminal.pid);
-      socket.emit("terminalCreated", { id: terminal.pid, params: params });
-    });
+      return { id: terminal.pid, params: params };
+    },
 
-    socket.on("updateTerminal", function(msg) {
+    update: function(msg) {
       var terminal = terminals[msg.id];
       if (terminal) {
         terminal.write(msg.data);
       }
-    });
+    },
 
-    socket.on("closeTerminal", function(msg) {
+    destroy: function(msg) {
       var terminal = terminals[msg.id];
       if (terminal) {
         terminal.destroy();
         delete terminals[msg.id];
         console.log("Destroy shell pty with (master: %d, pid: %d)", terminal.fd, terminal.pid);
       }
-    });
-  });
+    }
+  };
 };
