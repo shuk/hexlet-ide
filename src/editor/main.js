@@ -54,6 +54,10 @@ HexletIdeWidget.prototype.runCommand = function(cmd) {
   TerminalsActions.runCommandInNewTerminal(cmd, { cols: 160, row: 16 });
 }
 
+HexletIdeWidget.prototype.exec = function(cmd) {
+  return this.rpc.run.exec(cmd);
+}
+
 var HexletIde = {
   create: function(domElement, options) {
     return new HexletIdeWidget(domElement, options);

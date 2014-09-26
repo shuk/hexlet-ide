@@ -4,6 +4,7 @@ var rpc = require("../rpc");
 module.exports = function(io, options) {
   rpc.createServer(io, {
     fs: require("./rpc/fs")(options),
-    terminal: require("./rpc/terminal")(options)
+    terminal: require("./rpc/terminal")(options),
+    run: require("./rpc/run")(options)
   });
 };
