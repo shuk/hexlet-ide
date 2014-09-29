@@ -1,7 +1,7 @@
 /* global require module */
 var _ = require("lodash");
 
-var Terminal = require("term.js");
+var Terminal = require("term.js/src/term");
 
 var AppDispatcher = require("editor/dispatcher/AppDispatcher");
 var ActionTypes = require("editor/constants/IdeConstants").ActionTypes;

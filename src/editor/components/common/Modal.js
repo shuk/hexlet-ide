@@ -17,7 +17,9 @@ var Modal = React.createClass({
     ModalActions.close();
   },
 
-  handleApply: function() {
+  handleApply: function(e) {
+    e.preventDefault();
+    e.stopPropagation();
     if (this.state.onApply) this.state.onApply(this);
     ModalActions.close();
   },
@@ -32,26 +34,24 @@ var Modal = React.createClass({
       // left: this.props.x
     };
 
-    console.log(this.state);
-
     return (
       <div className="modal-dialog" style={modalStyle}>
         <div className="modal-content">
-          <div className="modal-header">
-            <button type="button" className="close" data-dismiss="modal" onClick={this.handleCloseModal}>
-              <span aria-hidden="true">×</span><span className="sr-only">Cancel</span>
-            </button>
-            <h4 className="modal-title">{this.state.title}</h4>
-          </div>
-          <div className="modal-body">
-            {this.state.content()}
-          </div>
-          <div className="modal-footer">
-            <form action="">
+          <form onSubmit={this.handleApply}>
+            <div className="modal-header">
+              <button type="button" className="close" data-dismiss="modal" onClick={this.handleCloseModal}>
+                <span aria-hidden="true">×</span><span className="sr-only">Cancel</span>
+              </button>
+              <h4 className="modal-title">{this.state.title}</h4>
+            </div>
+            <div className="modal-body">
+              {this.state.content()}
+            </div>
+            <div className="modal-footer">
               <button type="button" className="btn btn-default" data-dismiss="modal" onClick={this.handleCloseModal}>Cancel</button>
-              <button type="button" onClick={this.handleApply} className="btn btn-primary">Apply</button>
-            </form>
-          </div>
+              <input type="submit" onClick={this.handleApply} className="btn btn-primary" value="Apply" />
+            </div>
+          </form>
         </div>
       </div>
     );

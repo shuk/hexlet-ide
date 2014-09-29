@@ -35,7 +35,7 @@ module.exports = {
   save: function(editor) {
     "use strict";
     var filePath = TreeStore.getPath(editor.id);
-    rpc.fs.write(filePath, editor.content).onReady(function() {
+    rpc.fs.write(filePath, editor.content).then(function() {
       AppDispatcher.dispatch({
         actionType: ActionTypes.EDITORS_SAVE_CURRENT,
         id: editor.id

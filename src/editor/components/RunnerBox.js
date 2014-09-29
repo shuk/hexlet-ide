@@ -22,8 +22,8 @@ var RunnerBox = React.createClass({
           <div className="input-group-btn">
             <button type="button" className="btn btn-default dropdown-toggle" data-toggle="dropdown">Run <span className="caret"></span></button>
             <ul className="dropdown-menu dropdown-menu-right" role="menu">
-              <li><a href="#" onClick={this.runCommandInNewTerminal}>Run in new terminal</a></li>
-              <li><a href="#" onClick={this.runCommandInCurrentTerminal}>Run in current terminal</a></li>
+              <li><a href="#" onClick={this.handleRunCommandInNewTerminal}>Run in new terminal</a></li>
+              <li><a href="#" onClick={this.handleRunCommandInCurrentTerminal}>Run in current terminal</a></li>
             </ul>
           </div>
         </div>
@@ -31,7 +31,7 @@ var RunnerBox = React.createClass({
     );
   },
 
-  runCommandInNewTerminal: function() {
+  handleRunCommandInNewTerminal: function() {
     var cmd = this.refs.commandTxt.getDOMNode().value;
     TerminalsActions.runCommandInNewTerminal(cmd, {
       cols: 160,
@@ -39,7 +39,7 @@ var RunnerBox = React.createClass({
     });
   },
 
-  runCommandInCurrentTerminal: function() {
+  handleRunCommandInCurrentTerminal: function() {
     var cmd = this.refs.commandTxt.getDOMNode().value;
     if (this.state.currentTerminal) {
       TerminalsActions.runCommand(this.state.currentTerminal, cmd);
