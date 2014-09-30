@@ -1,3 +1,10 @@
+install:
+	npm install
+	bower install
+
+develop:
+	gulp develop
+
 test:
 	npm test
 
