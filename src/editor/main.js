@@ -26,11 +26,15 @@ var Ide = require("editor/components/Ide");
 var TreeActions = require("editor/actions/TreeActions");
 var TerminalsActions = require("editor/actions/TerminalsActions");
 var IdeActions = require("editor/actions/IdeActions");
+var EditorsActions = require("editor/actions/EditorsActions");
+
+var EditorsStore = require("editor/stores/EditorsStore");
 
 function HexletIdeWidget(domElement) {
   this.domElement = domElement;
   this.rpc = require("./rpc");
   this.bindEvents();
+  this.runAutosave();
   this.render();
 }
 
@@ -44,6 +48,15 @@ HexletIdeWidget.prototype.bindEvents = function() {
   this.rpc.socket.on("terminalUpdated", function(msg) {
     TerminalsActions.finishUpdateTerminal(msg);
   });
+}
+
+HexletIdeWidget.prototype.runAutosave = function() {
+  this.autosaveTimer = setInterval(function() {
+    var editors = EditorsStore.getAll();
+    editors.forEach(EditorsActions.save);
+    console.log("All files saved");
+  }, 1000);
+
 }
 
 HexletIdeWidget.prototype.render = function() {
