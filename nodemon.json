@@ -1,4 +1,9 @@
 {
     "verbose": false,
-    "ignore": ["src/editor/*", "test/*"]
+    "ignore": [
+        "bower_components/*",
+        "node_modules/*",
+        "src/editor/*",
+        "test/*"
+    ]
 }
