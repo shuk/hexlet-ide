@@ -50,7 +50,7 @@ var TerminalsBox = React.createClass({
 
   render: function() {
     return (
-      <div>
+      <div className="terminals-box">
         <ul className="nav nav-tabs" role="tablist">
           {this.renderTabHeaders()}
           <li key="tab_create">
@@ -72,7 +72,7 @@ var TerminalsBox = React.createClass({
     //FIXME: вынести куда нибудь в конфиг
     TerminalsActions.createTerminal({
       cols: 160,
-      rows: 24
+      rows: 16
     });
   },
 

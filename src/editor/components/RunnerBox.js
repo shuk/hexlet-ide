@@ -16,7 +16,7 @@ var RunnerBox = React.createClass({
 
   render: function() {
     return (
-      <div className="btn-toolbar" role="toolbar">
+      <div className="btn-toolbar runner-box" role="toolbar">
         <div className="input-group">
           <input type="text" className="form-control" ref="commandTxt" />
           <div className="input-group-btn">

@@ -9,18 +9,18 @@ describe("test tabs", function(){
     return window.document.querySelector(".tree-branch-name");
   }
 
-  it("open/close file", function(done) {
-    b().wait(waitTreeLoaded, function() {
-    }).done(done);
-  });
+  // it("open/close file", function(done) {
+  //   b().wait(waitTreeLoaded, function() {
+  //   }).done(done);
+  // });
 
-  it("reopen file", function(done) {
-    b().wait(waitTreeLoaded, function() {
-    }).done(done);
-  });
+  // it("reopen file", function(done) {
+  //   b().wait(waitTreeLoaded, function() {
+  //   }).done(done);
+  // });
 
-  it("save file", function(done) {
-    b().wait(waitTreeLoaded, function() {
-    }).done(done);
-  });
+  // it("save file", function(done) {
+  //   b().wait(waitTreeLoaded, function() {
+  //   }).done(done);
+  // });
 });

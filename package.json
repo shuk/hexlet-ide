@@ -9,7 +9,7 @@
   "keywords": [],
   "scripts": {
     "start": "bin/hexlet-ide.js -p 8080 -r /var/tmp",
-    "test": "./node_modules/.bin/mocha",
+    "test": "./node_modules/.bin/mocha --harmony --reporter list",
     "prepublish": "gulp webpack"
   },
   "bin": {

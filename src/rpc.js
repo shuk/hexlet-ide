@@ -1,12 +1,14 @@
-/* global require module  */
+/* global require module window */
 var _ = require("lodash");
 var when = require("when");
 
 function registerServerMethod(socket, methodName, callback) { "use strict";
   socket.on(methodName, function(argsArray) {
+    console.log("Call server method: ", methodName, " with args: ", argsArray);
     var clientInfo = { clientSocket: socket };
     var promise = when(callback.apply(clientInfo, argsArray));
     promise.then(function(result) {
+      console.log("Respond to client: ", methodName, " with result: ", result);
       socket.emit(methodName + "Done", result);
     });
   });
@@ -24,8 +26,16 @@ function generateClientMethod(client, methodName) {
   client[namespace][name] = function() {
     var args = Array.prototype.slice.call(arguments);
 
+    // if (_.isUndefined(window.hexletIdeActiveRpcRequests)) {
+    //   window.hexletIdeActiveRpcRequests = 0;
+    // }
+    // window.hexletIdeActiveRpcRequests++;
+
     return when.promise(function(resolve) {
       client.socket.once(methodName + "Done", function() {
+        // if (window.hexletIdeActiveRpcRequests > 0) {
+          // window.hexletIdeActiveRpcRequests--;
+        // }
         resolve.apply(null, arguments);
       });
 

@@ -81,7 +81,7 @@ var EditorsBox = React.createClass({
     }, this);
 
     return (
-      <div>
+      <div className="editors-box">
           <ul className="nav nav-tabs" role="tablist">
             {items}
           </ul>

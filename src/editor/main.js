@@ -18,7 +18,7 @@ require("codemirror/mode/javascript/javascript");
 require("codemirror/mode/jade/jade");
 
 require("bootstrap/dist/js/bootstrap");
-require("editor/styles/application.css");
+require("editor/styles/application.less");
 
 var React = require("react/addons");
 var Ide = require("editor/components/Ide");
@@ -41,6 +41,11 @@ function HexletIdeWidget(domElement) {
 HexletIdeWidget.prototype.bindEvents = function() {
   this.rpc.ready(function(proxy) {
     TreeActions.loadTree();
+    TerminalsActions.createTerminal({
+      rows: 16,
+      cols: 160
+    });
+
     IdeActions.loadCompleted();
   });
 
@@ -54,9 +59,7 @@ HexletIdeWidget.prototype.runAutosave = function() {
   this.autosaveTimer = setInterval(function() {
     var editors = EditorsStore.getAll();
     editors.forEach(EditorsActions.save);
-    console.log("All files saved");
   }, 1000);
-
 }
 
 HexletIdeWidget.prototype.render = function() {
