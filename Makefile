@@ -8,6 +8,9 @@ develop:
 test:
 	npm test
 
+publish:
+	npm publish
+
 setup-staging:
 	ansible-playbook cm/setup.yml -i cm/staging
 deploy-staging:
