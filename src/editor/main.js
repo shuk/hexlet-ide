@@ -23,6 +23,8 @@ require("editor/styles/application.less");
 var React = require("react/addons");
 var Ide = require("editor/components/Ide");
 
+var Config = require("editor/config");
+
 var TreeActions = require("editor/actions/TreeActions");
 var TerminalsActions = require("editor/actions/TerminalsActions");
 var IdeActions = require("editor/actions/IdeActions");
@@ -41,10 +43,7 @@ function HexletIdeWidget(domElement) {
 HexletIdeWidget.prototype.bindEvents = function() {
   this.rpc.ready(function(proxy) {
     TreeActions.loadTree();
-    TerminalsActions.createTerminal({
-      rows: 16,
-      cols: 160
-    });
+    TerminalsActions.createTerminal(Config.terminal);
 
     IdeActions.loadCompleted();
   });
@@ -59,7 +58,7 @@ HexletIdeWidget.prototype.runAutosave = function() {
   this.autosaveTimer = setInterval(function() {
     var editors = EditorsStore.getAll();
     editors.forEach(EditorsActions.save);
-  }, 1000);
+  }, Config.autosaveInterval);
 }
 
 HexletIdeWidget.prototype.render = function() {
@@ -67,7 +66,7 @@ HexletIdeWidget.prototype.render = function() {
 }
 
 HexletIdeWidget.prototype.runCommand = function(cmd) {
-  TerminalsActions.runCommandInNewTerminal(cmd, { cols: 160, row: 16 });
+  TerminalsActions.runCommandInNewTerminal(cmd, Config.terminal);
 }
 
 HexletIdeWidget.prototype.exec = function(cmd) {

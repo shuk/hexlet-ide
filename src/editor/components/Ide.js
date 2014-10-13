@@ -33,19 +33,21 @@ var Ide = React.createClass({
       <div>
         <ContextMenu />
         <Modal />
-        <div className="well">
-          <div className="row" onClick={this.handleGlobalClick}>
+        <div className="well well-mini" onClick={this.handleGlobalClick}>
+          <div className="row">
             <div className="col-md-3 file-tree-box">
               <RunnerBox />
               <TreeBox />
             </div>
             <div className="col-md-9">
-              <EditorsBox />
-            </div>
-          </div>
-          <div className="row">
-            <div className="col-md-12">
-              <TerminalsBox />
+              <div className="row">
+                <div className="col-md-12">
+                  <EditorsBox />
+                </div>
+                <div className="col-md-12">
+                  <TerminalsBox />
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -2,6 +2,9 @@
 
 var _ = require("lodash");
 var React = require("react/addons");
+
+var Config = require("editor/config");
+
 var TerminalsActions = require("editor/actions/TerminalsActions");
 var TerminalsStore = require("editor/stores/TerminalsStore");
 
@@ -69,11 +72,7 @@ var TerminalsBox = React.createClass({
   },
 
   createTerminal: function() {
-    //FIXME: вынести куда нибудь в конфиг
-    TerminalsActions.createTerminal({
-      cols: 160,
-      rows: 16
-    });
+    TerminalsActions.createTerminal(Config.terminal);
   },
 
   closeTerminal: function(terminal) {
