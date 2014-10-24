@@ -8,7 +8,11 @@ var defaultConfig = {
     rows: 9
   },
   autosaveInterval: 1000,
-  url: ""
+  url: "",
+  rpcOptions: {
+    reconnectionDelay: 10000,
+    reconnectionDelayMax: 10000
+  }
 };
 
 

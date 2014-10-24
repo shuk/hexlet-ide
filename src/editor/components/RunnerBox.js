@@ -23,8 +23,8 @@ var RunnerBox = React.createClass({
           <div className="input-group-btn">
             <button type="button" className="btn btn-default dropdown-toggle" data-toggle="dropdown">Run <span className="caret"></span></button>
             <ul className="dropdown-menu dropdown-menu-right" role="menu">
-              <li><button onClick={this.handleRunCommandInNewTerminal}>Run in new terminal</button></li>
-              <li><button onClick={this.handleRunCommandInCurrentTerminal}>Run in current terminal</button></li>
+              <li><a onClick={this.handleRunCommandInNewTerminal}>Run in new terminal</a></li>
+              <li><a onClick={this.handleRunCommandInCurrentTerminal}>Run in current terminal</a></li>
             </ul>
           </div>
         </div>
