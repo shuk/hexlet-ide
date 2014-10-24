@@ -56,24 +56,24 @@
 	/* global require */
 	__webpack_require__(22);
 	__webpack_require__(25);
-	__webpack_require__(16);
 	__webpack_require__(18);
+	__webpack_require__(20);
 
-	var key = __webpack_require__(10);
+	var key = __webpack_require__(11);
 
 	key.filter = function(event) {
 	  return true;
 	}
 
-	var $ = jQuery = __webpack_require__(14);
+	var $ = jQuery = __webpack_require__(13);
 
-	__webpack_require__(12);
-	__webpack_require__(13);
+	__webpack_require__(14);
+	__webpack_require__(15);
 
 	__webpack_require__(24);
-	__webpack_require__(20);
+	__webpack_require__(16);
 
-	var React = __webpack_require__(11);
+	var React = __webpack_require__(10);
 
 	var Config = __webpack_require__(3);
 
@@ -157,7 +157,7 @@
 
 	var Config = __webpack_require__(3);
 
-	var rpc = __webpack_require__(15);
+	var rpc = __webpack_require__(12);
 
 	var socket = io.connect(Config.url);
 
@@ -197,7 +197,7 @@
 	var _ = __webpack_require__(46);
 
 	var AppDispatcher = __webpack_require__(28);
-	var BaseStore = __webpack_require__(31);
+	var BaseStore = __webpack_require__(30);
 	var ActionTypes = __webpack_require__(29).ActionTypes;
 
 	var editors = [];
@@ -559,7 +559,7 @@
 
 	/** @jsx React.DOM */
 
-	var React = __webpack_require__(11);
+	var React = __webpack_require__(10);
 
 	var TreeBox = __webpack_require__(34);
 	var EditorsBox = __webpack_require__(35);
@@ -620,6 +620,13 @@
 
 /***/ },
 /* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = __webpack_require__(47);
+
+
+/***/ },
+/* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
 	//     keymaster.js
@@ -921,1300 +928,97 @@
 
 
 /***/ },
-/* 11 */
-/***/ function(module, exports, __webpack_require__) {
-
-	module.exports = __webpack_require__(47);
-
-
-/***/ },
 /* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
-	// CodeMirror, copyright (c) by Marijn Haverbeke and others
-	// Distributed under an MIT license: http://codemirror.net/LICENSE
+	/* global require module window */
+	var _ = __webpack_require__(46);
+	var when = __webpack_require__(60);
 
-	// TODO actually recognize syntax of TypeScript constructs
+	function registerServerMethod(socket, methodName, callback) { "use strict";
+	  socket.on(methodName, function(argsArray) {
+	    console.log("Call server method: ", methodName, " with args: ", argsArray);
+	    var clientInfo = { clientSocket: socket };
+	    var promise = when(callback.apply(clientInfo, argsArray));
+	    promise.then(function(result) {
+	      console.log("Respond to client: ", methodName, " with result: ", result);
+	      socket.emit(methodName + "Done", result);
+	    });
+	  });
+	}
 
-	(function(mod) {
-	  if (true) // CommonJS
-	    mod(__webpack_require__(42));
-	  else if (typeof define == "function" && define.amd) // AMD
-	    define(["../../lib/codemirror"], mod);
-	  else // Plain browser env
-	    mod(CodeMirror);
-	})(function(CodeMirror) {
-	"use strict";
+	function generateClientMethod(client, methodName) {
+	  var methodInfo = methodName.split(".");
+	  var namespace = methodInfo[0];
+	  var name = methodInfo[1];
 
-	CodeMirror.defineMode("javascript", function(config, parserConfig) {
-	  var indentUnit = config.indentUnit;
-	  var statementIndent = parserConfig.statementIndent;
-	  var jsonldMode = parserConfig.jsonld;
-	  var jsonMode = parserConfig.json || jsonldMode;
-	  var isTS = parserConfig.typescript;
-	  var wordRE = parserConfig.wordCharacters || /[\w$\xa1-\uffff]/;
-
-	  // Tokenizer
-
-	  var keywords = function(){
-	    function kw(type) {return {type: type, style: "keyword"};}
-	    var A = kw("keyword a"), B = kw("keyword b"), C = kw("keyword c");
-	    var operator = kw("operator"), atom = {type: "atom", style: "atom"};
-
-	    var jsKeywords = {
-	      "if": kw("if"), "while": A, "with": A, "else": B, "do": B, "try": B, "finally": B,
-	      "return": C, "break": C, "continue": C, "new": C, "delete": C, "throw": C, "debugger": C,
-	      "var": kw("var"), "const": kw("var"), "let": kw("var"),
-	      "function": kw("function"), "catch": kw("catch"),
-	      "for": kw("for"), "switch": kw("switch"), "case": kw("case"), "default": kw("default"),
-	      "in": operator, "typeof": operator, "instanceof": operator,
-	      "true": atom, "false": atom, "null": atom, "undefined": atom, "NaN": atom, "Infinity": atom,
-	      "this": kw("this"), "module": kw("module"), "class": kw("class"), "super": kw("atom"),
-	      "yield": C, "export": kw("export"), "import": kw("import"), "extends": C
-	    };
-
-	    // Extend the 'normal' keywords with the TypeScript language extensions
-	    if (isTS) {
-	      var type = {type: "variable", style: "variable-3"};
-	      var tsKeywords = {
-	        // object-like things
-	        "interface": kw("interface"),
-	        "extends": kw("extends"),
-	        "constructor": kw("constructor"),
-
-	        // scope modifiers
-	        "public": kw("public"),
-	        "private": kw("private"),
-	        "protected": kw("protected"),
-	        "static": kw("static"),
-
-	        // types
-	        "string": type, "number": type, "bool": type, "any": type
-	      };
-
-	      for (var attr in tsKeywords) {
-	        jsKeywords[attr] = tsKeywords[attr];
-	      }
-	    }
-
-	    return jsKeywords;
-	  }();
-
-	  var isOperatorChar = /[+\-*&%=<>!?|~^]/;
-	  var isJsonldKeyword = /^@(context|id|value|language|type|container|list|set|reverse|index|base|vocab|graph)"/;
-
-	  function readRegexp(stream) {
-	    var escaped = false, next, inSet = false;
-	    while ((next = stream.next()) != null) {
-	      if (!escaped) {
-	        if (next == "/" && !inSet) return;
-	        if (next == "[") inSet = true;
-	        else if (inSet && next == "]") inSet = false;
-	      }
-	      escaped = !escaped && next == "\\";
-	    }
+	  if (!client[namespace]) {
+	    client[namespace] = {};
 	  }
 
-	  // Used as scratch variables to communicate multiple values without
-	  // consing up tons of objects.
-	  var type, content;
-	  function ret(tp, style, cont) {
-	    type = tp; content = cont;
-	    return style;
-	  }
-	  function tokenBase(stream, state) {
-	    var ch = stream.next();
-	    if (ch == '"' || ch == "'") {
-	      state.tokenize = tokenString(ch);
-	      return state.tokenize(stream, state);
-	    } else if (ch == "." && stream.match(/^\d+(?:[eE][+\-]?\d+)?/)) {
-	      return ret("number", "number");
-	    } else if (ch == "." && stream.match("..")) {
-	      return ret("spread", "meta");
-	    } else if (/[\[\]{}\(\),;\:\.]/.test(ch)) {
-	      return ret(ch);
-	    } else if (ch == "=" && stream.eat(">")) {
-	      return ret("=>", "operator");
-	    } else if (ch == "0" && stream.eat(/x/i)) {
-	      stream.eatWhile(/[\da-f]/i);
-	      return ret("number", "number");
-	    } else if (/\d/.test(ch)) {
-	      stream.match(/^\d*(?:\.\d*)?(?:[eE][+\-]?\d+)?/);
-	      return ret("number", "number");
-	    } else if (ch == "/") {
-	      if (stream.eat("*")) {
-	        state.tokenize = tokenComment;
-	        return tokenComment(stream, state);
-	      } else if (stream.eat("/")) {
-	        stream.skipToEnd();
-	        return ret("comment", "comment");
-	      } else if (state.lastType == "operator" || state.lastType == "keyword c" ||
-	               state.lastType == "sof" || /^[\[{}\(,;:]$/.test(state.lastType)) {
-	        readRegexp(stream);
-	        stream.eatWhile(/[gimy]/); // 'y' is "sticky" option in Mozilla
-	        return ret("regexp", "string-2");
-	      } else {
-	        stream.eatWhile(isOperatorChar);
-	        return ret("operator", "operator", stream.current());
-	      }
-	    } else if (ch == "`") {
-	      state.tokenize = tokenQuasi;
-	      return tokenQuasi(stream, state);
-	    } else if (ch == "#") {
-	      stream.skipToEnd();
-	      return ret("error", "error");
-	    } else if (isOperatorChar.test(ch)) {
-	      stream.eatWhile(isOperatorChar);
-	      return ret("operator", "operator", stream.current());
-	    } else if (wordRE.test(ch)) {
-	      stream.eatWhile(wordRE);
-	      var word = stream.current(), known = keywords.propertyIsEnumerable(word) && keywords[word];
-	      return (known && state.lastType != ".") ? ret(known.type, known.style, word) :
-	                     ret("variable", "variable", word);
-	    }
-	  }
+	  client[namespace][name] = function() {
+	    var args = Array.prototype.slice.call(arguments);
 
-	  function tokenString(quote) {
-	    return function(stream, state) {
-	      var escaped = false, next;
-	      if (jsonldMode && stream.peek() == "@" && stream.match(isJsonldKeyword)){
-	        state.tokenize = tokenBase;
-	        return ret("jsonld-keyword", "meta");
-	      }
-	      while ((next = stream.next()) != null) {
-	        if (next == quote && !escaped) break;
-	        escaped = !escaped && next == "\\";
-	      }
-	      if (!escaped) state.tokenize = tokenBase;
-	      return ret("string", "string");
-	    };
-	  }
+	    // if (_.isUndefined(window.hexletIdeActiveRpcRequests)) {
+	    //   window.hexletIdeActiveRpcRequests = 0;
+	    // }
+	    // window.hexletIdeActiveRpcRequests++;
 
-	  function tokenComment(stream, state) {
-	    var maybeEnd = false, ch;
-	    while (ch = stream.next()) {
-	      if (ch == "/" && maybeEnd) {
-	        state.tokenize = tokenBase;
-	        break;
-	      }
-	      maybeEnd = (ch == "*");
-	    }
-	    return ret("comment", "comment");
-	  }
+	    return when.promise(function(resolve) {
+	      client.socket.once(methodName + "Done", function() {
+	        // if (window.hexletIdeActiveRpcRequests > 0) {
+	          // window.hexletIdeActiveRpcRequests--;
+	        // }
+	        resolve.apply(null, arguments);
+	      });
 
-	  function tokenQuasi(stream, state) {
-	    var escaped = false, next;
-	    while ((next = stream.next()) != null) {
-	      if (!escaped && (next == "`" || next == "$" && stream.eat("{"))) {
-	        state.tokenize = tokenBase;
-	        break;
-	      }
-	      escaped = !escaped && next == "\\";
-	    }
-	    return ret("quasi", "string-2", stream.current());
-	  }
-
-	  var brackets = "([{}])";
-	  // This is a crude lookahead trick to try and notice that we're
-	  // parsing the argument patterns for a fat-arrow function before we
-	  // actually hit the arrow token. It only works if the arrow is on
-	  // the same line as the arguments and there's no strange noise
-	  // (comments) in between. Fallback is to only notice when we hit the
-	  // arrow, and not declare the arguments as locals for the arrow
-	  // body.
-	  function findFatArrow(stream, state) {
-	    if (state.fatArrowAt) state.fatArrowAt = null;
-	    var arrow = stream.string.indexOf("=>", stream.start);
-	    if (arrow < 0) return;
-
-	    var depth = 0, sawSomething = false;
-	    for (var pos = arrow - 1; pos >= 0; --pos) {
-	      var ch = stream.string.charAt(pos);
-	      var bracket = brackets.indexOf(ch);
-	      if (bracket >= 0 && bracket < 3) {
-	        if (!depth) { ++pos; break; }
-	        if (--depth == 0) break;
-	      } else if (bracket >= 3 && bracket < 6) {
-	        ++depth;
-	      } else if (wordRE.test(ch)) {
-	        sawSomething = true;
-	      } else if (sawSomething && !depth) {
-	        ++pos;
-	        break;
-	      }
-	    }
-	    if (sawSomething && !depth) state.fatArrowAt = pos;
-	  }
-
-	  // Parser
-
-	  var atomicTypes = {"atom": true, "number": true, "variable": true, "string": true, "regexp": true, "this": true, "jsonld-keyword": true};
-
-	  function JSLexical(indented, column, type, align, prev, info) {
-	    this.indented = indented;
-	    this.column = column;
-	    this.type = type;
-	    this.prev = prev;
-	    this.info = info;
-	    if (align != null) this.align = align;
-	  }
-
-	  function inScope(state, varname) {
-	    for (var v = state.localVars; v; v = v.next)
-	      if (v.name == varname) return true;
-	    for (var cx = state.context; cx; cx = cx.prev) {
-	      for (var v = cx.vars; v; v = v.next)
-	        if (v.name == varname) return true;
-	    }
-	  }
-
-	  function parseJS(state, style, type, content, stream) {
-	    var cc = state.cc;
-	    // Communicate our context to the combinators.
-	    // (Less wasteful than consing up a hundred closures on every call.)
-	    cx.state = state; cx.stream = stream; cx.marked = null, cx.cc = cc; cx.style = style;
-
-	    if (!state.lexical.hasOwnProperty("align"))
-	      state.lexical.align = true;
-
-	    while(true) {
-	      var combinator = cc.length ? cc.pop() : jsonMode ? expression : statement;
-	      if (combinator(type, content)) {
-	        while(cc.length && cc[cc.length - 1].lex)
-	          cc.pop()();
-	        if (cx.marked) return cx.marked;
-	        if (type == "variable" && inScope(state, content)) return "variable-2";
-	        return style;
-	      }
-	    }
-	  }
-
-	  // Combinator utils
-
-	  var cx = {state: null, column: null, marked: null, cc: null};
-	  function pass() {
-	    for (var i = arguments.length - 1; i >= 0; i--) cx.cc.push(arguments[i]);
-	  }
-	  function cont() {
-	    pass.apply(null, arguments);
-	    return true;
-	  }
-	  function register(varname) {
-	    function inList(list) {
-	      for (var v = list; v; v = v.next)
-	        if (v.name == varname) return true;
-	      return false;
-	    }
-	    var state = cx.state;
-	    if (state.context) {
-	      cx.marked = "def";
-	      if (inList(state.localVars)) return;
-	      state.localVars = {name: varname, next: state.localVars};
-	    } else {
-	      if (inList(state.globalVars)) return;
-	      if (parserConfig.globalVars)
-	        state.globalVars = {name: varname, next: state.globalVars};
-	    }
-	  }
-
-	  // Combinators
-
-	  var defaultVars = {name: "this", next: {name: "arguments"}};
-	  function pushcontext() {
-	    cx.state.context = {prev: cx.state.context, vars: cx.state.localVars};
-	    cx.state.localVars = defaultVars;
-	  }
-	  function popcontext() {
-	    cx.state.localVars = cx.state.context.vars;
-	    cx.state.context = cx.state.context.prev;
-	  }
-	  function pushlex(type, info) {
-	    var result = function() {
-	      var state = cx.state, indent = state.indented;
-	      if (state.lexical.type == "stat") indent = state.lexical.indented;
-	      else for (var outer = state.lexical; outer && outer.type == ")" && outer.align; outer = outer.prev)
-	        indent = outer.indented;
-	      state.lexical = new JSLexical(indent, cx.stream.column(), type, null, state.lexical, info);
-	    };
-	    result.lex = true;
-	    return result;
-	  }
-	  function poplex() {
-	    var state = cx.state;
-	    if (state.lexical.prev) {
-	      if (state.lexical.type == ")")
-	        state.indented = state.lexical.indented;
-	      state.lexical = state.lexical.prev;
-	    }
-	  }
-	  poplex.lex = true;
-
-	  function expect(wanted) {
-	    function exp(type) {
-	      if (type == wanted) return cont();
-	      else if (wanted == ";") return pass();
-	      else return cont(exp);
-	    };
-	    return exp;
-	  }
-
-	  function statement(type, value) {
-	    if (type == "var") return cont(pushlex("vardef", value.length), vardef, expect(";"), poplex);
-	    if (type == "keyword a") return cont(pushlex("form"), expression, statement, poplex);
-	    if (type == "keyword b") return cont(pushlex("form"), statement, poplex);
-	    if (type == "{") return cont(pushlex("}"), block, poplex);
-	    if (type == ";") return cont();
-	    if (type == "if") {
-	      if (cx.state.lexical.info == "else" && cx.state.cc[cx.state.cc.length - 1] == poplex)
-	        cx.state.cc.pop()();
-	      return cont(pushlex("form"), expression, statement, poplex, maybeelse);
-	    }
-	    if (type == "function") return cont(functiondef);
-	    if (type == "for") return cont(pushlex("form"), forspec, statement, poplex);
-	    if (type == "variable") return cont(pushlex("stat"), maybelabel);
-	    if (type == "switch") return cont(pushlex("form"), expression, pushlex("}", "switch"), expect("{"),
-	                                      block, poplex, poplex);
-	    if (type == "case") return cont(expression, expect(":"));
-	    if (type == "default") return cont(expect(":"));
-	    if (type == "catch") return cont(pushlex("form"), pushcontext, expect("("), funarg, expect(")"),
-	                                     statement, poplex, popcontext);
-	    if (type == "module") return cont(pushlex("form"), pushcontext, afterModule, popcontext, poplex);
-	    if (type == "class") return cont(pushlex("form"), className, poplex);
-	    if (type == "export") return cont(pushlex("form"), afterExport, poplex);
-	    if (type == "import") return cont(pushlex("form"), afterImport, poplex);
-	    return pass(pushlex("stat"), expression, expect(";"), poplex);
-	  }
-	  function expression(type) {
-	    return expressionInner(type, false);
-	  }
-	  function expressionNoComma(type) {
-	    return expressionInner(type, true);
-	  }
-	  function expressionInner(type, noComma) {
-	    if (cx.state.fatArrowAt == cx.stream.start) {
-	      var body = noComma ? arrowBodyNoComma : arrowBody;
-	      if (type == "(") return cont(pushcontext, pushlex(")"), commasep(pattern, ")"), poplex, expect("=>"), body, popcontext);
-	      else if (type == "variable") return pass(pushcontext, pattern, expect("=>"), body, popcontext);
-	    }
-
-	    var maybeop = noComma ? maybeoperatorNoComma : maybeoperatorComma;
-	    if (atomicTypes.hasOwnProperty(type)) return cont(maybeop);
-	    if (type == "function") return cont(functiondef, maybeop);
-	    if (type == "keyword c") return cont(noComma ? maybeexpressionNoComma : maybeexpression);
-	    if (type == "(") return cont(pushlex(")"), maybeexpression, comprehension, expect(")"), poplex, maybeop);
-	    if (type == "operator" || type == "spread") return cont(noComma ? expressionNoComma : expression);
-	    if (type == "[") return cont(pushlex("]"), arrayLiteral, poplex, maybeop);
-	    if (type == "{") return contCommasep(objprop, "}", null, maybeop);
-	    if (type == "quasi") { return pass(quasi, maybeop); }
-	    return cont();
-	  }
-	  function maybeexpression(type) {
-	    if (type.match(/[;\}\)\],]/)) return pass();
-	    return pass(expression);
-	  }
-	  function maybeexpressionNoComma(type) {
-	    if (type.match(/[;\}\)\],]/)) return pass();
-	    return pass(expressionNoComma);
-	  }
-
-	  function maybeoperatorComma(type, value) {
-	    if (type == ",") return cont(expression);
-	    return maybeoperatorNoComma(type, value, false);
-	  }
-	  function maybeoperatorNoComma(type, value, noComma) {
-	    var me = noComma == false ? maybeoperatorComma : maybeoperatorNoComma;
-	    var expr = noComma == false ? expression : expressionNoComma;
-	    if (type == "=>") return cont(pushcontext, noComma ? arrowBodyNoComma : arrowBody, popcontext);
-	    if (type == "operator") {
-	      if (/\+\+|--/.test(value)) return cont(me);
-	      if (value == "?") return cont(expression, expect(":"), expr);
-	      return cont(expr);
-	    }
-	    if (type == "quasi") { return pass(quasi, me); }
-	    if (type == ";") return;
-	    if (type == "(") return contCommasep(expressionNoComma, ")", "call", me);
-	    if (type == ".") return cont(property, me);
-	    if (type == "[") return cont(pushlex("]"), maybeexpression, expect("]"), poplex, me);
-	  }
-	  function quasi(type, value) {
-	    if (type != "quasi") return pass();
-	    if (value.slice(value.length - 2) != "${") return cont(quasi);
-	    return cont(expression, continueQuasi);
-	  }
-	  function continueQuasi(type) {
-	    if (type == "}") {
-	      cx.marked = "string-2";
-	      cx.state.tokenize = tokenQuasi;
-	      return cont(quasi);
-	    }
-	  }
-	  function arrowBody(type) {
-	    findFatArrow(cx.stream, cx.state);
-	    return pass(type == "{" ? statement : expression);
-	  }
-	  function arrowBodyNoComma(type) {
-	    findFatArrow(cx.stream, cx.state);
-	    return pass(type == "{" ? statement : expressionNoComma);
-	  }
-	  function maybelabel(type) {
-	    if (type == ":") return cont(poplex, statement);
-	    return pass(maybeoperatorComma, expect(";"), poplex);
-	  }
-	  function property(type) {
-	    if (type == "variable") {cx.marked = "property"; return cont();}
-	  }
-	  function objprop(type, value) {
-	    if (type == "variable" || cx.style == "keyword") {
-	      cx.marked = "property";
-	      if (value == "get" || value == "set") return cont(getterSetter);
-	      return cont(afterprop);
-	    } else if (type == "number" || type == "string") {
-	      cx.marked = jsonldMode ? "property" : (cx.style + " property");
-	      return cont(afterprop);
-	    } else if (type == "jsonld-keyword") {
-	      return cont(afterprop);
-	    } else if (type == "[") {
-	      return cont(expression, expect("]"), afterprop);
-	    }
-	  }
-	  function getterSetter(type) {
-	    if (type != "variable") return pass(afterprop);
-	    cx.marked = "property";
-	    return cont(functiondef);
-	  }
-	  function afterprop(type) {
-	    if (type == ":") return cont(expressionNoComma);
-	    if (type == "(") return pass(functiondef);
-	  }
-	  function commasep(what, end) {
-	    function proceed(type) {
-	      if (type == ",") {
-	        var lex = cx.state.lexical;
-	        if (lex.info == "call") lex.pos = (lex.pos || 0) + 1;
-	        return cont(what, proceed);
-	      }
-	      if (type == end) return cont();
-	      return cont(expect(end));
-	    }
-	    return function(type) {
-	      if (type == end) return cont();
-	      return pass(what, proceed);
-	    };
-	  }
-	  function contCommasep(what, end, info) {
-	    for (var i = 3; i < arguments.length; i++)
-	      cx.cc.push(arguments[i]);
-	    return cont(pushlex(end, info), commasep(what, end), poplex);
-	  }
-	  function block(type) {
-	    if (type == "}") return cont();
-	    return pass(statement, block);
-	  }
-	  function maybetype(type) {
-	    if (isTS && type == ":") return cont(typedef);
-	  }
-	  function typedef(type) {
-	    if (type == "variable"){cx.marked = "variable-3"; return cont();}
-	  }
-	  function vardef() {
-	    return pass(pattern, maybetype, maybeAssign, vardefCont);
-	  }
-	  function pattern(type, value) {
-	    if (type == "variable") { register(value); return cont(); }
-	    if (type == "[") return contCommasep(pattern, "]");
-	    if (type == "{") return contCommasep(proppattern, "}");
-	  }
-	  function proppattern(type, value) {
-	    if (type == "variable" && !cx.stream.match(/^\s*:/, false)) {
-	      register(value);
-	      return cont(maybeAssign);
-	    }
-	    if (type == "variable") cx.marked = "property";
-	    return cont(expect(":"), pattern, maybeAssign);
-	  }
-	  function maybeAssign(_type, value) {
-	    if (value == "=") return cont(expressionNoComma);
-	  }
-	  function vardefCont(type) {
-	    if (type == ",") return cont(vardef);
-	  }
-	  function maybeelse(type, value) {
-	    if (type == "keyword b" && value == "else") return cont(pushlex("form", "else"), statement, poplex);
-	  }
-	  function forspec(type) {
-	    if (type == "(") return cont(pushlex(")"), forspec1, expect(")"), poplex);
-	  }
-	  function forspec1(type) {
-	    if (type == "var") return cont(vardef, expect(";"), forspec2);
-	    if (type == ";") return cont(forspec2);
-	    if (type == "variable") return cont(formaybeinof);
-	    return pass(expression, expect(";"), forspec2);
-	  }
-	  function formaybeinof(_type, value) {
-	    if (value == "in" || value == "of") { cx.marked = "keyword"; return cont(expression); }
-	    return cont(maybeoperatorComma, forspec2);
-	  }
-	  function forspec2(type, value) {
-	    if (type == ";") return cont(forspec3);
-	    if (value == "in" || value == "of") { cx.marked = "keyword"; return cont(expression); }
-	    return pass(expression, expect(";"), forspec3);
-	  }
-	  function forspec3(type) {
-	    if (type != ")") cont(expression);
-	  }
-	  function functiondef(type, value) {
-	    if (value == "*") {cx.marked = "keyword"; return cont(functiondef);}
-	    if (type == "variable") {register(value); return cont(functiondef);}
-	    if (type == "(") return cont(pushcontext, pushlex(")"), commasep(funarg, ")"), poplex, statement, popcontext);
-	  }
-	  function funarg(type) {
-	    if (type == "spread") return cont(funarg);
-	    return pass(pattern, maybetype);
-	  }
-	  function className(type, value) {
-	    if (type == "variable") {register(value); return cont(classNameAfter);}
-	  }
-	  function classNameAfter(type, value) {
-	    if (value == "extends") return cont(expression, classNameAfter);
-	    if (type == "{") return cont(pushlex("}"), classBody, poplex);
-	  }
-	  function classBody(type, value) {
-	    if (type == "variable" || cx.style == "keyword") {
-	      cx.marked = "property";
-	      if (value == "get" || value == "set") return cont(classGetterSetter, functiondef, classBody);
-	      return cont(functiondef, classBody);
-	    }
-	    if (value == "*") {
-	      cx.marked = "keyword";
-	      return cont(classBody);
-	    }
-	    if (type == ";") return cont(classBody);
-	    if (type == "}") return cont();
-	  }
-	  function classGetterSetter(type) {
-	    if (type != "variable") return pass();
-	    cx.marked = "property";
-	    return cont();
-	  }
-	  function afterModule(type, value) {
-	    if (type == "string") return cont(statement);
-	    if (type == "variable") { register(value); return cont(maybeFrom); }
-	  }
-	  function afterExport(_type, value) {
-	    if (value == "*") { cx.marked = "keyword"; return cont(maybeFrom, expect(";")); }
-	    if (value == "default") { cx.marked = "keyword"; return cont(expression, expect(";")); }
-	    return pass(statement);
-	  }
-	  function afterImport(type) {
-	    if (type == "string") return cont();
-	    return pass(importSpec, maybeFrom);
-	  }
-	  function importSpec(type, value) {
-	    if (type == "{") return contCommasep(importSpec, "}");
-	    if (type == "variable") register(value);
-	    return cont();
-	  }
-	  function maybeFrom(_type, value) {
-	    if (value == "from") { cx.marked = "keyword"; return cont(expression); }
-	  }
-	  function arrayLiteral(type) {
-	    if (type == "]") return cont();
-	    return pass(expressionNoComma, maybeArrayComprehension);
-	  }
-	  function maybeArrayComprehension(type) {
-	    if (type == "for") return pass(comprehension, expect("]"));
-	    if (type == ",") return cont(commasep(maybeexpressionNoComma, "]"));
-	    return pass(commasep(expressionNoComma, "]"));
-	  }
-	  function comprehension(type) {
-	    if (type == "for") return cont(forspec, comprehension);
-	    if (type == "if") return cont(expression, comprehension);
-	  }
-
-	  // Interface
-
-	  return {
-	    startState: function(basecolumn) {
-	      var state = {
-	        tokenize: tokenBase,
-	        lastType: "sof",
-	        cc: [],
-	        lexical: new JSLexical((basecolumn || 0) - indentUnit, 0, "block", false),
-	        localVars: parserConfig.localVars,
-	        context: parserConfig.localVars && {vars: parserConfig.localVars},
-	        indented: 0
-	      };
-	      if (parserConfig.globalVars && typeof parserConfig.globalVars == "object")
-	        state.globalVars = parserConfig.globalVars;
-	      return state;
-	    },
-
-	    token: function(stream, state) {
-	      if (stream.sol()) {
-	        if (!state.lexical.hasOwnProperty("align"))
-	          state.lexical.align = false;
-	        state.indented = stream.indentation();
-	        findFatArrow(stream, state);
-	      }
-	      if (state.tokenize != tokenComment && stream.eatSpace()) return null;
-	      var style = state.tokenize(stream, state);
-	      if (type == "comment") return style;
-	      state.lastType = type == "operator" && (content == "++" || content == "--") ? "incdec" : type;
-	      return parseJS(state, style, type, content, stream);
-	    },
-
-	    indent: function(state, textAfter) {
-	      if (state.tokenize == tokenComment) return CodeMirror.Pass;
-	      if (state.tokenize != tokenBase) return 0;
-	      var firstChar = textAfter && textAfter.charAt(0), lexical = state.lexical;
-	      // Kludge to prevent 'maybelse' from blocking lexical scope pops
-	      if (!/^\s*else\b/.test(textAfter)) for (var i = state.cc.length - 1; i >= 0; --i) {
-	        var c = state.cc[i];
-	        if (c == poplex) lexical = lexical.prev;
-	        else if (c != maybeelse) break;
-	      }
-	      if (lexical.type == "stat" && firstChar == "}") lexical = lexical.prev;
-	      if (statementIndent && lexical.type == ")" && lexical.prev.type == "stat")
-	        lexical = lexical.prev;
-	      var type = lexical.type, closing = firstChar == type;
-
-	      if (type == "vardef") return lexical.indented + (state.lastType == "operator" || state.lastType == "," ? lexical.info + 1 : 0);
-	      else if (type == "form" && firstChar == "{") return lexical.indented;
-	      else if (type == "form") return lexical.indented + indentUnit;
-	      else if (type == "stat")
-	        return lexical.indented + (state.lastType == "operator" || state.lastType == "," ? statementIndent || indentUnit : 0);
-	      else if (lexical.info == "switch" && !closing && parserConfig.doubleIndentSwitch != false)
-	        return lexical.indented + (/^(?:case|default)\b/.test(textAfter) ? indentUnit : 2 * indentUnit);
-	      else if (lexical.align) return lexical.column + (closing ? 0 : 1);
-	      else return lexical.indented + (closing ? 0 : indentUnit);
-	    },
-
-	    electricInput: /^\s*(?:case .*?:|default:|\{|\})$/,
-	    blockCommentStart: jsonMode ? null : "/*",
-	    blockCommentEnd: jsonMode ? null : "*/",
-	    lineComment: jsonMode ? null : "//",
-	    fold: "brace",
-
-	    helperType: jsonMode ? "json" : "javascript",
-	    jsonldMode: jsonldMode,
-	    jsonMode: jsonMode
+	      client.socket.emit(methodName, args);
+	    });
 	  };
-	});
+	}
 
-	CodeMirror.registerHelper("wordChars", "javascript", /[\w$]/);
+	function Client(socket) {
+	  this.socket = socket;
+	  socket.on("rpcMethods", function(methods) {
+	    this.methods = methods;
 
-	CodeMirror.defineMIME("text/javascript", "javascript");
-	CodeMirror.defineMIME("text/ecmascript", "javascript");
-	CodeMirror.defineMIME("application/javascript", "javascript");
-	CodeMirror.defineMIME("application/x-javascript", "javascript");
-	CodeMirror.defineMIME("application/ecmascript", "javascript");
-	CodeMirror.defineMIME("application/json", {name: "javascript", json: true});
-	CodeMirror.defineMIME("application/x-json", {name: "javascript", json: true});
-	CodeMirror.defineMIME("application/ld+json", {name: "javascript", jsonld: true});
-	CodeMirror.defineMIME("text/typescript", { name: "javascript", typescript: true });
-	CodeMirror.defineMIME("application/typescript", { name: "javascript", typescript: true });
+	    methods.forEach(function(method) {
+	      generateClientMethod(this, method);
+	    }, this);
 
-	});
+	    this.onReady();
+	  }.bind(this));
+	}
+
+	Client.prototype.ready = function(callback) {
+	  this.onReady = callback;
+	};
+
+	module.exports = {
+	  createServer: function(io, rpcMethods) {
+	    io.on("connection", function(socket) {
+
+	      var methodNames = [];
+	      _.each(rpcMethods, function(methods, namespace) {
+	        _.each(methods, function(method, methodName) {
+	          var name = namespace + "." + methodName;
+	          registerServerMethod(socket, name, method);
+	          methodNames.push(name);
+	        });
+	      });
+
+	      io.emit("rpcMethods", methodNames);
+	    });
+	  },
+
+	  createClient: function(socket) {
+	    return new Client(socket);
+	  }
+	};
 
 
 /***/ },
 /* 13 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// CodeMirror, copyright (c) by Marijn Haverbeke and others
-	// Distributed under an MIT license: http://codemirror.net/LICENSE
-
-	(function(mod) {
-	  if (true) // CommonJS
-	    mod(__webpack_require__(42), __webpack_require__(12), __webpack_require__(44), __webpack_require__(45));
-	  else if (typeof define == "function" && define.amd) // AMD
-	    define(["../../lib/codemirror", "../javascript/javascript", "../css/css", "../htmlmixed/htmlmixed"], mod);
-	  else // Plain browser env
-	    mod(CodeMirror);
-	})(function(CodeMirror) {
-	"use strict";
-
-	CodeMirror.defineMode('jade', function (config) {
-	  // token types
-	  var KEYWORD = 'keyword';
-	  var DOCTYPE = 'meta';
-	  var ID = 'builtin';
-	  var CLASS = 'qualifier';
-
-	  var ATTRS_NEST = {
-	    '{': '}',
-	    '(': ')',
-	    '[': ']'
-	  };
-
-	  var jsMode = CodeMirror.getMode(config, 'javascript');
-
-	  function State() {
-	    this.javaScriptLine = false;
-	    this.javaScriptLineExcludesColon = false;
-
-	    this.javaScriptArguments = false;
-	    this.javaScriptArgumentsDepth = 0;
-
-	    this.isInterpolating = false;
-	    this.interpolationNesting = 0;
-
-	    this.jsState = jsMode.startState();
-
-	    this.restOfLine = '';
-
-	    this.isIncludeFiltered = false;
-	    this.isEach = false;
-
-	    this.lastTag = '';
-	    this.scriptType = '';
-
-	    // Attributes Mode
-	    this.isAttrs = false;
-	    this.attrsNest = [];
-	    this.inAttributeName = true;
-	    this.attributeIsType = false;
-	    this.attrValue = '';
-
-	    // Indented Mode
-	    this.indentOf = Infinity;
-	    this.indentToken = '';
-
-	    this.innerMode = null;
-	    this.innerState = null;
-
-	    this.innerModeForLine = false;
-	  }
-	  /**
-	   * Safely copy a state
-	   *
-	   * @return {State}
-	   */
-	  State.prototype.copy = function () {
-	    var res = new State();
-	    res.javaScriptLine = this.javaScriptLine;
-	    res.javaScriptLineExcludesColon = this.javaScriptLineExcludesColon;
-	    res.javaScriptArguments = this.javaScriptArguments;
-	    res.javaScriptArgumentsDepth = this.javaScriptArgumentsDepth;
-	    res.isInterpolating = this.isInterpolating;
-	    res.interpolationNesting = this.intpolationNesting;
-
-	    res.jsState = CodeMirror.copyState(jsMode, this.jsState);
-
-	    res.innerMode = this.innerMode;
-	    if (this.innerMode && this.innerState) {
-	      res.innerState = CodeMirror.copyState(this.innerMode, this.innerState);
-	    }
-
-	    res.restOfLine = this.restOfLine;
-
-	    res.isIncludeFiltered = this.isIncludeFiltered;
-	    res.isEach = this.isEach;
-	    res.lastTag = this.lastTag;
-	    res.scriptType = this.scriptType;
-	    res.isAttrs = this.isAttrs;
-	    res.attrsNest = this.attrsNest.slice();
-	    res.inAttributeName = this.inAttributeName;
-	    res.attributeIsType = this.attributeIsType;
-	    res.attrValue = this.attrValue;
-	    res.indentOf = this.indentOf;
-	    res.indentToken = this.indentToken;
-
-	    res.innerModeForLine = this.innerModeForLine;
-
-	    return res;
-	  };
-
-	  function javaScript(stream, state) {
-	    if (stream.sol()) {
-	      // if javaScriptLine was set at end of line, ignore it
-	      state.javaScriptLine = false;
-	      state.javaScriptLineExcludesColon = false;
-	    }
-	    if (state.javaScriptLine) {
-	      if (state.javaScriptLineExcludesColon && stream.peek() === ':') {
-	        state.javaScriptLine = false;
-	        state.javaScriptLineExcludesColon = false;
-	        return;
-	      }
-	      var tok = jsMode.token(stream, state.jsState);
-	      if (stream.eol()) state.javaScriptLine = false;
-	      return tok || true;
-	    }
-	  }
-	  function javaScriptArguments(stream, state) {
-	    if (state.javaScriptArguments) {
-	      if (state.javaScriptArgumentsDepth === 0 && stream.peek() !== '(') {
-	        state.javaScriptArguments = false;
-	        return;
-	      }
-	      if (stream.peek() === '(') {
-	        state.javaScriptArgumentsDepth++;
-	      } else if (stream.peek() === ')') {
-	        state.javaScriptArgumentsDepth--;
-	      }
-	      if (state.javaScriptArgumentsDepth === 0) {
-	        state.javaScriptArguments = false;
-	        return;
-	      }
-
-	      var tok = jsMode.token(stream, state.jsState);
-	      return tok || true;
-	    }
-	  }
-
-	  function yieldStatement(stream) {
-	    if (stream.match(/^yield\b/)) {
-	        return 'keyword';
-	    }
-	  }
-
-	  function doctype(stream) {
-	    if (stream.match(/^(?:doctype) *([^\n]+)?/)) {
-	        return DOCTYPE;
-	    }
-	  }
-
-	  function interpolation(stream, state) {
-	    if (stream.match('#{')) {
-	      state.isInterpolating = true;
-	      state.interpolationNesting = 0;
-	      return 'punctuation';
-	    }
-	  }
-
-	  function interpolationContinued(stream, state) {
-	    if (state.isInterpolating) {
-	      if (stream.peek() === '}') {
-	        state.interpolationNesting--;
-	        if (state.interpolationNesting < 0) {
-	          stream.next();
-	          state.isInterpolating = false;
-	          return 'puncutation';
-	        }
-	      } else if (stream.peek() === '{') {
-	        state.interpolationNesting++;
-	      }
-	      return jsMode.token(stream, state.jsState) || true;
-	    }
-	  }
-
-	  function caseStatement(stream, state) {
-	    if (stream.match(/^case\b/)) {
-	      state.javaScriptLine = true;
-	      return KEYWORD;
-	    }
-	  }
-
-	  function when(stream, state) {
-	    if (stream.match(/^when\b/)) {
-	      state.javaScriptLine = true;
-	      state.javaScriptLineExcludesColon = true;
-	      return KEYWORD;
-	    }
-	  }
-
-	  function defaultStatement(stream) {
-	    if (stream.match(/^default\b/)) {
-	      return KEYWORD;
-	    }
-	  }
-
-	  function extendsStatement(stream, state) {
-	    if (stream.match(/^extends?\b/)) {
-	      state.restOfLine = 'string';
-	      return KEYWORD;
-	    }
-	  }
-
-	  function append(stream, state) {
-	    if (stream.match(/^append\b/)) {
-	      state.restOfLine = 'variable';
-	      return KEYWORD;
-	    }
-	  }
-	  function prepend(stream, state) {
-	    if (stream.match(/^prepend\b/)) {
-	      state.restOfLine = 'variable';
-	      return KEYWORD;
-	    }
-	  }
-	  function block(stream, state) {
-	    if (stream.match(/^block\b *(?:(prepend|append)\b)?/)) {
-	      state.restOfLine = 'variable';
-	      return KEYWORD;
-	    }
-	  }
-
-	  function include(stream, state) {
-	    if (stream.match(/^include\b/)) {
-	      state.restOfLine = 'string';
-	      return KEYWORD;
-	    }
-	  }
-
-	  function includeFiltered(stream, state) {
-	    if (stream.match(/^include:([a-zA-Z0-9\-]+)/, false) && stream.match('include')) {
-	      state.isIncludeFiltered = true;
-	      return KEYWORD;
-	    }
-	  }
-
-	  function includeFilteredContinued(stream, state) {
-	    if (state.isIncludeFiltered) {
-	      var tok = filter(stream, state);
-	      state.isIncludeFiltered = false;
-	      state.restOfLine = 'string';
-	      return tok;
-	    }
-	  }
-
-	  function mixin(stream, state) {
-	    if (stream.match(/^mixin\b/)) {
-	      state.javaScriptLine = true;
-	      return KEYWORD;
-	    }
-	  }
-
-	  function call(stream, state) {
-	    if (stream.match(/^\+([-\w]+)/)) {
-	      if (!stream.match(/^\( *[-\w]+ *=/, false)) {
-	        state.javaScriptArguments = true;
-	        state.javaScriptArgumentsDepth = 0;
-	      }
-	      return 'variable';
-	    }
-	    if (stream.match(/^\+#{/, false)) {
-	      stream.next();
-	      state.mixinCallAfter = true;
-	      return interpolation(stream, state);
-	    }
-	  }
-	  function callArguments(stream, state) {
-	    if (state.mixinCallAfter) {
-	      state.mixinCallAfter = false;
-	      if (!stream.match(/^\( *[-\w]+ *=/, false)) {
-	        state.javaScriptArguments = true;
-	        state.javaScriptArgumentsDepth = 0;
-	      }
-	      return true;
-	    }
-	  }
-
-	  function conditional(stream, state) {
-	    if (stream.match(/^(if|unless|else if|else)\b/)) {
-	      state.javaScriptLine = true;
-	      return KEYWORD;
-	    }
-	  }
-
-	  function each(stream, state) {
-	    if (stream.match(/^(- *)?(each|for)\b/)) {
-	      state.isEach = true;
-	      return KEYWORD;
-	    }
-	  }
-	  function eachContinued(stream, state) {
-	    if (state.isEach) {
-	      if (stream.match(/^ in\b/)) {
-	        state.javaScriptLine = true;
-	        state.isEach = false;
-	        return KEYWORD;
-	      } else if (stream.sol() || stream.eol()) {
-	        state.isEach = false;
-	      } else if (stream.next()) {
-	        while (!stream.match(/^ in\b/, false) && stream.next());
-	        return 'variable';
-	      }
-	    }
-	  }
-
-	  function whileStatement(stream, state) {
-	    if (stream.match(/^while\b/)) {
-	      state.javaScriptLine = true;
-	      return KEYWORD;
-	    }
-	  }
-
-	  function tag(stream, state) {
-	    var captures;
-	    if (captures = stream.match(/^(\w(?:[-:\w]*\w)?)\/?/)) {
-	      state.lastTag = captures[1].toLowerCase();
-	      if (state.lastTag === 'script') {
-	        state.scriptType = 'application/javascript';
-	      }
-	      return 'tag';
-	    }
-	  }
-
-	  function filter(stream, state) {
-	    if (stream.match(/^:([\w\-]+)/)) {
-	      var innerMode;
-	      if (config && config.innerModes) {
-	        innerMode = config.innerModes(stream.current().substring(1));
-	      }
-	      if (!innerMode) {
-	        innerMode = stream.current().substring(1);
-	      }
-	      if (typeof innerMode === 'string') {
-	        innerMode = CodeMirror.getMode(config, innerMode);
-	      }
-	      setInnerMode(stream, state, innerMode);
-	      return 'atom';
-	    }
-	  }
-
-	  function code(stream, state) {
-	    if (stream.match(/^(!?=|-)/)) {
-	      state.javaScriptLine = true;
-	      return 'punctuation';
-	    }
-	  }
-
-	  function id(stream) {
-	    if (stream.match(/^#([\w-]+)/)) {
-	      return ID;
-	    }
-	  }
-
-	  function className(stream) {
-	    if (stream.match(/^\.([\w-]+)/)) {
-	      return CLASS;
-	    }
-	  }
-
-	  function attrs(stream, state) {
-	    if (stream.peek() == '(') {
-	      stream.next();
-	      state.isAttrs = true;
-	      state.attrsNest = [];
-	      state.inAttributeName = true;
-	      state.attrValue = '';
-	      state.attributeIsType = false;
-	      return 'punctuation';
-	    }
-	  }
-
-	  function attrsContinued(stream, state) {
-	    if (state.isAttrs) {
-	      if (ATTRS_NEST[stream.peek()]) {
-	        state.attrsNest.push(ATTRS_NEST[stream.peek()]);
-	      }
-	      if (state.attrsNest[state.attrsNest.length - 1] === stream.peek()) {
-	        state.attrsNest.pop();
-	      } else  if (stream.eat(')')) {
-	        state.isAttrs = false;
-	        return 'punctuation';
-	      }
-	      if (state.inAttributeName && stream.match(/^[^=,\)!]+/)) {
-	        if (stream.peek() === '=' || stream.peek() === '!') {
-	          state.inAttributeName = false;
-	          state.jsState = jsMode.startState();
-	          if (state.lastTag === 'script' && stream.current().trim().toLowerCase() === 'type') {
-	            state.attributeIsType = true;
-	          } else {
-	            state.attributeIsType = false;
-	          }
-	        }
-	        return 'attribute';
-	      }
-
-	      var tok = jsMode.token(stream, state.jsState);
-	      if (state.attributeIsType && tok === 'string') {
-	        state.scriptType = stream.current().toString();
-	      }
-	      if (state.attrsNest.length === 0 && (tok === 'string' || tok === 'variable' || tok === 'keyword')) {
-	        try {
-	          Function('', 'var x ' + state.attrValue.replace(/,\s*$/, '').replace(/^!/, ''));
-	          state.inAttributeName = true;
-	          state.attrValue = '';
-	          stream.backUp(stream.current().length);
-	          return attrsContinued(stream, state);
-	        } catch (ex) {
-	          //not the end of an attribute
-	        }
-	      }
-	      state.attrValue += stream.current();
-	      return tok || true;
-	    }
-	  }
-
-	  function attributesBlock(stream, state) {
-	    if (stream.match(/^&attributes\b/)) {
-	      state.javaScriptArguments = true;
-	      state.javaScriptArgumentsDepth = 0;
-	      return 'keyword';
-	    }
-	  }
-
-	  function indent(stream) {
-	    if (stream.sol() && stream.eatSpace()) {
-	      return 'indent';
-	    }
-	  }
-
-	  function comment(stream, state) {
-	    if (stream.match(/^ *\/\/(-)?([^\n]*)/)) {
-	      state.indentOf = stream.indentation();
-	      state.indentToken = 'comment';
-	      return 'comment';
-	    }
-	  }
-
-	  function colon(stream) {
-	    if (stream.match(/^: */)) {
-	      return 'colon';
-	    }
-	  }
-
-	  function text(stream, state) {
-	    if (stream.match(/^(?:\| ?| )([^\n]+)/)) {
-	      return 'string';
-	    }
-	    if (stream.match(/^(<[^\n]*)/, false)) {
-	      // html string
-	      setInnerMode(stream, state, 'htmlmixed');
-	      state.innerModeForLine = true;
-	      return innerMode(stream, state, true);
-	    }
-	  }
-
-	  function dot(stream, state) {
-	    if (stream.eat('.')) {
-	      var innerMode = null;
-	      if (state.lastTag === 'script' && state.scriptType.toLowerCase().indexOf('javascript') != -1) {
-	        innerMode = state.scriptType.toLowerCase().replace(/"|'/g, '');
-	      } else if (state.lastTag === 'style') {
-	        innerMode = 'css';
-	      }
-	      setInnerMode(stream, state, innerMode);
-	      return 'dot';
-	    }
-	  }
-
-	  function fail(stream) {
-	    stream.next();
-	    return null;
-	  }
-
-
-	  function setInnerMode(stream, state, mode) {
-	    mode = CodeMirror.mimeModes[mode] || mode;
-	    mode = config.innerModes ? config.innerModes(mode) || mode : mode;
-	    mode = CodeMirror.mimeModes[mode] || mode;
-	    mode = CodeMirror.getMode(config, mode);
-	    state.indentOf = stream.indentation();
-
-	    if (mode && mode.name !== 'null') {
-	      state.innerMode = mode;
-	    } else {
-	      state.indentToken = 'string';
-	    }
-	  }
-	  function innerMode(stream, state, force) {
-	    if (stream.indentation() > state.indentOf || (state.innerModeForLine && !stream.sol()) || force) {
-	      if (state.innerMode) {
-	        if (!state.innerState) {
-	          state.innerState = state.innerMode.startState ? state.innerMode.startState(stream.indentation()) : {};
-	        }
-	        return stream.hideFirstChars(state.indentOf + 2, function () {
-	          return state.innerMode.token(stream, state.innerState) || true;
-	        });
-	      } else {
-	        stream.skipToEnd();
-	        return state.indentToken;
-	      }
-	    } else if (stream.sol()) {
-	      state.indentOf = Infinity;
-	      state.indentToken = null;
-	      state.innerMode = null;
-	      state.innerState = null;
-	    }
-	  }
-	  function restOfLine(stream, state) {
-	    if (stream.sol()) {
-	      // if restOfLine was set at end of line, ignore it
-	      state.restOfLine = '';
-	    }
-	    if (state.restOfLine) {
-	      stream.skipToEnd();
-	      var tok = state.restOfLine;
-	      state.restOfLine = '';
-	      return tok;
-	    }
-	  }
-
-
-	  function startState() {
-	    return new State();
-	  }
-	  function copyState(state) {
-	    return state.copy();
-	  }
-	  /**
-	   * Get the next token in the stream
-	   *
-	   * @param {Stream} stream
-	   * @param {State} state
-	   */
-	  function nextToken(stream, state) {
-	    var tok = innerMode(stream, state)
-	      || restOfLine(stream, state)
-	      || interpolationContinued(stream, state)
-	      || includeFilteredContinued(stream, state)
-	      || eachContinued(stream, state)
-	      || attrsContinued(stream, state)
-	      || javaScript(stream, state)
-	      || javaScriptArguments(stream, state)
-	      || callArguments(stream, state)
-
-	      || yieldStatement(stream, state)
-	      || doctype(stream, state)
-	      || interpolation(stream, state)
-	      || caseStatement(stream, state)
-	      || when(stream, state)
-	      || defaultStatement(stream, state)
-	      || extendsStatement(stream, state)
-	      || append(stream, state)
-	      || prepend(stream, state)
-	      || block(stream, state)
-	      || include(stream, state)
-	      || includeFiltered(stream, state)
-	      || mixin(stream, state)
-	      || call(stream, state)
-	      || conditional(stream, state)
-	      || each(stream, state)
-	      || whileStatement(stream, state)
-	      || tag(stream, state)
-	      || filter(stream, state)
-	      || code(stream, state)
-	      || id(stream, state)
-	      || className(stream, state)
-	      || attrs(stream, state)
-	      || attributesBlock(stream, state)
-	      || indent(stream, state)
-	      || text(stream, state)
-	      || comment(stream, state)
-	      || colon(stream, state)
-	      || dot(stream, state)
-	      || fail(stream, state);
-
-	    return tok === true ? null : tok;
-	  }
-	  return {
-	    startState: startState,
-	    copyState: copyState,
-	    token: nextToken
-	  };
-	});
-
-	CodeMirror.defineMIME('text/x-jade', 'jade');
-
-	});
-
-
-/***/ },
-/* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -11410,93 +10214,1289 @@
 
 
 /***/ },
+/* 14 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// CodeMirror, copyright (c) by Marijn Haverbeke and others
+	// Distributed under an MIT license: http://codemirror.net/LICENSE
+
+	// TODO actually recognize syntax of TypeScript constructs
+
+	(function(mod) {
+	  if (true) // CommonJS
+	    mod(__webpack_require__(42));
+	  else if (typeof define == "function" && define.amd) // AMD
+	    define(["../../lib/codemirror"], mod);
+	  else // Plain browser env
+	    mod(CodeMirror);
+	})(function(CodeMirror) {
+	"use strict";
+
+	CodeMirror.defineMode("javascript", function(config, parserConfig) {
+	  var indentUnit = config.indentUnit;
+	  var statementIndent = parserConfig.statementIndent;
+	  var jsonldMode = parserConfig.jsonld;
+	  var jsonMode = parserConfig.json || jsonldMode;
+	  var isTS = parserConfig.typescript;
+	  var wordRE = parserConfig.wordCharacters || /[\w$\xa1-\uffff]/;
+
+	  // Tokenizer
+
+	  var keywords = function(){
+	    function kw(type) {return {type: type, style: "keyword"};}
+	    var A = kw("keyword a"), B = kw("keyword b"), C = kw("keyword c");
+	    var operator = kw("operator"), atom = {type: "atom", style: "atom"};
+
+	    var jsKeywords = {
+	      "if": kw("if"), "while": A, "with": A, "else": B, "do": B, "try": B, "finally": B,
+	      "return": C, "break": C, "continue": C, "new": C, "delete": C, "throw": C, "debugger": C,
+	      "var": kw("var"), "const": kw("var"), "let": kw("var"),
+	      "function": kw("function"), "catch": kw("catch"),
+	      "for": kw("for"), "switch": kw("switch"), "case": kw("case"), "default": kw("default"),
+	      "in": operator, "typeof": operator, "instanceof": operator,
+	      "true": atom, "false": atom, "null": atom, "undefined": atom, "NaN": atom, "Infinity": atom,
+	      "this": kw("this"), "module": kw("module"), "class": kw("class"), "super": kw("atom"),
+	      "yield": C, "export": kw("export"), "import": kw("import"), "extends": C
+	    };
+
+	    // Extend the 'normal' keywords with the TypeScript language extensions
+	    if (isTS) {
+	      var type = {type: "variable", style: "variable-3"};
+	      var tsKeywords = {
+	        // object-like things
+	        "interface": kw("interface"),
+	        "extends": kw("extends"),
+	        "constructor": kw("constructor"),
+
+	        // scope modifiers
+	        "public": kw("public"),
+	        "private": kw("private"),
+	        "protected": kw("protected"),
+	        "static": kw("static"),
+
+	        // types
+	        "string": type, "number": type, "bool": type, "any": type
+	      };
+
+	      for (var attr in tsKeywords) {
+	        jsKeywords[attr] = tsKeywords[attr];
+	      }
+	    }
+
+	    return jsKeywords;
+	  }();
+
+	  var isOperatorChar = /[+\-*&%=<>!?|~^]/;
+	  var isJsonldKeyword = /^@(context|id|value|language|type|container|list|set|reverse|index|base|vocab|graph)"/;
+
+	  function readRegexp(stream) {
+	    var escaped = false, next, inSet = false;
+	    while ((next = stream.next()) != null) {
+	      if (!escaped) {
+	        if (next == "/" && !inSet) return;
+	        if (next == "[") inSet = true;
+	        else if (inSet && next == "]") inSet = false;
+	      }
+	      escaped = !escaped && next == "\\";
+	    }
+	  }
+
+	  // Used as scratch variables to communicate multiple values without
+	  // consing up tons of objects.
+	  var type, content;
+	  function ret(tp, style, cont) {
+	    type = tp; content = cont;
+	    return style;
+	  }
+	  function tokenBase(stream, state) {
+	    var ch = stream.next();
+	    if (ch == '"' || ch == "'") {
+	      state.tokenize = tokenString(ch);
+	      return state.tokenize(stream, state);
+	    } else if (ch == "." && stream.match(/^\d+(?:[eE][+\-]?\d+)?/)) {
+	      return ret("number", "number");
+	    } else if (ch == "." && stream.match("..")) {
+	      return ret("spread", "meta");
+	    } else if (/[\[\]{}\(\),;\:\.]/.test(ch)) {
+	      return ret(ch);
+	    } else if (ch == "=" && stream.eat(">")) {
+	      return ret("=>", "operator");
+	    } else if (ch == "0" && stream.eat(/x/i)) {
+	      stream.eatWhile(/[\da-f]/i);
+	      return ret("number", "number");
+	    } else if (/\d/.test(ch)) {
+	      stream.match(/^\d*(?:\.\d*)?(?:[eE][+\-]?\d+)?/);
+	      return ret("number", "number");
+	    } else if (ch == "/") {
+	      if (stream.eat("*")) {
+	        state.tokenize = tokenComment;
+	        return tokenComment(stream, state);
+	      } else if (stream.eat("/")) {
+	        stream.skipToEnd();
+	        return ret("comment", "comment");
+	      } else if (state.lastType == "operator" || state.lastType == "keyword c" ||
+	               state.lastType == "sof" || /^[\[{}\(,;:]$/.test(state.lastType)) {
+	        readRegexp(stream);
+	        stream.eatWhile(/[gimy]/); // 'y' is "sticky" option in Mozilla
+	        return ret("regexp", "string-2");
+	      } else {
+	        stream.eatWhile(isOperatorChar);
+	        return ret("operator", "operator", stream.current());
+	      }
+	    } else if (ch == "`") {
+	      state.tokenize = tokenQuasi;
+	      return tokenQuasi(stream, state);
+	    } else if (ch == "#") {
+	      stream.skipToEnd();
+	      return ret("error", "error");
+	    } else if (isOperatorChar.test(ch)) {
+	      stream.eatWhile(isOperatorChar);
+	      return ret("operator", "operator", stream.current());
+	    } else if (wordRE.test(ch)) {
+	      stream.eatWhile(wordRE);
+	      var word = stream.current(), known = keywords.propertyIsEnumerable(word) && keywords[word];
+	      return (known && state.lastType != ".") ? ret(known.type, known.style, word) :
+	                     ret("variable", "variable", word);
+	    }
+	  }
+
+	  function tokenString(quote) {
+	    return function(stream, state) {
+	      var escaped = false, next;
+	      if (jsonldMode && stream.peek() == "@" && stream.match(isJsonldKeyword)){
+	        state.tokenize = tokenBase;
+	        return ret("jsonld-keyword", "meta");
+	      }
+	      while ((next = stream.next()) != null) {
+	        if (next == quote && !escaped) break;
+	        escaped = !escaped && next == "\\";
+	      }
+	      if (!escaped) state.tokenize = tokenBase;
+	      return ret("string", "string");
+	    };
+	  }
+
+	  function tokenComment(stream, state) {
+	    var maybeEnd = false, ch;
+	    while (ch = stream.next()) {
+	      if (ch == "/" && maybeEnd) {
+	        state.tokenize = tokenBase;
+	        break;
+	      }
+	      maybeEnd = (ch == "*");
+	    }
+	    return ret("comment", "comment");
+	  }
+
+	  function tokenQuasi(stream, state) {
+	    var escaped = false, next;
+	    while ((next = stream.next()) != null) {
+	      if (!escaped && (next == "`" || next == "$" && stream.eat("{"))) {
+	        state.tokenize = tokenBase;
+	        break;
+	      }
+	      escaped = !escaped && next == "\\";
+	    }
+	    return ret("quasi", "string-2", stream.current());
+	  }
+
+	  var brackets = "([{}])";
+	  // This is a crude lookahead trick to try and notice that we're
+	  // parsing the argument patterns for a fat-arrow function before we
+	  // actually hit the arrow token. It only works if the arrow is on
+	  // the same line as the arguments and there's no strange noise
+	  // (comments) in between. Fallback is to only notice when we hit the
+	  // arrow, and not declare the arguments as locals for the arrow
+	  // body.
+	  function findFatArrow(stream, state) {
+	    if (state.fatArrowAt) state.fatArrowAt = null;
+	    var arrow = stream.string.indexOf("=>", stream.start);
+	    if (arrow < 0) return;
+
+	    var depth = 0, sawSomething = false;
+	    for (var pos = arrow - 1; pos >= 0; --pos) {
+	      var ch = stream.string.charAt(pos);
+	      var bracket = brackets.indexOf(ch);
+	      if (bracket >= 0 && bracket < 3) {
+	        if (!depth) { ++pos; break; }
+	        if (--depth == 0) break;
+	      } else if (bracket >= 3 && bracket < 6) {
+	        ++depth;
+	      } else if (wordRE.test(ch)) {
+	        sawSomething = true;
+	      } else if (sawSomething && !depth) {
+	        ++pos;
+	        break;
+	      }
+	    }
+	    if (sawSomething && !depth) state.fatArrowAt = pos;
+	  }
+
+	  // Parser
+
+	  var atomicTypes = {"atom": true, "number": true, "variable": true, "string": true, "regexp": true, "this": true, "jsonld-keyword": true};
+
+	  function JSLexical(indented, column, type, align, prev, info) {
+	    this.indented = indented;
+	    this.column = column;
+	    this.type = type;
+	    this.prev = prev;
+	    this.info = info;
+	    if (align != null) this.align = align;
+	  }
+
+	  function inScope(state, varname) {
+	    for (var v = state.localVars; v; v = v.next)
+	      if (v.name == varname) return true;
+	    for (var cx = state.context; cx; cx = cx.prev) {
+	      for (var v = cx.vars; v; v = v.next)
+	        if (v.name == varname) return true;
+	    }
+	  }
+
+	  function parseJS(state, style, type, content, stream) {
+	    var cc = state.cc;
+	    // Communicate our context to the combinators.
+	    // (Less wasteful than consing up a hundred closures on every call.)
+	    cx.state = state; cx.stream = stream; cx.marked = null, cx.cc = cc; cx.style = style;
+
+	    if (!state.lexical.hasOwnProperty("align"))
+	      state.lexical.align = true;
+
+	    while(true) {
+	      var combinator = cc.length ? cc.pop() : jsonMode ? expression : statement;
+	      if (combinator(type, content)) {
+	        while(cc.length && cc[cc.length - 1].lex)
+	          cc.pop()();
+	        if (cx.marked) return cx.marked;
+	        if (type == "variable" && inScope(state, content)) return "variable-2";
+	        return style;
+	      }
+	    }
+	  }
+
+	  // Combinator utils
+
+	  var cx = {state: null, column: null, marked: null, cc: null};
+	  function pass() {
+	    for (var i = arguments.length - 1; i >= 0; i--) cx.cc.push(arguments[i]);
+	  }
+	  function cont() {
+	    pass.apply(null, arguments);
+	    return true;
+	  }
+	  function register(varname) {
+	    function inList(list) {
+	      for (var v = list; v; v = v.next)
+	        if (v.name == varname) return true;
+	      return false;
+	    }
+	    var state = cx.state;
+	    if (state.context) {
+	      cx.marked = "def";
+	      if (inList(state.localVars)) return;
+	      state.localVars = {name: varname, next: state.localVars};
+	    } else {
+	      if (inList(state.globalVars)) return;
+	      if (parserConfig.globalVars)
+	        state.globalVars = {name: varname, next: state.globalVars};
+	    }
+	  }
+
+	  // Combinators
+
+	  var defaultVars = {name: "this", next: {name: "arguments"}};
+	  function pushcontext() {
+	    cx.state.context = {prev: cx.state.context, vars: cx.state.localVars};
+	    cx.state.localVars = defaultVars;
+	  }
+	  function popcontext() {
+	    cx.state.localVars = cx.state.context.vars;
+	    cx.state.context = cx.state.context.prev;
+	  }
+	  function pushlex(type, info) {
+	    var result = function() {
+	      var state = cx.state, indent = state.indented;
+	      if (state.lexical.type == "stat") indent = state.lexical.indented;
+	      else for (var outer = state.lexical; outer && outer.type == ")" && outer.align; outer = outer.prev)
+	        indent = outer.indented;
+	      state.lexical = new JSLexical(indent, cx.stream.column(), type, null, state.lexical, info);
+	    };
+	    result.lex = true;
+	    return result;
+	  }
+	  function poplex() {
+	    var state = cx.state;
+	    if (state.lexical.prev) {
+	      if (state.lexical.type == ")")
+	        state.indented = state.lexical.indented;
+	      state.lexical = state.lexical.prev;
+	    }
+	  }
+	  poplex.lex = true;
+
+	  function expect(wanted) {
+	    function exp(type) {
+	      if (type == wanted) return cont();
+	      else if (wanted == ";") return pass();
+	      else return cont(exp);
+	    };
+	    return exp;
+	  }
+
+	  function statement(type, value) {
+	    if (type == "var") return cont(pushlex("vardef", value.length), vardef, expect(";"), poplex);
+	    if (type == "keyword a") return cont(pushlex("form"), expression, statement, poplex);
+	    if (type == "keyword b") return cont(pushlex("form"), statement, poplex);
+	    if (type == "{") return cont(pushlex("}"), block, poplex);
+	    if (type == ";") return cont();
+	    if (type == "if") {
+	      if (cx.state.lexical.info == "else" && cx.state.cc[cx.state.cc.length - 1] == poplex)
+	        cx.state.cc.pop()();
+	      return cont(pushlex("form"), expression, statement, poplex, maybeelse);
+	    }
+	    if (type == "function") return cont(functiondef);
+	    if (type == "for") return cont(pushlex("form"), forspec, statement, poplex);
+	    if (type == "variable") return cont(pushlex("stat"), maybelabel);
+	    if (type == "switch") return cont(pushlex("form"), expression, pushlex("}", "switch"), expect("{"),
+	                                      block, poplex, poplex);
+	    if (type == "case") return cont(expression, expect(":"));
+	    if (type == "default") return cont(expect(":"));
+	    if (type == "catch") return cont(pushlex("form"), pushcontext, expect("("), funarg, expect(")"),
+	                                     statement, poplex, popcontext);
+	    if (type == "module") return cont(pushlex("form"), pushcontext, afterModule, popcontext, poplex);
+	    if (type == "class") return cont(pushlex("form"), className, poplex);
+	    if (type == "export") return cont(pushlex("form"), afterExport, poplex);
+	    if (type == "import") return cont(pushlex("form"), afterImport, poplex);
+	    return pass(pushlex("stat"), expression, expect(";"), poplex);
+	  }
+	  function expression(type) {
+	    return expressionInner(type, false);
+	  }
+	  function expressionNoComma(type) {
+	    return expressionInner(type, true);
+	  }
+	  function expressionInner(type, noComma) {
+	    if (cx.state.fatArrowAt == cx.stream.start) {
+	      var body = noComma ? arrowBodyNoComma : arrowBody;
+	      if (type == "(") return cont(pushcontext, pushlex(")"), commasep(pattern, ")"), poplex, expect("=>"), body, popcontext);
+	      else if (type == "variable") return pass(pushcontext, pattern, expect("=>"), body, popcontext);
+	    }
+
+	    var maybeop = noComma ? maybeoperatorNoComma : maybeoperatorComma;
+	    if (atomicTypes.hasOwnProperty(type)) return cont(maybeop);
+	    if (type == "function") return cont(functiondef, maybeop);
+	    if (type == "keyword c") return cont(noComma ? maybeexpressionNoComma : maybeexpression);
+	    if (type == "(") return cont(pushlex(")"), maybeexpression, comprehension, expect(")"), poplex, maybeop);
+	    if (type == "operator" || type == "spread") return cont(noComma ? expressionNoComma : expression);
+	    if (type == "[") return cont(pushlex("]"), arrayLiteral, poplex, maybeop);
+	    if (type == "{") return contCommasep(objprop, "}", null, maybeop);
+	    if (type == "quasi") { return pass(quasi, maybeop); }
+	    return cont();
+	  }
+	  function maybeexpression(type) {
+	    if (type.match(/[;\}\)\],]/)) return pass();
+	    return pass(expression);
+	  }
+	  function maybeexpressionNoComma(type) {
+	    if (type.match(/[;\}\)\],]/)) return pass();
+	    return pass(expressionNoComma);
+	  }
+
+	  function maybeoperatorComma(type, value) {
+	    if (type == ",") return cont(expression);
+	    return maybeoperatorNoComma(type, value, false);
+	  }
+	  function maybeoperatorNoComma(type, value, noComma) {
+	    var me = noComma == false ? maybeoperatorComma : maybeoperatorNoComma;
+	    var expr = noComma == false ? expression : expressionNoComma;
+	    if (type == "=>") return cont(pushcontext, noComma ? arrowBodyNoComma : arrowBody, popcontext);
+	    if (type == "operator") {
+	      if (/\+\+|--/.test(value)) return cont(me);
+	      if (value == "?") return cont(expression, expect(":"), expr);
+	      return cont(expr);
+	    }
+	    if (type == "quasi") { return pass(quasi, me); }
+	    if (type == ";") return;
+	    if (type == "(") return contCommasep(expressionNoComma, ")", "call", me);
+	    if (type == ".") return cont(property, me);
+	    if (type == "[") return cont(pushlex("]"), maybeexpression, expect("]"), poplex, me);
+	  }
+	  function quasi(type, value) {
+	    if (type != "quasi") return pass();
+	    if (value.slice(value.length - 2) != "${") return cont(quasi);
+	    return cont(expression, continueQuasi);
+	  }
+	  function continueQuasi(type) {
+	    if (type == "}") {
+	      cx.marked = "string-2";
+	      cx.state.tokenize = tokenQuasi;
+	      return cont(quasi);
+	    }
+	  }
+	  function arrowBody(type) {
+	    findFatArrow(cx.stream, cx.state);
+	    return pass(type == "{" ? statement : expression);
+	  }
+	  function arrowBodyNoComma(type) {
+	    findFatArrow(cx.stream, cx.state);
+	    return pass(type == "{" ? statement : expressionNoComma);
+	  }
+	  function maybelabel(type) {
+	    if (type == ":") return cont(poplex, statement);
+	    return pass(maybeoperatorComma, expect(";"), poplex);
+	  }
+	  function property(type) {
+	    if (type == "variable") {cx.marked = "property"; return cont();}
+	  }
+	  function objprop(type, value) {
+	    if (type == "variable" || cx.style == "keyword") {
+	      cx.marked = "property";
+	      if (value == "get" || value == "set") return cont(getterSetter);
+	      return cont(afterprop);
+	    } else if (type == "number" || type == "string") {
+	      cx.marked = jsonldMode ? "property" : (cx.style + " property");
+	      return cont(afterprop);
+	    } else if (type == "jsonld-keyword") {
+	      return cont(afterprop);
+	    } else if (type == "[") {
+	      return cont(expression, expect("]"), afterprop);
+	    }
+	  }
+	  function getterSetter(type) {
+	    if (type != "variable") return pass(afterprop);
+	    cx.marked = "property";
+	    return cont(functiondef);
+	  }
+	  function afterprop(type) {
+	    if (type == ":") return cont(expressionNoComma);
+	    if (type == "(") return pass(functiondef);
+	  }
+	  function commasep(what, end) {
+	    function proceed(type) {
+	      if (type == ",") {
+	        var lex = cx.state.lexical;
+	        if (lex.info == "call") lex.pos = (lex.pos || 0) + 1;
+	        return cont(what, proceed);
+	      }
+	      if (type == end) return cont();
+	      return cont(expect(end));
+	    }
+	    return function(type) {
+	      if (type == end) return cont();
+	      return pass(what, proceed);
+	    };
+	  }
+	  function contCommasep(what, end, info) {
+	    for (var i = 3; i < arguments.length; i++)
+	      cx.cc.push(arguments[i]);
+	    return cont(pushlex(end, info), commasep(what, end), poplex);
+	  }
+	  function block(type) {
+	    if (type == "}") return cont();
+	    return pass(statement, block);
+	  }
+	  function maybetype(type) {
+	    if (isTS && type == ":") return cont(typedef);
+	  }
+	  function typedef(type) {
+	    if (type == "variable"){cx.marked = "variable-3"; return cont();}
+	  }
+	  function vardef() {
+	    return pass(pattern, maybetype, maybeAssign, vardefCont);
+	  }
+	  function pattern(type, value) {
+	    if (type == "variable") { register(value); return cont(); }
+	    if (type == "[") return contCommasep(pattern, "]");
+	    if (type == "{") return contCommasep(proppattern, "}");
+	  }
+	  function proppattern(type, value) {
+	    if (type == "variable" && !cx.stream.match(/^\s*:/, false)) {
+	      register(value);
+	      return cont(maybeAssign);
+	    }
+	    if (type == "variable") cx.marked = "property";
+	    return cont(expect(":"), pattern, maybeAssign);
+	  }
+	  function maybeAssign(_type, value) {
+	    if (value == "=") return cont(expressionNoComma);
+	  }
+	  function vardefCont(type) {
+	    if (type == ",") return cont(vardef);
+	  }
+	  function maybeelse(type, value) {
+	    if (type == "keyword b" && value == "else") return cont(pushlex("form", "else"), statement, poplex);
+	  }
+	  function forspec(type) {
+	    if (type == "(") return cont(pushlex(")"), forspec1, expect(")"), poplex);
+	  }
+	  function forspec1(type) {
+	    if (type == "var") return cont(vardef, expect(";"), forspec2);
+	    if (type == ";") return cont(forspec2);
+	    if (type == "variable") return cont(formaybeinof);
+	    return pass(expression, expect(";"), forspec2);
+	  }
+	  function formaybeinof(_type, value) {
+	    if (value == "in" || value == "of") { cx.marked = "keyword"; return cont(expression); }
+	    return cont(maybeoperatorComma, forspec2);
+	  }
+	  function forspec2(type, value) {
+	    if (type == ";") return cont(forspec3);
+	    if (value == "in" || value == "of") { cx.marked = "keyword"; return cont(expression); }
+	    return pass(expression, expect(";"), forspec3);
+	  }
+	  function forspec3(type) {
+	    if (type != ")") cont(expression);
+	  }
+	  function functiondef(type, value) {
+	    if (value == "*") {cx.marked = "keyword"; return cont(functiondef);}
+	    if (type == "variable") {register(value); return cont(functiondef);}
+	    if (type == "(") return cont(pushcontext, pushlex(")"), commasep(funarg, ")"), poplex, statement, popcontext);
+	  }
+	  function funarg(type) {
+	    if (type == "spread") return cont(funarg);
+	    return pass(pattern, maybetype);
+	  }
+	  function className(type, value) {
+	    if (type == "variable") {register(value); return cont(classNameAfter);}
+	  }
+	  function classNameAfter(type, value) {
+	    if (value == "extends") return cont(expression, classNameAfter);
+	    if (type == "{") return cont(pushlex("}"), classBody, poplex);
+	  }
+	  function classBody(type, value) {
+	    if (type == "variable" || cx.style == "keyword") {
+	      cx.marked = "property";
+	      if (value == "get" || value == "set") return cont(classGetterSetter, functiondef, classBody);
+	      return cont(functiondef, classBody);
+	    }
+	    if (value == "*") {
+	      cx.marked = "keyword";
+	      return cont(classBody);
+	    }
+	    if (type == ";") return cont(classBody);
+	    if (type == "}") return cont();
+	  }
+	  function classGetterSetter(type) {
+	    if (type != "variable") return pass();
+	    cx.marked = "property";
+	    return cont();
+	  }
+	  function afterModule(type, value) {
+	    if (type == "string") return cont(statement);
+	    if (type == "variable") { register(value); return cont(maybeFrom); }
+	  }
+	  function afterExport(_type, value) {
+	    if (value == "*") { cx.marked = "keyword"; return cont(maybeFrom, expect(";")); }
+	    if (value == "default") { cx.marked = "keyword"; return cont(expression, expect(";")); }
+	    return pass(statement);
+	  }
+	  function afterImport(type) {
+	    if (type == "string") return cont();
+	    return pass(importSpec, maybeFrom);
+	  }
+	  function importSpec(type, value) {
+	    if (type == "{") return contCommasep(importSpec, "}");
+	    if (type == "variable") register(value);
+	    return cont();
+	  }
+	  function maybeFrom(_type, value) {
+	    if (value == "from") { cx.marked = "keyword"; return cont(expression); }
+	  }
+	  function arrayLiteral(type) {
+	    if (type == "]") return cont();
+	    return pass(expressionNoComma, maybeArrayComprehension);
+	  }
+	  function maybeArrayComprehension(type) {
+	    if (type == "for") return pass(comprehension, expect("]"));
+	    if (type == ",") return cont(commasep(maybeexpressionNoComma, "]"));
+	    return pass(commasep(expressionNoComma, "]"));
+	  }
+	  function comprehension(type) {
+	    if (type == "for") return cont(forspec, comprehension);
+	    if (type == "if") return cont(expression, comprehension);
+	  }
+
+	  // Interface
+
+	  return {
+	    startState: function(basecolumn) {
+	      var state = {
+	        tokenize: tokenBase,
+	        lastType: "sof",
+	        cc: [],
+	        lexical: new JSLexical((basecolumn || 0) - indentUnit, 0, "block", false),
+	        localVars: parserConfig.localVars,
+	        context: parserConfig.localVars && {vars: parserConfig.localVars},
+	        indented: 0
+	      };
+	      if (parserConfig.globalVars && typeof parserConfig.globalVars == "object")
+	        state.globalVars = parserConfig.globalVars;
+	      return state;
+	    },
+
+	    token: function(stream, state) {
+	      if (stream.sol()) {
+	        if (!state.lexical.hasOwnProperty("align"))
+	          state.lexical.align = false;
+	        state.indented = stream.indentation();
+	        findFatArrow(stream, state);
+	      }
+	      if (state.tokenize != tokenComment && stream.eatSpace()) return null;
+	      var style = state.tokenize(stream, state);
+	      if (type == "comment") return style;
+	      state.lastType = type == "operator" && (content == "++" || content == "--") ? "incdec" : type;
+	      return parseJS(state, style, type, content, stream);
+	    },
+
+	    indent: function(state, textAfter) {
+	      if (state.tokenize == tokenComment) return CodeMirror.Pass;
+	      if (state.tokenize != tokenBase) return 0;
+	      var firstChar = textAfter && textAfter.charAt(0), lexical = state.lexical;
+	      // Kludge to prevent 'maybelse' from blocking lexical scope pops
+	      if (!/^\s*else\b/.test(textAfter)) for (var i = state.cc.length - 1; i >= 0; --i) {
+	        var c = state.cc[i];
+	        if (c == poplex) lexical = lexical.prev;
+	        else if (c != maybeelse) break;
+	      }
+	      if (lexical.type == "stat" && firstChar == "}") lexical = lexical.prev;
+	      if (statementIndent && lexical.type == ")" && lexical.prev.type == "stat")
+	        lexical = lexical.prev;
+	      var type = lexical.type, closing = firstChar == type;
+
+	      if (type == "vardef") return lexical.indented + (state.lastType == "operator" || state.lastType == "," ? lexical.info + 1 : 0);
+	      else if (type == "form" && firstChar == "{") return lexical.indented;
+	      else if (type == "form") return lexical.indented + indentUnit;
+	      else if (type == "stat")
+	        return lexical.indented + (state.lastType == "operator" || state.lastType == "," ? statementIndent || indentUnit : 0);
+	      else if (lexical.info == "switch" && !closing && parserConfig.doubleIndentSwitch != false)
+	        return lexical.indented + (/^(?:case|default)\b/.test(textAfter) ? indentUnit : 2 * indentUnit);
+	      else if (lexical.align) return lexical.column + (closing ? 0 : 1);
+	      else return lexical.indented + (closing ? 0 : indentUnit);
+	    },
+
+	    electricInput: /^\s*(?:case .*?:|default:|\{|\})$/,
+	    blockCommentStart: jsonMode ? null : "/*",
+	    blockCommentEnd: jsonMode ? null : "*/",
+	    lineComment: jsonMode ? null : "//",
+	    fold: "brace",
+
+	    helperType: jsonMode ? "json" : "javascript",
+	    jsonldMode: jsonldMode,
+	    jsonMode: jsonMode
+	  };
+	});
+
+	CodeMirror.registerHelper("wordChars", "javascript", /[\w$]/);
+
+	CodeMirror.defineMIME("text/javascript", "javascript");
+	CodeMirror.defineMIME("text/ecmascript", "javascript");
+	CodeMirror.defineMIME("application/javascript", "javascript");
+	CodeMirror.defineMIME("application/x-javascript", "javascript");
+	CodeMirror.defineMIME("application/ecmascript", "javascript");
+	CodeMirror.defineMIME("application/json", {name: "javascript", json: true});
+	CodeMirror.defineMIME("application/x-json", {name: "javascript", json: true});
+	CodeMirror.defineMIME("application/ld+json", {name: "javascript", jsonld: true});
+	CodeMirror.defineMIME("text/typescript", { name: "javascript", typescript: true });
+	CodeMirror.defineMIME("application/typescript", { name: "javascript", typescript: true });
+
+	});
+
+
+/***/ },
 /* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* global require module window */
-	var _ = __webpack_require__(46);
-	var when = __webpack_require__(60);
+	// CodeMirror, copyright (c) by Marijn Haverbeke and others
+	// Distributed under an MIT license: http://codemirror.net/LICENSE
 
-	function registerServerMethod(socket, methodName, callback) { "use strict";
-	  socket.on(methodName, function(argsArray) {
-	    console.log("Call server method: ", methodName, " with args: ", argsArray);
-	    var clientInfo = { clientSocket: socket };
-	    var promise = when(callback.apply(clientInfo, argsArray));
-	    promise.then(function(result) {
-	      console.log("Respond to client: ", methodName, " with result: ", result);
-	      socket.emit(methodName + "Done", result);
-	    });
-	  });
-	}
+	(function(mod) {
+	  if (true) // CommonJS
+	    mod(__webpack_require__(42), __webpack_require__(14), __webpack_require__(44), __webpack_require__(45));
+	  else if (typeof define == "function" && define.amd) // AMD
+	    define(["../../lib/codemirror", "../javascript/javascript", "../css/css", "../htmlmixed/htmlmixed"], mod);
+	  else // Plain browser env
+	    mod(CodeMirror);
+	})(function(CodeMirror) {
+	"use strict";
 
-	function generateClientMethod(client, methodName) {
-	  var methodInfo = methodName.split(".");
-	  var namespace = methodInfo[0];
-	  var name = methodInfo[1];
+	CodeMirror.defineMode('jade', function (config) {
+	  // token types
+	  var KEYWORD = 'keyword';
+	  var DOCTYPE = 'meta';
+	  var ID = 'builtin';
+	  var CLASS = 'qualifier';
 
-	  if (!client[namespace]) {
-	    client[namespace] = {};
-	  }
-
-	  client[namespace][name] = function() {
-	    var args = Array.prototype.slice.call(arguments);
-
-	    // if (_.isUndefined(window.hexletIdeActiveRpcRequests)) {
-	    //   window.hexletIdeActiveRpcRequests = 0;
-	    // }
-	    // window.hexletIdeActiveRpcRequests++;
-
-	    return when.promise(function(resolve) {
-	      client.socket.once(methodName + "Done", function() {
-	        // if (window.hexletIdeActiveRpcRequests > 0) {
-	          // window.hexletIdeActiveRpcRequests--;
-	        // }
-	        resolve.apply(null, arguments);
-	      });
-
-	      client.socket.emit(methodName, args);
-	    });
+	  var ATTRS_NEST = {
+	    '{': '}',
+	    '(': ')',
+	    '[': ']'
 	  };
-	}
 
-	function Client(socket) {
-	  this.socket = socket;
-	  socket.on("rpcMethods", function(methods) {
-	    this.methods = methods;
+	  var jsMode = CodeMirror.getMode(config, 'javascript');
 
-	    methods.forEach(function(method) {
-	      generateClientMethod(this, method);
-	    }, this);
+	  function State() {
+	    this.javaScriptLine = false;
+	    this.javaScriptLineExcludesColon = false;
 
-	    this.onReady();
-	  }.bind(this));
-	}
+	    this.javaScriptArguments = false;
+	    this.javaScriptArgumentsDepth = 0;
 
-	Client.prototype.ready = function(callback) {
-	  this.onReady = callback;
-	};
+	    this.isInterpolating = false;
+	    this.interpolationNesting = 0;
 
-	module.exports = {
-	  createServer: function(io, rpcMethods) {
-	    io.on("connection", function(socket) {
+	    this.jsState = jsMode.startState();
 
-	      var methodNames = [];
-	      _.each(rpcMethods, function(methods, namespace) {
-	        _.each(methods, function(method, methodName) {
-	          var name = namespace + "." + methodName;
-	          registerServerMethod(socket, name, method);
-	          methodNames.push(name);
-	        });
-	      });
+	    this.restOfLine = '';
 
-	      io.emit("rpcMethods", methodNames);
-	    });
-	  },
+	    this.isIncludeFiltered = false;
+	    this.isEach = false;
 
-	  createClient: function(socket) {
-	    return new Client(socket);
+	    this.lastTag = '';
+	    this.scriptType = '';
+
+	    // Attributes Mode
+	    this.isAttrs = false;
+	    this.attrsNest = [];
+	    this.inAttributeName = true;
+	    this.attributeIsType = false;
+	    this.attrValue = '';
+
+	    // Indented Mode
+	    this.indentOf = Infinity;
+	    this.indentToken = '';
+
+	    this.innerMode = null;
+	    this.innerState = null;
+
+	    this.innerModeForLine = false;
 	  }
-	};
+	  /**
+	   * Safely copy a state
+	   *
+	   * @return {State}
+	   */
+	  State.prototype.copy = function () {
+	    var res = new State();
+	    res.javaScriptLine = this.javaScriptLine;
+	    res.javaScriptLineExcludesColon = this.javaScriptLineExcludesColon;
+	    res.javaScriptArguments = this.javaScriptArguments;
+	    res.javaScriptArgumentsDepth = this.javaScriptArgumentsDepth;
+	    res.isInterpolating = this.isInterpolating;
+	    res.interpolationNesting = this.intpolationNesting;
+
+	    res.jsState = CodeMirror.copyState(jsMode, this.jsState);
+
+	    res.innerMode = this.innerMode;
+	    if (this.innerMode && this.innerState) {
+	      res.innerState = CodeMirror.copyState(this.innerMode, this.innerState);
+	    }
+
+	    res.restOfLine = this.restOfLine;
+
+	    res.isIncludeFiltered = this.isIncludeFiltered;
+	    res.isEach = this.isEach;
+	    res.lastTag = this.lastTag;
+	    res.scriptType = this.scriptType;
+	    res.isAttrs = this.isAttrs;
+	    res.attrsNest = this.attrsNest.slice();
+	    res.inAttributeName = this.inAttributeName;
+	    res.attributeIsType = this.attributeIsType;
+	    res.attrValue = this.attrValue;
+	    res.indentOf = this.indentOf;
+	    res.indentToken = this.indentToken;
+
+	    res.innerModeForLine = this.innerModeForLine;
+
+	    return res;
+	  };
+
+	  function javaScript(stream, state) {
+	    if (stream.sol()) {
+	      // if javaScriptLine was set at end of line, ignore it
+	      state.javaScriptLine = false;
+	      state.javaScriptLineExcludesColon = false;
+	    }
+	    if (state.javaScriptLine) {
+	      if (state.javaScriptLineExcludesColon && stream.peek() === ':') {
+	        state.javaScriptLine = false;
+	        state.javaScriptLineExcludesColon = false;
+	        return;
+	      }
+	      var tok = jsMode.token(stream, state.jsState);
+	      if (stream.eol()) state.javaScriptLine = false;
+	      return tok || true;
+	    }
+	  }
+	  function javaScriptArguments(stream, state) {
+	    if (state.javaScriptArguments) {
+	      if (state.javaScriptArgumentsDepth === 0 && stream.peek() !== '(') {
+	        state.javaScriptArguments = false;
+	        return;
+	      }
+	      if (stream.peek() === '(') {
+	        state.javaScriptArgumentsDepth++;
+	      } else if (stream.peek() === ')') {
+	        state.javaScriptArgumentsDepth--;
+	      }
+	      if (state.javaScriptArgumentsDepth === 0) {
+	        state.javaScriptArguments = false;
+	        return;
+	      }
+
+	      var tok = jsMode.token(stream, state.jsState);
+	      return tok || true;
+	    }
+	  }
+
+	  function yieldStatement(stream) {
+	    if (stream.match(/^yield\b/)) {
+	        return 'keyword';
+	    }
+	  }
+
+	  function doctype(stream) {
+	    if (stream.match(/^(?:doctype) *([^\n]+)?/)) {
+	        return DOCTYPE;
+	    }
+	  }
+
+	  function interpolation(stream, state) {
+	    if (stream.match('#{')) {
+	      state.isInterpolating = true;
+	      state.interpolationNesting = 0;
+	      return 'punctuation';
+	    }
+	  }
+
+	  function interpolationContinued(stream, state) {
+	    if (state.isInterpolating) {
+	      if (stream.peek() === '}') {
+	        state.interpolationNesting--;
+	        if (state.interpolationNesting < 0) {
+	          stream.next();
+	          state.isInterpolating = false;
+	          return 'puncutation';
+	        }
+	      } else if (stream.peek() === '{') {
+	        state.interpolationNesting++;
+	      }
+	      return jsMode.token(stream, state.jsState) || true;
+	    }
+	  }
+
+	  function caseStatement(stream, state) {
+	    if (stream.match(/^case\b/)) {
+	      state.javaScriptLine = true;
+	      return KEYWORD;
+	    }
+	  }
+
+	  function when(stream, state) {
+	    if (stream.match(/^when\b/)) {
+	      state.javaScriptLine = true;
+	      state.javaScriptLineExcludesColon = true;
+	      return KEYWORD;
+	    }
+	  }
+
+	  function defaultStatement(stream) {
+	    if (stream.match(/^default\b/)) {
+	      return KEYWORD;
+	    }
+	  }
+
+	  function extendsStatement(stream, state) {
+	    if (stream.match(/^extends?\b/)) {
+	      state.restOfLine = 'string';
+	      return KEYWORD;
+	    }
+	  }
+
+	  function append(stream, state) {
+	    if (stream.match(/^append\b/)) {
+	      state.restOfLine = 'variable';
+	      return KEYWORD;
+	    }
+	  }
+	  function prepend(stream, state) {
+	    if (stream.match(/^prepend\b/)) {
+	      state.restOfLine = 'variable';
+	      return KEYWORD;
+	    }
+	  }
+	  function block(stream, state) {
+	    if (stream.match(/^block\b *(?:(prepend|append)\b)?/)) {
+	      state.restOfLine = 'variable';
+	      return KEYWORD;
+	    }
+	  }
+
+	  function include(stream, state) {
+	    if (stream.match(/^include\b/)) {
+	      state.restOfLine = 'string';
+	      return KEYWORD;
+	    }
+	  }
+
+	  function includeFiltered(stream, state) {
+	    if (stream.match(/^include:([a-zA-Z0-9\-]+)/, false) && stream.match('include')) {
+	      state.isIncludeFiltered = true;
+	      return KEYWORD;
+	    }
+	  }
+
+	  function includeFilteredContinued(stream, state) {
+	    if (state.isIncludeFiltered) {
+	      var tok = filter(stream, state);
+	      state.isIncludeFiltered = false;
+	      state.restOfLine = 'string';
+	      return tok;
+	    }
+	  }
+
+	  function mixin(stream, state) {
+	    if (stream.match(/^mixin\b/)) {
+	      state.javaScriptLine = true;
+	      return KEYWORD;
+	    }
+	  }
+
+	  function call(stream, state) {
+	    if (stream.match(/^\+([-\w]+)/)) {
+	      if (!stream.match(/^\( *[-\w]+ *=/, false)) {
+	        state.javaScriptArguments = true;
+	        state.javaScriptArgumentsDepth = 0;
+	      }
+	      return 'variable';
+	    }
+	    if (stream.match(/^\+#{/, false)) {
+	      stream.next();
+	      state.mixinCallAfter = true;
+	      return interpolation(stream, state);
+	    }
+	  }
+	  function callArguments(stream, state) {
+	    if (state.mixinCallAfter) {
+	      state.mixinCallAfter = false;
+	      if (!stream.match(/^\( *[-\w]+ *=/, false)) {
+	        state.javaScriptArguments = true;
+	        state.javaScriptArgumentsDepth = 0;
+	      }
+	      return true;
+	    }
+	  }
+
+	  function conditional(stream, state) {
+	    if (stream.match(/^(if|unless|else if|else)\b/)) {
+	      state.javaScriptLine = true;
+	      return KEYWORD;
+	    }
+	  }
+
+	  function each(stream, state) {
+	    if (stream.match(/^(- *)?(each|for)\b/)) {
+	      state.isEach = true;
+	      return KEYWORD;
+	    }
+	  }
+	  function eachContinued(stream, state) {
+	    if (state.isEach) {
+	      if (stream.match(/^ in\b/)) {
+	        state.javaScriptLine = true;
+	        state.isEach = false;
+	        return KEYWORD;
+	      } else if (stream.sol() || stream.eol()) {
+	        state.isEach = false;
+	      } else if (stream.next()) {
+	        while (!stream.match(/^ in\b/, false) && stream.next());
+	        return 'variable';
+	      }
+	    }
+	  }
+
+	  function whileStatement(stream, state) {
+	    if (stream.match(/^while\b/)) {
+	      state.javaScriptLine = true;
+	      return KEYWORD;
+	    }
+	  }
+
+	  function tag(stream, state) {
+	    var captures;
+	    if (captures = stream.match(/^(\w(?:[-:\w]*\w)?)\/?/)) {
+	      state.lastTag = captures[1].toLowerCase();
+	      if (state.lastTag === 'script') {
+	        state.scriptType = 'application/javascript';
+	      }
+	      return 'tag';
+	    }
+	  }
+
+	  function filter(stream, state) {
+	    if (stream.match(/^:([\w\-]+)/)) {
+	      var innerMode;
+	      if (config && config.innerModes) {
+	        innerMode = config.innerModes(stream.current().substring(1));
+	      }
+	      if (!innerMode) {
+	        innerMode = stream.current().substring(1);
+	      }
+	      if (typeof innerMode === 'string') {
+	        innerMode = CodeMirror.getMode(config, innerMode);
+	      }
+	      setInnerMode(stream, state, innerMode);
+	      return 'atom';
+	    }
+	  }
+
+	  function code(stream, state) {
+	    if (stream.match(/^(!?=|-)/)) {
+	      state.javaScriptLine = true;
+	      return 'punctuation';
+	    }
+	  }
+
+	  function id(stream) {
+	    if (stream.match(/^#([\w-]+)/)) {
+	      return ID;
+	    }
+	  }
+
+	  function className(stream) {
+	    if (stream.match(/^\.([\w-]+)/)) {
+	      return CLASS;
+	    }
+	  }
+
+	  function attrs(stream, state) {
+	    if (stream.peek() == '(') {
+	      stream.next();
+	      state.isAttrs = true;
+	      state.attrsNest = [];
+	      state.inAttributeName = true;
+	      state.attrValue = '';
+	      state.attributeIsType = false;
+	      return 'punctuation';
+	    }
+	  }
+
+	  function attrsContinued(stream, state) {
+	    if (state.isAttrs) {
+	      if (ATTRS_NEST[stream.peek()]) {
+	        state.attrsNest.push(ATTRS_NEST[stream.peek()]);
+	      }
+	      if (state.attrsNest[state.attrsNest.length - 1] === stream.peek()) {
+	        state.attrsNest.pop();
+	      } else  if (stream.eat(')')) {
+	        state.isAttrs = false;
+	        return 'punctuation';
+	      }
+	      if (state.inAttributeName && stream.match(/^[^=,\)!]+/)) {
+	        if (stream.peek() === '=' || stream.peek() === '!') {
+	          state.inAttributeName = false;
+	          state.jsState = jsMode.startState();
+	          if (state.lastTag === 'script' && stream.current().trim().toLowerCase() === 'type') {
+	            state.attributeIsType = true;
+	          } else {
+	            state.attributeIsType = false;
+	          }
+	        }
+	        return 'attribute';
+	      }
+
+	      var tok = jsMode.token(stream, state.jsState);
+	      if (state.attributeIsType && tok === 'string') {
+	        state.scriptType = stream.current().toString();
+	      }
+	      if (state.attrsNest.length === 0 && (tok === 'string' || tok === 'variable' || tok === 'keyword')) {
+	        try {
+	          Function('', 'var x ' + state.attrValue.replace(/,\s*$/, '').replace(/^!/, ''));
+	          state.inAttributeName = true;
+	          state.attrValue = '';
+	          stream.backUp(stream.current().length);
+	          return attrsContinued(stream, state);
+	        } catch (ex) {
+	          //not the end of an attribute
+	        }
+	      }
+	      state.attrValue += stream.current();
+	      return tok || true;
+	    }
+	  }
+
+	  function attributesBlock(stream, state) {
+	    if (stream.match(/^&attributes\b/)) {
+	      state.javaScriptArguments = true;
+	      state.javaScriptArgumentsDepth = 0;
+	      return 'keyword';
+	    }
+	  }
+
+	  function indent(stream) {
+	    if (stream.sol() && stream.eatSpace()) {
+	      return 'indent';
+	    }
+	  }
+
+	  function comment(stream, state) {
+	    if (stream.match(/^ *\/\/(-)?([^\n]*)/)) {
+	      state.indentOf = stream.indentation();
+	      state.indentToken = 'comment';
+	      return 'comment';
+	    }
+	  }
+
+	  function colon(stream) {
+	    if (stream.match(/^: */)) {
+	      return 'colon';
+	    }
+	  }
+
+	  function text(stream, state) {
+	    if (stream.match(/^(?:\| ?| )([^\n]+)/)) {
+	      return 'string';
+	    }
+	    if (stream.match(/^(<[^\n]*)/, false)) {
+	      // html string
+	      setInnerMode(stream, state, 'htmlmixed');
+	      state.innerModeForLine = true;
+	      return innerMode(stream, state, true);
+	    }
+	  }
+
+	  function dot(stream, state) {
+	    if (stream.eat('.')) {
+	      var innerMode = null;
+	      if (state.lastTag === 'script' && state.scriptType.toLowerCase().indexOf('javascript') != -1) {
+	        innerMode = state.scriptType.toLowerCase().replace(/"|'/g, '');
+	      } else if (state.lastTag === 'style') {
+	        innerMode = 'css';
+	      }
+	      setInnerMode(stream, state, innerMode);
+	      return 'dot';
+	    }
+	  }
+
+	  function fail(stream) {
+	    stream.next();
+	    return null;
+	  }
+
+
+	  function setInnerMode(stream, state, mode) {
+	    mode = CodeMirror.mimeModes[mode] || mode;
+	    mode = config.innerModes ? config.innerModes(mode) || mode : mode;
+	    mode = CodeMirror.mimeModes[mode] || mode;
+	    mode = CodeMirror.getMode(config, mode);
+	    state.indentOf = stream.indentation();
+
+	    if (mode && mode.name !== 'null') {
+	      state.innerMode = mode;
+	    } else {
+	      state.indentToken = 'string';
+	    }
+	  }
+	  function innerMode(stream, state, force) {
+	    if (stream.indentation() > state.indentOf || (state.innerModeForLine && !stream.sol()) || force) {
+	      if (state.innerMode) {
+	        if (!state.innerState) {
+	          state.innerState = state.innerMode.startState ? state.innerMode.startState(stream.indentation()) : {};
+	        }
+	        return stream.hideFirstChars(state.indentOf + 2, function () {
+	          return state.innerMode.token(stream, state.innerState) || true;
+	        });
+	      } else {
+	        stream.skipToEnd();
+	        return state.indentToken;
+	      }
+	    } else if (stream.sol()) {
+	      state.indentOf = Infinity;
+	      state.indentToken = null;
+	      state.innerMode = null;
+	      state.innerState = null;
+	    }
+	  }
+	  function restOfLine(stream, state) {
+	    if (stream.sol()) {
+	      // if restOfLine was set at end of line, ignore it
+	      state.restOfLine = '';
+	    }
+	    if (state.restOfLine) {
+	      stream.skipToEnd();
+	      var tok = state.restOfLine;
+	      state.restOfLine = '';
+	      return tok;
+	    }
+	  }
+
+
+	  function startState() {
+	    return new State();
+	  }
+	  function copyState(state) {
+	    return state.copy();
+	  }
+	  /**
+	   * Get the next token in the stream
+	   *
+	   * @param {Stream} stream
+	   * @param {State} state
+	   */
+	  function nextToken(stream, state) {
+	    var tok = innerMode(stream, state)
+	      || restOfLine(stream, state)
+	      || interpolationContinued(stream, state)
+	      || includeFilteredContinued(stream, state)
+	      || eachContinued(stream, state)
+	      || attrsContinued(stream, state)
+	      || javaScript(stream, state)
+	      || javaScriptArguments(stream, state)
+	      || callArguments(stream, state)
+
+	      || yieldStatement(stream, state)
+	      || doctype(stream, state)
+	      || interpolation(stream, state)
+	      || caseStatement(stream, state)
+	      || when(stream, state)
+	      || defaultStatement(stream, state)
+	      || extendsStatement(stream, state)
+	      || append(stream, state)
+	      || prepend(stream, state)
+	      || block(stream, state)
+	      || include(stream, state)
+	      || includeFiltered(stream, state)
+	      || mixin(stream, state)
+	      || call(stream, state)
+	      || conditional(stream, state)
+	      || each(stream, state)
+	      || whileStatement(stream, state)
+	      || tag(stream, state)
+	      || filter(stream, state)
+	      || code(stream, state)
+	      || id(stream, state)
+	      || className(stream, state)
+	      || attrs(stream, state)
+	      || attributesBlock(stream, state)
+	      || indent(stream, state)
+	      || text(stream, state)
+	      || comment(stream, state)
+	      || colon(stream, state)
+	      || dot(stream, state)
+	      || fail(stream, state);
+
+	    return tok === true ? null : tok;
+	  }
+	  return {
+	    startState: startState,
+	    copyState: copyState,
+	    token: nextToken
+	  };
+	});
+
+	CodeMirror.defineMIME('text/x-jade', 'jade');
+
+	});
 
 
 /***/ },
@@ -11509,67 +11509,7 @@
 	var content = __webpack_require__(17);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(30)(content);
-	// Hot Module Replacement
-	if(false) {
-		// When the styles change, update the <style> tags
-		module.hot.accept("!!/Users/alexeyfrank/projects/hexlet/hexlet-ide/node_modules/css-loader/index.js!/Users/alexeyfrank/projects/hexlet/hexlet-ide/node_modules/codemirror/lib/codemirror.css", function() {
-			var newContent = require("!!/Users/alexeyfrank/projects/hexlet/hexlet-ide/node_modules/css-loader/index.js!/Users/alexeyfrank/projects/hexlet/hexlet-ide/node_modules/codemirror/lib/codemirror.css");
-			if(typeof newContent === 'string') newContent = [module.id, newContent, ''];
-			update(newContent);
-		});
-		// When the module is disposed, remove the <style> tags
-		module.hot.dispose(function() { update(); });
-	}
-
-/***/ },
-/* 17 */
-/***/ function(module, exports, __webpack_require__) {
-
-	exports = module.exports = __webpack_require__(49)();
-	exports.push([module.id, "/* BASICS */\n\n.CodeMirror {\n  /* Set height, width, borders, and global font properties here */\n  font-family: monospace;\n  height: 300px;\n}\n.CodeMirror-scroll {\n  /* Set scrolling behaviour here */\n  overflow: auto;\n}\n\n/* PADDING */\n\n.CodeMirror-lines {\n  padding: 4px 0; /* Vertical padding around content */\n}\n.CodeMirror pre {\n  padding: 0 4px; /* Horizontal padding of content */\n}\n\n.CodeMirror-scrollbar-filler, .CodeMirror-gutter-filler {\n  background-color: white; /* The little square between H and V scrollbars */\n}\n\n/* GUTTER */\n\n.CodeMirror-gutters {\n  border-right: 1px solid #ddd;\n  background-color: #f7f7f7;\n  white-space: nowrap;\n}\n.CodeMirror-linenumbers {}\n.CodeMirror-linenumber {\n  padding: 0 3px 0 5px;\n  min-width: 20px;\n  text-align: right;\n  color: #999;\n  -moz-box-sizing: content-box;\n  box-sizing: content-box;\n}\n\n.CodeMirror-guttermarker { color: black; }\n.CodeMirror-guttermarker-subtle { color: #999; }\n\n/* CURSOR */\n\n.CodeMirror div.CodeMirror-cursor {\n  border-left: 1px solid black;\n}\n/* Shown when moving in bi-directional text */\n.CodeMirror div.CodeMirror-secondarycursor {\n  border-left: 1px solid silver;\n}\n.CodeMirror.cm-keymap-fat-cursor div.CodeMirror-cursor {\n  width: auto;\n  border: 0;\n  background: #7e7;\n}\n.CodeMirror.cm-keymap-fat-cursor div.CodeMirror-cursors {\n  z-index: 1;\n}\n\n.cm-animate-fat-cursor {\n  width: auto;\n  border: 0;\n  -webkit-animation: blink 1.06s steps(1) infinite;\n  -moz-animation: blink 1.06s steps(1) infinite;\n  animation: blink 1.06s steps(1) infinite;\n}\n@-moz-keyframes blink {\n  0% { background: #7e7; }\n  50% { background: none; }\n  100% { background: #7e7; }\n}\n@-webkit-keyframes blink {\n  0% { background: #7e7; }\n  50% { background: none; }\n  100% { background: #7e7; }\n}\n@keyframes blink {\n  0% { background: #7e7; }\n  50% { background: none; }\n  100% { background: #7e7; }\n}\n\n/* Can style cursor different in overwrite (non-insert) mode */\ndiv.CodeMirror-overwrite div.CodeMirror-cursor {}\n\n.cm-tab { display: inline-block; text-decoration: inherit; }\n\n.CodeMirror-ruler {\n  border-left: 1px solid #ccc;\n  position: absolute;\n}\n\n/* DEFAULT THEME */\n\n.cm-s-default .cm-keyword {color: #708;}\n.cm-s-default .cm-atom {color: #219;}\n.cm-s-default .cm-number {color: #164;}\n.cm-s-default .cm-def {color: #00f;}\n.cm-s-default .cm-variable,\n.cm-s-default .cm-punctuation,\n.cm-s-default .cm-property,\n.cm-s-default .cm-operator {}\n.cm-s-default .cm-variable-2 {color: #05a;}\n.cm-s-default .cm-variable-3 {color: #085;}\n.cm-s-default .cm-comment {color: #a50;}\n.cm-s-default .cm-string {color: #a11;}\n.cm-s-default .cm-string-2 {color: #f50;}\n.cm-s-default .cm-meta {color: #555;}\n.cm-s-default .cm-qualifier {color: #555;}\n.cm-s-default .cm-builtin {color: #30a;}\n.cm-s-default .cm-bracket {color: #997;}\n.cm-s-default .cm-tag {color: #170;}\n.cm-s-default .cm-attribute {color: #00c;}\n.cm-s-default .cm-header {color: blue;}\n.cm-s-default .cm-quote {color: #090;}\n.cm-s-default .cm-hr {color: #999;}\n.cm-s-default .cm-link {color: #00c;}\n\n.cm-negative {color: #d44;}\n.cm-positive {color: #292;}\n.cm-header, .cm-strong {font-weight: bold;}\n.cm-em {font-style: italic;}\n.cm-link {text-decoration: underline;}\n\n.cm-s-default .cm-error {color: #f00;}\n.cm-invalidchar {color: #f00;}\n\n/* Default styles for common addons */\n\ndiv.CodeMirror span.CodeMirror-matchingbracket {color: #0f0;}\ndiv.CodeMirror span.CodeMirror-nonmatchingbracket {color: #f22;}\n.CodeMirror-matchingtag { background: rgba(255, 150, 0, .3); }\n.CodeMirror-activeline-background {background: #e8f2ff;}\n\n/* STOP */\n\n/* The rest of this file contains styles related to the mechanics of\n   the editor. You probably shouldn't touch them. */\n\n.CodeMirror {\n  line-height: 1;\n  position: relative;\n  overflow: hidden;\n  background: white;\n  color: black;\n}\n\n.CodeMirror-scroll {\n  /* 30px is the magic margin used to hide the element's real scrollbars */\n  /* See overflow: hidden in .CodeMirror */\n  margin-bottom: -30px; margin-right: -30px;\n  padding-bottom: 30px;\n  height: 100%;\n  outline: none; /* Prevent dragging from highlighting the element */\n  position: relative;\n  -moz-box-sizing: content-box;\n  box-sizing: content-box;\n}\n.CodeMirror-sizer {\n  position: relative;\n  border-right: 30px solid transparent;\n  -moz-box-sizing: content-box;\n  box-sizing: content-box;\n}\n\n/* The fake, visible scrollbars. Used to force redraw during scrolling\n   before actuall scrolling happens, thus preventing shaking and\n   flickering artifacts. */\n.CodeMirror-vscrollbar, .CodeMirror-hscrollbar, .CodeMirror-scrollbar-filler, .CodeMirror-gutter-filler {\n  position: absolute;\n  z-index: 6;\n  display: none;\n}\n.CodeMirror-vscrollbar {\n  right: 0; top: 0;\n  overflow-x: hidden;\n  overflow-y: scroll;\n}\n.CodeMirror-hscrollbar {\n  bottom: 0; left: 0;\n  overflow-y: hidden;\n  overflow-x: scroll;\n}\n.CodeMirror-scrollbar-filler {\n  right: 0; bottom: 0;\n}\n.CodeMirror-gutter-filler {\n  left: 0; bottom: 0;\n}\n\n.CodeMirror-gutters {\n  position: absolute; left: 0; top: 0;\n  padding-bottom: 30px;\n  z-index: 3;\n}\n.CodeMirror-gutter {\n  white-space: normal;\n  height: 100%;\n  -moz-box-sizing: content-box;\n  box-sizing: content-box;\n  padding-bottom: 30px;\n  margin-bottom: -32px;\n  display: inline-block;\n  /* Hack to make IE7 behave */\n  *zoom:1;\n  *display:inline;\n}\n.CodeMirror-gutter-elt {\n  position: absolute;\n  cursor: default;\n  z-index: 4;\n}\n\n.CodeMirror-lines {\n  cursor: text;\n  min-height: 1px; /* prevents collapsing before first draw */\n}\n.CodeMirror pre {\n  /* Reset some styles that the rest of the page might have set */\n  -moz-border-radius: 0; -webkit-border-radius: 0; border-radius: 0;\n  border-width: 0;\n  background: transparent;\n  font-family: inherit;\n  font-size: inherit;\n  margin: 0;\n  white-space: pre;\n  word-wrap: normal;\n  line-height: inherit;\n  color: inherit;\n  z-index: 2;\n  position: relative;\n  overflow: visible;\n}\n.CodeMirror-wrap pre {\n  word-wrap: break-word;\n  white-space: pre-wrap;\n  word-break: normal;\n}\n\n.CodeMirror-linebackground {\n  position: absolute;\n  left: 0; right: 0; top: 0; bottom: 0;\n  z-index: 0;\n}\n\n.CodeMirror-linewidget {\n  position: relative;\n  z-index: 2;\n  overflow: auto;\n}\n\n.CodeMirror-widget {}\n\n.CodeMirror-wrap .CodeMirror-scroll {\n  overflow-x: hidden;\n}\n\n.CodeMirror-measure {\n  position: absolute;\n  width: 100%;\n  height: 0;\n  overflow: hidden;\n  visibility: hidden;\n}\n.CodeMirror-measure pre { position: static; }\n\n.CodeMirror div.CodeMirror-cursor {\n  position: absolute;\n  border-right: none;\n  width: 0;\n}\n\ndiv.CodeMirror-cursors {\n  visibility: hidden;\n  position: relative;\n  z-index: 3;\n}\n.CodeMirror-focused div.CodeMirror-cursors {\n  visibility: visible;\n}\n\n.CodeMirror-selected { background: #d9d9d9; }\n.CodeMirror-focused .CodeMirror-selected { background: #d7d4f0; }\n.CodeMirror-crosshair { cursor: crosshair; }\n\n.cm-searching {\n  background: #ffa;\n  background: rgba(255, 255, 0, .4);\n}\n\n/* IE7 hack to prevent it from returning funny offsetTops on the spans */\n.CodeMirror span { *vertical-align: text-bottom; }\n\n/* Used to force a border model for a node */\n.cm-force-border { padding-right: .1px; }\n\n@media print {\n  /* Hide the cursor when printing */\n  .CodeMirror div.CodeMirror-cursors {\n    visibility: hidden;\n  }\n}\n\n/* Help users use markselection to safely style text background */\nspan.CodeMirror-selectedtext { background: none; }\n", ""]);
-
-/***/ },
-/* 18 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// style-loader: Adds some css to the DOM by adding a <style> tag
-
-	// load the styles
-	var content = __webpack_require__(19);
-	if(typeof content === 'string') content = [[module.id, content, '']];
-	// add the styles to the DOM
-	var update = __webpack_require__(30)(content);
-	// Hot Module Replacement
-	if(false) {
-		// When the styles change, update the <style> tags
-		module.hot.accept("!!/Users/alexeyfrank/projects/hexlet/hexlet-ide/node_modules/css-loader/index.js!/Users/alexeyfrank/projects/hexlet/hexlet-ide/node_modules/codemirror/theme/solarized.css", function() {
-			var newContent = require("!!/Users/alexeyfrank/projects/hexlet/hexlet-ide/node_modules/css-loader/index.js!/Users/alexeyfrank/projects/hexlet/hexlet-ide/node_modules/codemirror/theme/solarized.css");
-			if(typeof newContent === 'string') newContent = [module.id, newContent, ''];
-			update(newContent);
-		});
-		// When the module is disposed, remove the <style> tags
-		module.hot.dispose(function() { update(); });
-	}
-
-/***/ },
-/* 19 */
-/***/ function(module, exports, __webpack_require__) {
-
-	exports = module.exports = __webpack_require__(49)();
-	exports.push([module.id, "/*\nSolarized theme for code-mirror\nhttp://ethanschoonover.com/solarized\n*/\n\n/*\nSolarized color pallet\nhttp://ethanschoonover.com/solarized/img/solarized-palette.png\n*/\n\n.solarized.base03 { color: #002b36; }\n.solarized.base02 { color: #073642; }\n.solarized.base01 { color: #586e75; }\n.solarized.base00 { color: #657b83; }\n.solarized.base0 { color: #839496; }\n.solarized.base1 { color: #93a1a1; }\n.solarized.base2 { color: #eee8d5; }\n.solarized.base3  { color: #fdf6e3; }\n.solarized.solar-yellow  { color: #b58900; }\n.solarized.solar-orange  { color: #cb4b16; }\n.solarized.solar-red { color: #dc322f; }\n.solarized.solar-magenta { color: #d33682; }\n.solarized.solar-violet  { color: #6c71c4; }\n.solarized.solar-blue { color: #268bd2; }\n.solarized.solar-cyan { color: #2aa198; }\n.solarized.solar-green { color: #859900; }\n\n/* Color scheme for code-mirror */\n\n.cm-s-solarized {\n  line-height: 1.45em;\n  color-profile: sRGB;\n  rendering-intent: auto;\n}\n.cm-s-solarized.cm-s-dark {\n  color: #839496;\n  background-color:  #002b36;\n  text-shadow: #002b36 0 1px;\n}\n.cm-s-solarized.cm-s-light {\n  background-color: #fdf6e3;\n  color: #657b83;\n  text-shadow: #eee8d5 0 1px;\n}\n\n.cm-s-solarized .CodeMirror-widget {\n  text-shadow: none;\n}\n\n\n.cm-s-solarized .cm-keyword { color: #cb4b16 }\n.cm-s-solarized .cm-atom { color: #d33682; }\n.cm-s-solarized .cm-number { color: #d33682; }\n.cm-s-solarized .cm-def { color: #2aa198; }\n\n.cm-s-solarized .cm-variable { color: #268bd2; }\n.cm-s-solarized .cm-variable-2 { color: #b58900; }\n.cm-s-solarized .cm-variable-3 { color: #6c71c4; }\n\n.cm-s-solarized .cm-property { color: #2aa198; }\n.cm-s-solarized .cm-operator {color: #6c71c4;}\n\n.cm-s-solarized .cm-comment { color: #586e75; font-style:italic; }\n\n.cm-s-solarized .cm-string { color: #859900; }\n.cm-s-solarized .cm-string-2 { color: #b58900; }\n\n.cm-s-solarized .cm-meta { color: #859900; }\n.cm-s-solarized .cm-qualifier { color: #b58900; }\n.cm-s-solarized .cm-builtin { color: #d33682; }\n.cm-s-solarized .cm-bracket { color: #cb4b16; }\n.cm-s-solarized .CodeMirror-matchingbracket { color: #859900; }\n.cm-s-solarized .CodeMirror-nonmatchingbracket { color: #dc322f; }\n.cm-s-solarized .cm-tag { color: #93a1a1 }\n.cm-s-solarized .cm-attribute {  color: #2aa198; }\n.cm-s-solarized .cm-header { color: #586e75; }\n.cm-s-solarized .cm-quote { color: #93a1a1; }\n.cm-s-solarized .cm-hr {\n  color: transparent;\n  border-top: 1px solid #586e75;\n  display: block;\n}\n.cm-s-solarized .cm-link { color: #93a1a1; cursor: pointer; }\n.cm-s-solarized .cm-special { color: #6c71c4; }\n.cm-s-solarized .cm-em {\n  color: #999;\n  text-decoration: underline;\n  text-decoration-style: dotted;\n}\n.cm-s-solarized .cm-strong { color: #eee; }\n.cm-s-solarized .cm-tab:before {\n  content: \"➤\";   /*visualize tab character*/\n  color: #586e75;\n  position:absolute;\n}\n.cm-s-solarized .cm-error,\n.cm-s-solarized .cm-invalidchar {\n  color: #586e75;\n  border-bottom: 1px dotted #dc322f;\n}\n\n.cm-s-solarized.cm-s-dark .CodeMirror-selected {\n  background: #073642;\n}\n\n.cm-s-solarized.cm-s-light .CodeMirror-selected {\n  background: #eee8d5;\n}\n\n/* Editor styling */\n\n\n\n/* Little shadow on the view-port of the buffer view */\n.cm-s-solarized.CodeMirror {\n  -moz-box-shadow: inset 7px 0 12px -6px #000;\n  -webkit-box-shadow: inset 7px 0 12px -6px #000;\n  box-shadow: inset 7px 0 12px -6px #000;\n}\n\n/* Gutter border and some shadow from it  */\n.cm-s-solarized .CodeMirror-gutters {\n  border-right: 1px solid;\n}\n\n/* Gutter colors and line number styling based of color scheme (dark / light) */\n\n/* Dark */\n.cm-s-solarized.cm-s-dark .CodeMirror-gutters {\n  background-color:  #002b36;\n  border-color: #00232c;\n}\n\n.cm-s-solarized.cm-s-dark .CodeMirror-linenumber {\n  text-shadow: #021014 0 -1px;\n}\n\n/* Light */\n.cm-s-solarized.cm-s-light .CodeMirror-gutters {\n  background-color: #fdf6e3;\n  border-color: #eee8d5;\n}\n\n/* Common */\n.cm-s-solarized .CodeMirror-linenumber {\n  color: #586e75;\n  padding: 0 5px;\n}\n.cm-s-solarized .CodeMirror-guttermarker-subtle { color: #586e75; }\n.cm-s-solarized.cm-s-dark .CodeMirror-guttermarker { color: #ddd; }\n.cm-s-solarized.cm-s-light .CodeMirror-guttermarker { color: #cb4b16; }\n\n.cm-s-solarized .CodeMirror-gutter .CodeMirror-gutter-text {\n  color: #586e75;\n}\n\n.cm-s-solarized .CodeMirror-lines .CodeMirror-cursor {\n  border-left: 1px solid #819090;\n}\n\n/*\nActive line. Negative margin compensates left padding of the text in the\nview-port\n*/\n.cm-s-solarized.cm-s-dark .CodeMirror-activeline-background {\n  background: rgba(255, 255, 255, 0.10);\n}\n.cm-s-solarized.cm-s-light .CodeMirror-activeline-background {\n  background: rgba(0, 0, 0, 0.10);\n}\n", ""]);
-
-/***/ },
-/* 20 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// style-loader: Adds some css to the DOM by adding a <style> tag
-
-	// load the styles
-	var content = __webpack_require__(21);
-	if(typeof content === 'string') content = [[module.id, content, '']];
-	// add the styles to the DOM
-	var update = __webpack_require__(30)(content);
+	var update = __webpack_require__(31)(content);
 	// Hot Module Replacement
 	if(false) {
 		// When the styles change, update the <style> tags
@@ -11583,11 +11523,71 @@
 	}
 
 /***/ },
+/* 17 */
+/***/ function(module, exports, __webpack_require__) {
+
+	exports = module.exports = __webpack_require__(50)();
+	exports.push([module.id, ".CodeMirror {\n  border: 1px solid #eee;\n  min-height: 380px;\n}\n.CodeMirror-scroll {\n  overflow-y: hidden;\n  overflow-x: auto;\n}\n.icon-folder,\n.icon-file {\n  margin-right: 0.75em;\n}\n.file-tree-box > .row {\n  display: table;\n}\n.fuelux .tree {\n  border-radius: 0;\n  border: 1px solid #ddd;\n  min-height: 400px;\n  overflow: scroll;\n}\n.runner-box {\n  margin-bottom: 10px;\n}\n.runner-box .input-group button,\n.runner-box .input-group input {\n  border-radius: 0;\n}\n.editors-box .nav a {\n  padding: 5px 10px;\n  border-radius: 0;\n}\n.terminals-box .nav a {\n  padding: 5px 10px;\n  border-radius: 0;\n}\n.terminals-box .terminal {\n  width: 100%;\n}\n.loader {\n  margin: auto;\n}\n", ""]);
+
+/***/ },
+/* 18 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+
+	// load the styles
+	var content = __webpack_require__(19);
+	if(typeof content === 'string') content = [[module.id, content, '']];
+	// add the styles to the DOM
+	var update = __webpack_require__(31)(content);
+	// Hot Module Replacement
+	if(false) {
+		// When the styles change, update the <style> tags
+		module.hot.accept("!!/Users/alexeyfrank/projects/hexlet/hexlet-ide/node_modules/css-loader/index.js!/Users/alexeyfrank/projects/hexlet/hexlet-ide/node_modules/codemirror/lib/codemirror.css", function() {
+			var newContent = require("!!/Users/alexeyfrank/projects/hexlet/hexlet-ide/node_modules/css-loader/index.js!/Users/alexeyfrank/projects/hexlet/hexlet-ide/node_modules/codemirror/lib/codemirror.css");
+			if(typeof newContent === 'string') newContent = [module.id, newContent, ''];
+			update(newContent);
+		});
+		// When the module is disposed, remove the <style> tags
+		module.hot.dispose(function() { update(); });
+	}
+
+/***/ },
+/* 19 */
+/***/ function(module, exports, __webpack_require__) {
+
+	exports = module.exports = __webpack_require__(50)();
+	exports.push([module.id, "/* BASICS */\n\n.CodeMirror {\n  /* Set height, width, borders, and global font properties here */\n  font-family: monospace;\n  height: 300px;\n}\n.CodeMirror-scroll {\n  /* Set scrolling behaviour here */\n  overflow: auto;\n}\n\n/* PADDING */\n\n.CodeMirror-lines {\n  padding: 4px 0; /* Vertical padding around content */\n}\n.CodeMirror pre {\n  padding: 0 4px; /* Horizontal padding of content */\n}\n\n.CodeMirror-scrollbar-filler, .CodeMirror-gutter-filler {\n  background-color: white; /* The little square between H and V scrollbars */\n}\n\n/* GUTTER */\n\n.CodeMirror-gutters {\n  border-right: 1px solid #ddd;\n  background-color: #f7f7f7;\n  white-space: nowrap;\n}\n.CodeMirror-linenumbers {}\n.CodeMirror-linenumber {\n  padding: 0 3px 0 5px;\n  min-width: 20px;\n  text-align: right;\n  color: #999;\n  -moz-box-sizing: content-box;\n  box-sizing: content-box;\n}\n\n.CodeMirror-guttermarker { color: black; }\n.CodeMirror-guttermarker-subtle { color: #999; }\n\n/* CURSOR */\n\n.CodeMirror div.CodeMirror-cursor {\n  border-left: 1px solid black;\n}\n/* Shown when moving in bi-directional text */\n.CodeMirror div.CodeMirror-secondarycursor {\n  border-left: 1px solid silver;\n}\n.CodeMirror.cm-keymap-fat-cursor div.CodeMirror-cursor {\n  width: auto;\n  border: 0;\n  background: #7e7;\n}\n.CodeMirror.cm-keymap-fat-cursor div.CodeMirror-cursors {\n  z-index: 1;\n}\n\n.cm-animate-fat-cursor {\n  width: auto;\n  border: 0;\n  -webkit-animation: blink 1.06s steps(1) infinite;\n  -moz-animation: blink 1.06s steps(1) infinite;\n  animation: blink 1.06s steps(1) infinite;\n}\n@-moz-keyframes blink {\n  0% { background: #7e7; }\n  50% { background: none; }\n  100% { background: #7e7; }\n}\n@-webkit-keyframes blink {\n  0% { background: #7e7; }\n  50% { background: none; }\n  100% { background: #7e7; }\n}\n@keyframes blink {\n  0% { background: #7e7; }\n  50% { background: none; }\n  100% { background: #7e7; }\n}\n\n/* Can style cursor different in overwrite (non-insert) mode */\ndiv.CodeMirror-overwrite div.CodeMirror-cursor {}\n\n.cm-tab { display: inline-block; text-decoration: inherit; }\n\n.CodeMirror-ruler {\n  border-left: 1px solid #ccc;\n  position: absolute;\n}\n\n/* DEFAULT THEME */\n\n.cm-s-default .cm-keyword {color: #708;}\n.cm-s-default .cm-atom {color: #219;}\n.cm-s-default .cm-number {color: #164;}\n.cm-s-default .cm-def {color: #00f;}\n.cm-s-default .cm-variable,\n.cm-s-default .cm-punctuation,\n.cm-s-default .cm-property,\n.cm-s-default .cm-operator {}\n.cm-s-default .cm-variable-2 {color: #05a;}\n.cm-s-default .cm-variable-3 {color: #085;}\n.cm-s-default .cm-comment {color: #a50;}\n.cm-s-default .cm-string {color: #a11;}\n.cm-s-default .cm-string-2 {color: #f50;}\n.cm-s-default .cm-meta {color: #555;}\n.cm-s-default .cm-qualifier {color: #555;}\n.cm-s-default .cm-builtin {color: #30a;}\n.cm-s-default .cm-bracket {color: #997;}\n.cm-s-default .cm-tag {color: #170;}\n.cm-s-default .cm-attribute {color: #00c;}\n.cm-s-default .cm-header {color: blue;}\n.cm-s-default .cm-quote {color: #090;}\n.cm-s-default .cm-hr {color: #999;}\n.cm-s-default .cm-link {color: #00c;}\n\n.cm-negative {color: #d44;}\n.cm-positive {color: #292;}\n.cm-header, .cm-strong {font-weight: bold;}\n.cm-em {font-style: italic;}\n.cm-link {text-decoration: underline;}\n\n.cm-s-default .cm-error {color: #f00;}\n.cm-invalidchar {color: #f00;}\n\n/* Default styles for common addons */\n\ndiv.CodeMirror span.CodeMirror-matchingbracket {color: #0f0;}\ndiv.CodeMirror span.CodeMirror-nonmatchingbracket {color: #f22;}\n.CodeMirror-matchingtag { background: rgba(255, 150, 0, .3); }\n.CodeMirror-activeline-background {background: #e8f2ff;}\n\n/* STOP */\n\n/* The rest of this file contains styles related to the mechanics of\n   the editor. You probably shouldn't touch them. */\n\n.CodeMirror {\n  line-height: 1;\n  position: relative;\n  overflow: hidden;\n  background: white;\n  color: black;\n}\n\n.CodeMirror-scroll {\n  /* 30px is the magic margin used to hide the element's real scrollbars */\n  /* See overflow: hidden in .CodeMirror */\n  margin-bottom: -30px; margin-right: -30px;\n  padding-bottom: 30px;\n  height: 100%;\n  outline: none; /* Prevent dragging from highlighting the element */\n  position: relative;\n  -moz-box-sizing: content-box;\n  box-sizing: content-box;\n}\n.CodeMirror-sizer {\n  position: relative;\n  border-right: 30px solid transparent;\n  -moz-box-sizing: content-box;\n  box-sizing: content-box;\n}\n\n/* The fake, visible scrollbars. Used to force redraw during scrolling\n   before actuall scrolling happens, thus preventing shaking and\n   flickering artifacts. */\n.CodeMirror-vscrollbar, .CodeMirror-hscrollbar, .CodeMirror-scrollbar-filler, .CodeMirror-gutter-filler {\n  position: absolute;\n  z-index: 6;\n  display: none;\n}\n.CodeMirror-vscrollbar {\n  right: 0; top: 0;\n  overflow-x: hidden;\n  overflow-y: scroll;\n}\n.CodeMirror-hscrollbar {\n  bottom: 0; left: 0;\n  overflow-y: hidden;\n  overflow-x: scroll;\n}\n.CodeMirror-scrollbar-filler {\n  right: 0; bottom: 0;\n}\n.CodeMirror-gutter-filler {\n  left: 0; bottom: 0;\n}\n\n.CodeMirror-gutters {\n  position: absolute; left: 0; top: 0;\n  padding-bottom: 30px;\n  z-index: 3;\n}\n.CodeMirror-gutter {\n  white-space: normal;\n  height: 100%;\n  -moz-box-sizing: content-box;\n  box-sizing: content-box;\n  padding-bottom: 30px;\n  margin-bottom: -32px;\n  display: inline-block;\n  /* Hack to make IE7 behave */\n  *zoom:1;\n  *display:inline;\n}\n.CodeMirror-gutter-elt {\n  position: absolute;\n  cursor: default;\n  z-index: 4;\n}\n\n.CodeMirror-lines {\n  cursor: text;\n  min-height: 1px; /* prevents collapsing before first draw */\n}\n.CodeMirror pre {\n  /* Reset some styles that the rest of the page might have set */\n  -moz-border-radius: 0; -webkit-border-radius: 0; border-radius: 0;\n  border-width: 0;\n  background: transparent;\n  font-family: inherit;\n  font-size: inherit;\n  margin: 0;\n  white-space: pre;\n  word-wrap: normal;\n  line-height: inherit;\n  color: inherit;\n  z-index: 2;\n  position: relative;\n  overflow: visible;\n}\n.CodeMirror-wrap pre {\n  word-wrap: break-word;\n  white-space: pre-wrap;\n  word-break: normal;\n}\n\n.CodeMirror-linebackground {\n  position: absolute;\n  left: 0; right: 0; top: 0; bottom: 0;\n  z-index: 0;\n}\n\n.CodeMirror-linewidget {\n  position: relative;\n  z-index: 2;\n  overflow: auto;\n}\n\n.CodeMirror-widget {}\n\n.CodeMirror-wrap .CodeMirror-scroll {\n  overflow-x: hidden;\n}\n\n.CodeMirror-measure {\n  position: absolute;\n  width: 100%;\n  height: 0;\n  overflow: hidden;\n  visibility: hidden;\n}\n.CodeMirror-measure pre { position: static; }\n\n.CodeMirror div.CodeMirror-cursor {\n  position: absolute;\n  border-right: none;\n  width: 0;\n}\n\ndiv.CodeMirror-cursors {\n  visibility: hidden;\n  position: relative;\n  z-index: 3;\n}\n.CodeMirror-focused div.CodeMirror-cursors {\n  visibility: visible;\n}\n\n.CodeMirror-selected { background: #d9d9d9; }\n.CodeMirror-focused .CodeMirror-selected { background: #d7d4f0; }\n.CodeMirror-crosshair { cursor: crosshair; }\n\n.cm-searching {\n  background: #ffa;\n  background: rgba(255, 255, 0, .4);\n}\n\n/* IE7 hack to prevent it from returning funny offsetTops on the spans */\n.CodeMirror span { *vertical-align: text-bottom; }\n\n/* Used to force a border model for a node */\n.cm-force-border { padding-right: .1px; }\n\n@media print {\n  /* Hide the cursor when printing */\n  .CodeMirror div.CodeMirror-cursors {\n    visibility: hidden;\n  }\n}\n\n/* Help users use markselection to safely style text background */\nspan.CodeMirror-selectedtext { background: none; }\n", ""]);
+
+/***/ },
+/* 20 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+
+	// load the styles
+	var content = __webpack_require__(21);
+	if(typeof content === 'string') content = [[module.id, content, '']];
+	// add the styles to the DOM
+	var update = __webpack_require__(31)(content);
+	// Hot Module Replacement
+	if(false) {
+		// When the styles change, update the <style> tags
+		module.hot.accept("!!/Users/alexeyfrank/projects/hexlet/hexlet-ide/node_modules/css-loader/index.js!/Users/alexeyfrank/projects/hexlet/hexlet-ide/node_modules/codemirror/theme/solarized.css", function() {
+			var newContent = require("!!/Users/alexeyfrank/projects/hexlet/hexlet-ide/node_modules/css-loader/index.js!/Users/alexeyfrank/projects/hexlet/hexlet-ide/node_modules/codemirror/theme/solarized.css");
+			if(typeof newContent === 'string') newContent = [module.id, newContent, ''];
+			update(newContent);
+		});
+		// When the module is disposed, remove the <style> tags
+		module.hot.dispose(function() { update(); });
+	}
+
+/***/ },
 /* 21 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(49)();
-	exports.push([module.id, ".CodeMirror {\n  border: 1px solid #eee;\n  min-height: 380px;\n}\n.CodeMirror-scroll {\n  overflow-y: hidden;\n  overflow-x: auto;\n}\n.icon-folder,\n.icon-file {\n  margin-right: 0.75em;\n}\n.file-tree-box > .row {\n  display: table;\n}\n.fuelux .tree {\n  border-radius: 0;\n  border: 1px solid #ddd;\n  min-height: 400px;\n  overflow: scroll;\n}\n.runner-box {\n  margin-bottom: 10px;\n}\n.runner-box .input-group button,\n.runner-box .input-group input {\n  border-radius: 0;\n}\n.editors-box .nav a {\n  padding: 5px 10px;\n  border-radius: 0;\n}\n.terminals-box .nav a {\n  padding: 5px 10px;\n  border-radius: 0;\n}\n.terminals-box .terminal {\n  width: 100%;\n}\n.loader {\n  margin: auto;\n}\n", ""]);
+	exports = module.exports = __webpack_require__(50)();
+	exports.push([module.id, "/*\nSolarized theme for code-mirror\nhttp://ethanschoonover.com/solarized\n*/\n\n/*\nSolarized color pallet\nhttp://ethanschoonover.com/solarized/img/solarized-palette.png\n*/\n\n.solarized.base03 { color: #002b36; }\n.solarized.base02 { color: #073642; }\n.solarized.base01 { color: #586e75; }\n.solarized.base00 { color: #657b83; }\n.solarized.base0 { color: #839496; }\n.solarized.base1 { color: #93a1a1; }\n.solarized.base2 { color: #eee8d5; }\n.solarized.base3  { color: #fdf6e3; }\n.solarized.solar-yellow  { color: #b58900; }\n.solarized.solar-orange  { color: #cb4b16; }\n.solarized.solar-red { color: #dc322f; }\n.solarized.solar-magenta { color: #d33682; }\n.solarized.solar-violet  { color: #6c71c4; }\n.solarized.solar-blue { color: #268bd2; }\n.solarized.solar-cyan { color: #2aa198; }\n.solarized.solar-green { color: #859900; }\n\n/* Color scheme for code-mirror */\n\n.cm-s-solarized {\n  line-height: 1.45em;\n  color-profile: sRGB;\n  rendering-intent: auto;\n}\n.cm-s-solarized.cm-s-dark {\n  color: #839496;\n  background-color:  #002b36;\n  text-shadow: #002b36 0 1px;\n}\n.cm-s-solarized.cm-s-light {\n  background-color: #fdf6e3;\n  color: #657b83;\n  text-shadow: #eee8d5 0 1px;\n}\n\n.cm-s-solarized .CodeMirror-widget {\n  text-shadow: none;\n}\n\n\n.cm-s-solarized .cm-keyword { color: #cb4b16 }\n.cm-s-solarized .cm-atom { color: #d33682; }\n.cm-s-solarized .cm-number { color: #d33682; }\n.cm-s-solarized .cm-def { color: #2aa198; }\n\n.cm-s-solarized .cm-variable { color: #268bd2; }\n.cm-s-solarized .cm-variable-2 { color: #b58900; }\n.cm-s-solarized .cm-variable-3 { color: #6c71c4; }\n\n.cm-s-solarized .cm-property { color: #2aa198; }\n.cm-s-solarized .cm-operator {color: #6c71c4;}\n\n.cm-s-solarized .cm-comment { color: #586e75; font-style:italic; }\n\n.cm-s-solarized .cm-string { color: #859900; }\n.cm-s-solarized .cm-string-2 { color: #b58900; }\n\n.cm-s-solarized .cm-meta { color: #859900; }\n.cm-s-solarized .cm-qualifier { color: #b58900; }\n.cm-s-solarized .cm-builtin { color: #d33682; }\n.cm-s-solarized .cm-bracket { color: #cb4b16; }\n.cm-s-solarized .CodeMirror-matchingbracket { color: #859900; }\n.cm-s-solarized .CodeMirror-nonmatchingbracket { color: #dc322f; }\n.cm-s-solarized .cm-tag { color: #93a1a1 }\n.cm-s-solarized .cm-attribute {  color: #2aa198; }\n.cm-s-solarized .cm-header { color: #586e75; }\n.cm-s-solarized .cm-quote { color: #93a1a1; }\n.cm-s-solarized .cm-hr {\n  color: transparent;\n  border-top: 1px solid #586e75;\n  display: block;\n}\n.cm-s-solarized .cm-link { color: #93a1a1; cursor: pointer; }\n.cm-s-solarized .cm-special { color: #6c71c4; }\n.cm-s-solarized .cm-em {\n  color: #999;\n  text-decoration: underline;\n  text-decoration-style: dotted;\n}\n.cm-s-solarized .cm-strong { color: #eee; }\n.cm-s-solarized .cm-tab:before {\n  content: \"➤\";   /*visualize tab character*/\n  color: #586e75;\n  position:absolute;\n}\n.cm-s-solarized .cm-error,\n.cm-s-solarized .cm-invalidchar {\n  color: #586e75;\n  border-bottom: 1px dotted #dc322f;\n}\n\n.cm-s-solarized.cm-s-dark .CodeMirror-selected {\n  background: #073642;\n}\n\n.cm-s-solarized.cm-s-light .CodeMirror-selected {\n  background: #eee8d5;\n}\n\n/* Editor styling */\n\n\n\n/* Little shadow on the view-port of the buffer view */\n.cm-s-solarized.CodeMirror {\n  -moz-box-shadow: inset 7px 0 12px -6px #000;\n  -webkit-box-shadow: inset 7px 0 12px -6px #000;\n  box-shadow: inset 7px 0 12px -6px #000;\n}\n\n/* Gutter border and some shadow from it  */\n.cm-s-solarized .CodeMirror-gutters {\n  border-right: 1px solid;\n}\n\n/* Gutter colors and line number styling based of color scheme (dark / light) */\n\n/* Dark */\n.cm-s-solarized.cm-s-dark .CodeMirror-gutters {\n  background-color:  #002b36;\n  border-color: #00232c;\n}\n\n.cm-s-solarized.cm-s-dark .CodeMirror-linenumber {\n  text-shadow: #021014 0 -1px;\n}\n\n/* Light */\n.cm-s-solarized.cm-s-light .CodeMirror-gutters {\n  background-color: #fdf6e3;\n  border-color: #eee8d5;\n}\n\n/* Common */\n.cm-s-solarized .CodeMirror-linenumber {\n  color: #586e75;\n  padding: 0 5px;\n}\n.cm-s-solarized .CodeMirror-guttermarker-subtle { color: #586e75; }\n.cm-s-solarized.cm-s-dark .CodeMirror-guttermarker { color: #ddd; }\n.cm-s-solarized.cm-s-light .CodeMirror-guttermarker { color: #cb4b16; }\n\n.cm-s-solarized .CodeMirror-gutter .CodeMirror-gutter-text {\n  color: #586e75;\n}\n\n.cm-s-solarized .CodeMirror-lines .CodeMirror-cursor {\n  border-left: 1px solid #819090;\n}\n\n/*\nActive line. Negative margin compensates left padding of the text in the\nview-port\n*/\n.cm-s-solarized.cm-s-dark .CodeMirror-activeline-background {\n  background: rgba(255, 255, 255, 0.10);\n}\n.cm-s-solarized.cm-s-light .CodeMirror-activeline-background {\n  background: rgba(0, 0, 0, 0.10);\n}\n", ""]);
 
 /***/ },
 /* 22 */
@@ -11599,7 +11599,7 @@
 	var content = __webpack_require__(23);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(30)(content);
+	var update = __webpack_require__(31)(content);
 	// Hot Module Replacement
 	if(false) {
 		// When the styles change, update the <style> tags
@@ -11616,7 +11616,7 @@
 /* 23 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(49)();
+	exports = module.exports = __webpack_require__(50)();
 	exports.push([module.id, "/*!\n * Bootstrap v3.2.0 (http://getbootstrap.com)\n * Copyright 2011-2014 Twitter, Inc.\n * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)\n */\n\n/*! normalize.css v3.0.1 | MIT License | git.io/normalize */\nhtml {\n  font-family: sans-serif;\n  -webkit-text-size-adjust: 100%;\n      -ms-text-size-adjust: 100%;\n}\nbody {\n  margin: 0;\n}\narticle,\naside,\ndetails,\nfigcaption,\nfigure,\nfooter,\nheader,\nhgroup,\nmain,\nnav,\nsection,\nsummary {\n  display: block;\n}\naudio,\ncanvas,\nprogress,\nvideo {\n  display: inline-block;\n  vertical-align: baseline;\n}\naudio:not([controls]) {\n  display: none;\n  height: 0;\n}\n[hidden],\ntemplate {\n  display: none;\n}\na {\n  background: transparent;\n}\na:active,\na:hover {\n  outline: 0;\n}\nabbr[title] {\n  border-bottom: 1px dotted;\n}\nb,\nstrong {\n  font-weight: bold;\n}\ndfn {\n  font-style: italic;\n}\nh1 {\n  margin: .67em 0;\n  font-size: 2em;\n}\nmark {\n  color: #000;\n  background: #ff0;\n}\nsmall {\n  font-size: 80%;\n}\nsub,\nsup {\n  position: relative;\n  font-size: 75%;\n  line-height: 0;\n  vertical-align: baseline;\n}\nsup {\n  top: -.5em;\n}\nsub {\n  bottom: -.25em;\n}\nimg {\n  border: 0;\n}\nsvg:not(:root) {\n  overflow: hidden;\n}\nfigure {\n  margin: 1em 40px;\n}\nhr {\n  height: 0;\n  -webkit-box-sizing: content-box;\n     -moz-box-sizing: content-box;\n          box-sizing: content-box;\n}\npre {\n  overflow: auto;\n}\ncode,\nkbd,\npre,\nsamp {\n  font-family: monospace, monospace;\n  font-size: 1em;\n}\nbutton,\ninput,\noptgroup,\nselect,\ntextarea {\n  margin: 0;\n  font: inherit;\n  color: inherit;\n}\nbutton {\n  overflow: visible;\n}\nbutton,\nselect {\n  text-transform: none;\n}\nbutton,\nhtml input[type=\"button\"],\ninput[type=\"reset\"],\ninput[type=\"submit\"] {\n  -webkit-appearance: button;\n  cursor: pointer;\n}\nbutton[disabled],\nhtml input[disabled] {\n  cursor: default;\n}\nbutton::-moz-focus-inner,\ninput::-moz-focus-inner {\n  padding: 0;\n  border: 0;\n}\ninput {\n  line-height: normal;\n}\ninput[type=\"checkbox\"],\ninput[type=\"radio\"] {\n  -webkit-box-sizing: border-box;\n     -moz-box-sizing: border-box;\n          box-sizing: border-box;\n  padding: 0;\n}\ninput[type=\"number\"]::-webkit-inner-spin-button,\ninput[type=\"number\"]::-webkit-outer-spin-button {\n  height: auto;\n}\ninput[type=\"search\"] {\n  -webkit-box-sizing: content-box;\n     -moz-box-sizing: content-box;\n          box-sizing: content-box;\n  -webkit-appearance: textfield;\n}\ninput[type=\"search\"]::-webkit-search-cancel-button,\ninput[type=\"search\"]::-webkit-search-decoration {\n  -webkit-appearance: none;\n}\nfieldset {\n  padding: .35em .625em .75em;\n  margin: 0 2px;\n  border: 1px solid #c0c0c0;\n}\nlegend {\n  padding: 0;\n  border: 0;\n}\ntextarea {\n  overflow: auto;\n}\noptgroup {\n  font-weight: bold;\n}\ntable {\n  border-spacing: 0;\n  border-collapse: collapse;\n}\ntd,\nth {\n  padding: 0;\n}\n@media print {\n  * {\n    color: #000 !important;\n    text-shadow: none !important;\n    background: transparent !important;\n    -webkit-box-shadow: none !important;\n            box-shadow: none !important;\n  }\n  a,\n  a:visited {\n    text-decoration: underline;\n  }\n  a[href]:after {\n    content: \" (\" attr(href) \")\";\n  }\n  abbr[title]:after {\n    content: \" (\" attr(title) \")\";\n  }\n  a[href^=\"javascript:\"]:after,\n  a[href^=\"#\"]:after {\n    content: \"\";\n  }\n  pre,\n  blockquote {\n    border: 1px solid #999;\n\n    page-break-inside: avoid;\n  }\n  thead {\n    display: table-header-group;\n  }\n  tr,\n  img {\n    page-break-inside: avoid;\n  }\n  img {\n    max-width: 100% !important;\n  }\n  p,\n  h2,\n  h3 {\n    orphans: 3;\n    widows: 3;\n  }\n  h2,\n  h3 {\n    page-break-after: avoid;\n  }\n  select {\n    background: #fff !important;\n  }\n  .navbar {\n    display: none;\n  }\n  .table td,\n  .table th {\n    background-color: #fff !important;\n  }\n  .btn > .caret,\n  .dropup > .btn > .caret {\n    border-top-color: #000 !important;\n  }\n  .label {\n    border: 1px solid #000;\n  }\n  .table {\n    border-collapse: collapse !important;\n  }\n  .table-bordered th,\n  .table-bordered td {\n    border: 1px solid #ddd !important;\n  }\n}\n@font-face {\n  font-family: 'Glyphicons Halflings';\n\n  src: url("+__webpack_require__(65)+");\n  src: url("+__webpack_require__(65)+"?#iefix) format('embedded-opentype'), url("+__webpack_require__(66)+") format('woff'), url("+__webpack_require__(67)+") format('truetype'), url("+__webpack_require__(68)+"#glyphicons_halflingsregular) format('svg');\n}\n.glyphicon {\n  position: relative;\n  top: 1px;\n  display: inline-block;\n  font-family: 'Glyphicons Halflings';\n  font-style: normal;\n  font-weight: normal;\n  line-height: 1;\n\n  -webkit-font-smoothing: antialiased;\n  -moz-osx-font-smoothing: grayscale;\n}\n.glyphicon-asterisk:before {\n  content: \"\\2a\";\n}\n.glyphicon-plus:before {\n  content: \"\\2b\";\n}\n.glyphicon-euro:before {\n  content: \"\\20ac\";\n}\n.glyphicon-minus:before {\n  content: \"\\2212\";\n}\n.glyphicon-cloud:before {\n  content: \"\\2601\";\n}\n.glyphicon-envelope:before {\n  content: \"\\2709\";\n}\n.glyphicon-pencil:before {\n  content: \"\\270f\";\n}\n.glyphicon-glass:before {\n  content: \"\\e001\";\n}\n.glyphicon-music:before {\n  content: \"\\e002\";\n}\n.glyphicon-search:before {\n  content: \"\\e003\";\n}\n.glyphicon-heart:before {\n  content: \"\\e005\";\n}\n.glyphicon-star:before {\n  content: \"\\e006\";\n}\n.glyphicon-star-empty:before {\n  content: \"\\e007\";\n}\n.glyphicon-user:before {\n  content: \"\\e008\";\n}\n.glyphicon-film:before {\n  content: \"\\e009\";\n}\n.glyphicon-th-large:before {\n  content: \"\\e010\";\n}\n.glyphicon-th:before {\n  content: \"\\e011\";\n}\n.glyphicon-th-list:before {\n  content: \"\\e012\";\n}\n.glyphicon-ok:before {\n  content: \"\\e013\";\n}\n.glyphicon-remove:before {\n  content: \"\\e014\";\n}\n.glyphicon-zoom-in:before {\n  content: \"\\e015\";\n}\n.glyphicon-zoom-out:before {\n  content: \"\\e016\";\n}\n.glyphicon-off:before {\n  content: \"\\e017\";\n}\n.glyphicon-signal:before {\n  content: \"\\e018\";\n}\n.glyphicon-cog:before {\n  content: \"\\e019\";\n}\n.glyphicon-trash:before {\n  content: \"\\e020\";\n}\n.glyphicon-home:before {\n  content: \"\\e021\";\n}\n.glyphicon-file:before {\n  content: \"\\e022\";\n}\n.glyphicon-time:before {\n  content: \"\\e023\";\n}\n.glyphicon-road:before {\n  content: \"\\e024\";\n}\n.glyphicon-download-alt:before {\n  content: \"\\e025\";\n}\n.glyphicon-download:before {\n  content: \"\\e026\";\n}\n.glyphicon-upload:before {\n  content: \"\\e027\";\n}\n.glyphicon-inbox:before {\n  content: \"\\e028\";\n}\n.glyphicon-play-circle:before {\n  content: \"\\e029\";\n}\n.glyphicon-repeat:before {\n  content: \"\\e030\";\n}\n.glyphicon-refresh:before {\n  content: \"\\e031\";\n}\n.glyphicon-list-alt:before {\n  content: \"\\e032\";\n}\n.glyphicon-lock:before {\n  content: \"\\e033\";\n}\n.glyphicon-flag:before {\n  content: \"\\e034\";\n}\n.glyphicon-headphones:before {\n  content: \"\\e035\";\n}\n.glyphicon-volume-off:before {\n  content: \"\\e036\";\n}\n.glyphicon-volume-down:before {\n  content: \"\\e037\";\n}\n.glyphicon-volume-up:before {\n  content: \"\\e038\";\n}\n.glyphicon-qrcode:before {\n  content: \"\\e039\";\n}\n.glyphicon-barcode:before {\n  content: \"\\e040\";\n}\n.glyphicon-tag:before {\n  content: \"\\e041\";\n}\n.glyphicon-tags:before {\n  content: \"\\e042\";\n}\n.glyphicon-book:before {\n  content: \"\\e043\";\n}\n.glyphicon-bookmark:before {\n  content: \"\\e044\";\n}\n.glyphicon-print:before {\n  content: \"\\e045\";\n}\n.glyphicon-camera:before {\n  content: \"\\e046\";\n}\n.glyphicon-font:before {\n  content: \"\\e047\";\n}\n.glyphicon-bold:before {\n  content: \"\\e048\";\n}\n.glyphicon-italic:before {\n  content: \"\\e049\";\n}\n.glyphicon-text-height:before {\n  content: \"\\e050\";\n}\n.glyphicon-text-width:before {\n  content: \"\\e051\";\n}\n.glyphicon-align-left:before {\n  content: \"\\e052\";\n}\n.glyphicon-align-center:before {\n  content: \"\\e053\";\n}\n.glyphicon-align-right:before {\n  content: \"\\e054\";\n}\n.glyphicon-align-justify:before {\n  content: \"\\e055\";\n}\n.glyphicon-list:before {\n  content: \"\\e056\";\n}\n.glyphicon-indent-left:before {\n  content: \"\\e057\";\n}\n.glyphicon-indent-right:before {\n  content: \"\\e058\";\n}\n.glyphicon-facetime-video:before {\n  content: \"\\e059\";\n}\n.glyphicon-picture:before {\n  content: \"\\e060\";\n}\n.glyphicon-map-marker:before {\n  content: \"\\e062\";\n}\n.glyphicon-adjust:before {\n  content: \"\\e063\";\n}\n.glyphicon-tint:before {\n  content: \"\\e064\";\n}\n.glyphicon-edit:before {\n  content: \"\\e065\";\n}\n.glyphicon-share:before {\n  content: \"\\e066\";\n}\n.glyphicon-check:before {\n  content: \"\\e067\";\n}\n.glyphicon-move:before {\n  content: \"\\e068\";\n}\n.glyphicon-step-backward:before {\n  content: \"\\e069\";\n}\n.glyphicon-fast-backward:before {\n  content: \"\\e070\";\n}\n.glyphicon-backward:before {\n  content: \"\\e071\";\n}\n.glyphicon-play:before {\n  content: \"\\e072\";\n}\n.glyphicon-pause:before {\n  content: \"\\e073\";\n}\n.glyphicon-stop:before {\n  content: \"\\e074\";\n}\n.glyphicon-forward:before {\n  content: \"\\e075\";\n}\n.glyphicon-fast-forward:before {\n  content: \"\\e076\";\n}\n.glyphicon-step-forward:before {\n  content: \"\\e077\";\n}\n.glyphicon-eject:before {\n  content: \"\\e078\";\n}\n.glyphicon-chevron-left:before {\n  content: \"\\e079\";\n}\n.glyphicon-chevron-right:before {\n  content: \"\\e080\";\n}\n.glyphicon-plus-sign:before {\n  content: \"\\e081\";\n}\n.glyphicon-minus-sign:before {\n  content: \"\\e082\";\n}\n.glyphicon-remove-sign:before {\n  content: \"\\e083\";\n}\n.glyphicon-ok-sign:before {\n  content: \"\\e084\";\n}\n.glyphicon-question-sign:before {\n  content: \"\\e085\";\n}\n.glyphicon-info-sign:before {\n  content: \"\\e086\";\n}\n.glyphicon-screenshot:before {\n  content: \"\\e087\";\n}\n.glyphicon-remove-circle:before {\n  content: \"\\e088\";\n}\n.glyphicon-ok-circle:before {\n  content: \"\\e089\";\n}\n.glyphicon-ban-circle:before {\n  content: \"\\e090\";\n}\n.glyphicon-arrow-left:before {\n  content: \"\\e091\";\n}\n.glyphicon-arrow-right:before {\n  content: \"\\e092\";\n}\n.glyphicon-arrow-up:before {\n  content: \"\\e093\";\n}\n.glyphicon-arrow-down:before {\n  content: \"\\e094\";\n}\n.glyphicon-share-alt:before {\n  content: \"\\e095\";\n}\n.glyphicon-resize-full:before {\n  content: \"\\e096\";\n}\n.glyphicon-resize-small:before {\n  content: \"\\e097\";\n}\n.glyphicon-exclamation-sign:before {\n  content: \"\\e101\";\n}\n.glyphicon-gift:before {\n  content: \"\\e102\";\n}\n.glyphicon-leaf:before {\n  content: \"\\e103\";\n}\n.glyphicon-fire:before {\n  content: \"\\e104\";\n}\n.glyphicon-eye-open:before {\n  content: \"\\e105\";\n}\n.glyphicon-eye-close:before {\n  content: \"\\e106\";\n}\n.glyphicon-warning-sign:before {\n  content: \"\\e107\";\n}\n.glyphicon-plane:before {\n  content: \"\\e108\";\n}\n.glyphicon-calendar:before {\n  content: \"\\e109\";\n}\n.glyphicon-random:before {\n  content: \"\\e110\";\n}\n.glyphicon-comment:before {\n  content: \"\\e111\";\n}\n.glyphicon-magnet:before {\n  content: \"\\e112\";\n}\n.glyphicon-chevron-up:before {\n  content: \"\\e113\";\n}\n.glyphicon-chevron-down:before {\n  content: \"\\e114\";\n}\n.glyphicon-retweet:before {\n  content: \"\\e115\";\n}\n.glyphicon-shopping-cart:before {\n  content: \"\\e116\";\n}\n.glyphicon-folder-close:before {\n  content: \"\\e117\";\n}\n.glyphicon-folder-open:before {\n  content: \"\\e118\";\n}\n.glyphicon-resize-vertical:before {\n  content: \"\\e119\";\n}\n.glyphicon-resize-horizontal:before {\n  content: \"\\e120\";\n}\n.glyphicon-hdd:before {\n  content: \"\\e121\";\n}\n.glyphicon-bullhorn:before {\n  content: \"\\e122\";\n}\n.glyphicon-bell:before {\n  content: \"\\e123\";\n}\n.glyphicon-certificate:before {\n  content: \"\\e124\";\n}\n.glyphicon-thumbs-up:before {\n  content: \"\\e125\";\n}\n.glyphicon-thumbs-down:before {\n  content: \"\\e126\";\n}\n.glyphicon-hand-right:before {\n  content: \"\\e127\";\n}\n.glyphicon-hand-left:before {\n  content: \"\\e128\";\n}\n.glyphicon-hand-up:before {\n  content: \"\\e129\";\n}\n.glyphicon-hand-down:before {\n  content: \"\\e130\";\n}\n.glyphicon-circle-arrow-right:before {\n  content: \"\\e131\";\n}\n.glyphicon-circle-arrow-left:before {\n  content: \"\\e132\";\n}\n.glyphicon-circle-arrow-up:before {\n  content: \"\\e133\";\n}\n.glyphicon-circle-arrow-down:before {\n  content: \"\\e134\";\n}\n.glyphicon-globe:before {\n  content: \"\\e135\";\n}\n.glyphicon-wrench:before {\n  content: \"\\e136\";\n}\n.glyphicon-tasks:before {\n  content: \"\\e137\";\n}\n.glyphicon-filter:before {\n  content: \"\\e138\";\n}\n.glyphicon-briefcase:before {\n  content: \"\\e139\";\n}\n.glyphicon-fullscreen:before {\n  content: \"\\e140\";\n}\n.glyphicon-dashboard:before {\n  content: \"\\e141\";\n}\n.glyphicon-paperclip:before {\n  content: \"\\e142\";\n}\n.glyphicon-heart-empty:before {\n  content: \"\\e143\";\n}\n.glyphicon-link:before {\n  content: \"\\e144\";\n}\n.glyphicon-phone:before {\n  content: \"\\e145\";\n}\n.glyphicon-pushpin:before {\n  content: \"\\e146\";\n}\n.glyphicon-usd:before {\n  content: \"\\e148\";\n}\n.glyphicon-gbp:before {\n  content: \"\\e149\";\n}\n.glyphicon-sort:before {\n  content: \"\\e150\";\n}\n.glyphicon-sort-by-alphabet:before {\n  content: \"\\e151\";\n}\n.glyphicon-sort-by-alphabet-alt:before {\n  content: \"\\e152\";\n}\n.glyphicon-sort-by-order:before {\n  content: \"\\e153\";\n}\n.glyphicon-sort-by-order-alt:before {\n  content: \"\\e154\";\n}\n.glyphicon-sort-by-attributes:before {\n  content: \"\\e155\";\n}\n.glyphicon-sort-by-attributes-alt:before {\n  content: \"\\e156\";\n}\n.glyphicon-unchecked:before {\n  content: \"\\e157\";\n}\n.glyphicon-expand:before {\n  content: \"\\e158\";\n}\n.glyphicon-collapse-down:before {\n  content: \"\\e159\";\n}\n.glyphicon-collapse-up:before {\n  content: \"\\e160\";\n}\n.glyphicon-log-in:before {\n  content: \"\\e161\";\n}\n.glyphicon-flash:before {\n  content: \"\\e162\";\n}\n.glyphicon-log-out:before {\n  content: \"\\e163\";\n}\n.glyphicon-new-window:before {\n  content: \"\\e164\";\n}\n.glyphicon-record:before {\n  content: \"\\e165\";\n}\n.glyphicon-save:before {\n  content: \"\\e166\";\n}\n.glyphicon-open:before {\n  content: \"\\e167\";\n}\n.glyphicon-saved:before {\n  content: \"\\e168\";\n}\n.glyphicon-import:before {\n  content: \"\\e169\";\n}\n.glyphicon-export:before {\n  content: \"\\e170\";\n}\n.glyphicon-send:before {\n  content: \"\\e171\";\n}\n.glyphicon-floppy-disk:before {\n  content: \"\\e172\";\n}\n.glyphicon-floppy-saved:before {\n  content: \"\\e173\";\n}\n.glyphicon-floppy-remove:before {\n  content: \"\\e174\";\n}\n.glyphicon-floppy-save:before {\n  content: \"\\e175\";\n}\n.glyphicon-floppy-open:before {\n  content: \"\\e176\";\n}\n.glyphicon-credit-card:before {\n  content: \"\\e177\";\n}\n.glyphicon-transfer:before {\n  content: \"\\e178\";\n}\n.glyphicon-cutlery:before {\n  content: \"\\e179\";\n}\n.glyphicon-header:before {\n  content: \"\\e180\";\n}\n.glyphicon-compressed:before {\n  content: \"\\e181\";\n}\n.glyphicon-earphone:before {\n  content: \"\\e182\";\n}\n.glyphicon-phone-alt:before {\n  content: \"\\e183\";\n}\n.glyphicon-tower:before {\n  content: \"\\e184\";\n}\n.glyphicon-stats:before {\n  content: \"\\e185\";\n}\n.glyphicon-sd-video:before {\n  content: \"\\e186\";\n}\n.glyphicon-hd-video:before {\n  content: \"\\e187\";\n}\n.glyphicon-subtitles:before {\n  content: \"\\e188\";\n}\n.glyphicon-sound-stereo:before {\n  content: \"\\e189\";\n}\n.glyphicon-sound-dolby:before {\n  content: \"\\e190\";\n}\n.glyphicon-sound-5-1:before {\n  content: \"\\e191\";\n}\n.glyphicon-sound-6-1:before {\n  content: \"\\e192\";\n}\n.glyphicon-sound-7-1:before {\n  content: \"\\e193\";\n}\n.glyphicon-copyright-mark:before {\n  content: \"\\e194\";\n}\n.glyphicon-registration-mark:before {\n  content: \"\\e195\";\n}\n.glyphicon-cloud-download:before {\n  content: \"\\e197\";\n}\n.glyphicon-cloud-upload:before {\n  content: \"\\e198\";\n}\n.glyphicon-tree-conifer:before {\n  content: \"\\e199\";\n}\n.glyphicon-tree-deciduous:before {\n  content: \"\\e200\";\n}\n* {\n  -webkit-box-sizing: border-box;\n     -moz-box-sizing: border-box;\n          box-sizing: border-box;\n}\n*:before,\n*:after {\n  -webkit-box-sizing: border-box;\n     -moz-box-sizing: border-box;\n          box-sizing: border-box;\n}\nhtml {\n  font-size: 10px;\n\n  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);\n}\nbody {\n  font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n  font-size: 14px;\n  line-height: 1.42857143;\n  color: #333;\n  background-color: #fff;\n}\ninput,\nbutton,\nselect,\ntextarea {\n  font-family: inherit;\n  font-size: inherit;\n  line-height: inherit;\n}\na {\n  color: #428bca;\n  text-decoration: none;\n}\na:hover,\na:focus {\n  color: #2a6496;\n  text-decoration: underline;\n}\na:focus {\n  outline: thin dotted;\n  outline: 5px auto -webkit-focus-ring-color;\n  outline-offset: -2px;\n}\nfigure {\n  margin: 0;\n}\nimg {\n  vertical-align: middle;\n}\n.img-responsive,\n.thumbnail > img,\n.thumbnail a > img,\n.carousel-inner > .item > img,\n.carousel-inner > .item > a > img {\n  display: block;\n  width: 100% \\9;\n  max-width: 100%;\n  height: auto;\n}\n.img-rounded {\n  border-radius: 6px;\n}\n.img-thumbnail {\n  display: inline-block;\n  width: 100% \\9;\n  max-width: 100%;\n  height: auto;\n  padding: 4px;\n  line-height: 1.42857143;\n  background-color: #fff;\n  border: 1px solid #ddd;\n  border-radius: 4px;\n  -webkit-transition: all .2s ease-in-out;\n       -o-transition: all .2s ease-in-out;\n          transition: all .2s ease-in-out;\n}\n.img-circle {\n  border-radius: 50%;\n}\nhr {\n  margin-top: 20px;\n  margin-bottom: 20px;\n  border: 0;\n  border-top: 1px solid #eee;\n}\n.sr-only {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  padding: 0;\n  margin: -1px;\n  overflow: hidden;\n  clip: rect(0, 0, 0, 0);\n  border: 0;\n}\n.sr-only-focusable:active,\n.sr-only-focusable:focus {\n  position: static;\n  width: auto;\n  height: auto;\n  margin: 0;\n  overflow: visible;\n  clip: auto;\n}\nh1,\nh2,\nh3,\nh4,\nh5,\nh6,\n.h1,\n.h2,\n.h3,\n.h4,\n.h5,\n.h6 {\n  font-family: inherit;\n  font-weight: 500;\n  line-height: 1.1;\n  color: inherit;\n}\nh1 small,\nh2 small,\nh3 small,\nh4 small,\nh5 small,\nh6 small,\n.h1 small,\n.h2 small,\n.h3 small,\n.h4 small,\n.h5 small,\n.h6 small,\nh1 .small,\nh2 .small,\nh3 .small,\nh4 .small,\nh5 .small,\nh6 .small,\n.h1 .small,\n.h2 .small,\n.h3 .small,\n.h4 .small,\n.h5 .small,\n.h6 .small {\n  font-weight: normal;\n  line-height: 1;\n  color: #777;\n}\nh1,\n.h1,\nh2,\n.h2,\nh3,\n.h3 {\n  margin-top: 20px;\n  margin-bottom: 10px;\n}\nh1 small,\n.h1 small,\nh2 small,\n.h2 small,\nh3 small,\n.h3 small,\nh1 .small,\n.h1 .small,\nh2 .small,\n.h2 .small,\nh3 .small,\n.h3 .small {\n  font-size: 65%;\n}\nh4,\n.h4,\nh5,\n.h5,\nh6,\n.h6 {\n  margin-top: 10px;\n  margin-bottom: 10px;\n}\nh4 small,\n.h4 small,\nh5 small,\n.h5 small,\nh6 small,\n.h6 small,\nh4 .small,\n.h4 .small,\nh5 .small,\n.h5 .small,\nh6 .small,\n.h6 .small {\n  font-size: 75%;\n}\nh1,\n.h1 {\n  font-size: 36px;\n}\nh2,\n.h2 {\n  font-size: 30px;\n}\nh3,\n.h3 {\n  font-size: 24px;\n}\nh4,\n.h4 {\n  font-size: 18px;\n}\nh5,\n.h5 {\n  font-size: 14px;\n}\nh6,\n.h6 {\n  font-size: 12px;\n}\np {\n  margin: 0 0 10px;\n}\n.lead {\n  margin-bottom: 20px;\n  font-size: 16px;\n  font-weight: 300;\n  line-height: 1.4;\n}\n@media (min-width: 768px) {\n  .lead {\n    font-size: 21px;\n  }\n}\nsmall,\n.small {\n  font-size: 85%;\n}\ncite {\n  font-style: normal;\n}\nmark,\n.mark {\n  padding: .2em;\n  background-color: #fcf8e3;\n}\n.text-left {\n  text-align: left;\n}\n.text-right {\n  text-align: right;\n}\n.text-center {\n  text-align: center;\n}\n.text-justify {\n  text-align: justify;\n}\n.text-nowrap {\n  white-space: nowrap;\n}\n.text-lowercase {\n  text-transform: lowercase;\n}\n.text-uppercase {\n  text-transform: uppercase;\n}\n.text-capitalize {\n  text-transform: capitalize;\n}\n.text-muted {\n  color: #777;\n}\n.text-primary {\n  color: #428bca;\n}\na.text-primary:hover {\n  color: #3071a9;\n}\n.text-success {\n  color: #3c763d;\n}\na.text-success:hover {\n  color: #2b542c;\n}\n.text-info {\n  color: #31708f;\n}\na.text-info:hover {\n  color: #245269;\n}\n.text-warning {\n  color: #8a6d3b;\n}\na.text-warning:hover {\n  color: #66512c;\n}\n.text-danger {\n  color: #a94442;\n}\na.text-danger:hover {\n  color: #843534;\n}\n.bg-primary {\n  color: #fff;\n  background-color: #428bca;\n}\na.bg-primary:hover {\n  background-color: #3071a9;\n}\n.bg-success {\n  background-color: #dff0d8;\n}\na.bg-success:hover {\n  background-color: #c1e2b3;\n}\n.bg-info {\n  background-color: #d9edf7;\n}\na.bg-info:hover {\n  background-color: #afd9ee;\n}\n.bg-warning {\n  background-color: #fcf8e3;\n}\na.bg-warning:hover {\n  background-color: #f7ecb5;\n}\n.bg-danger {\n  background-color: #f2dede;\n}\na.bg-danger:hover {\n  background-color: #e4b9b9;\n}\n.page-header {\n  padding-bottom: 9px;\n  margin: 40px 0 20px;\n  border-bottom: 1px solid #eee;\n}\nul,\nol {\n  margin-top: 0;\n  margin-bottom: 10px;\n}\nul ul,\nol ul,\nul ol,\nol ol {\n  margin-bottom: 0;\n}\n.list-unstyled {\n  padding-left: 0;\n  list-style: none;\n}\n.list-inline {\n  padding-left: 0;\n  margin-left: -5px;\n  list-style: none;\n}\n.list-inline > li {\n  display: inline-block;\n  padding-right: 5px;\n  padding-left: 5px;\n}\ndl {\n  margin-top: 0;\n  margin-bottom: 20px;\n}\ndt,\ndd {\n  line-height: 1.42857143;\n}\ndt {\n  font-weight: bold;\n}\ndd {\n  margin-left: 0;\n}\n@media (min-width: 768px) {\n  .dl-horizontal dt {\n    float: left;\n    width: 160px;\n    overflow: hidden;\n    clear: left;\n    text-align: right;\n    text-overflow: ellipsis;\n    white-space: nowrap;\n  }\n  .dl-horizontal dd {\n    margin-left: 180px;\n  }\n}\nabbr[title],\nabbr[data-original-title] {\n  cursor: help;\n  border-bottom: 1px dotted #777;\n}\n.initialism {\n  font-size: 90%;\n  text-transform: uppercase;\n}\nblockquote {\n  padding: 10px 20px;\n  margin: 0 0 20px;\n  font-size: 17.5px;\n  border-left: 5px solid #eee;\n}\nblockquote p:last-child,\nblockquote ul:last-child,\nblockquote ol:last-child {\n  margin-bottom: 0;\n}\nblockquote footer,\nblockquote small,\nblockquote .small {\n  display: block;\n  font-size: 80%;\n  line-height: 1.42857143;\n  color: #777;\n}\nblockquote footer:before,\nblockquote small:before,\nblockquote .small:before {\n  content: '\\2014 \\00A0';\n}\n.blockquote-reverse,\nblockquote.pull-right {\n  padding-right: 15px;\n  padding-left: 0;\n  text-align: right;\n  border-right: 5px solid #eee;\n  border-left: 0;\n}\n.blockquote-reverse footer:before,\nblockquote.pull-right footer:before,\n.blockquote-reverse small:before,\nblockquote.pull-right small:before,\n.blockquote-reverse .small:before,\nblockquote.pull-right .small:before {\n  content: '';\n}\n.blockquote-reverse footer:after,\nblockquote.pull-right footer:after,\n.blockquote-reverse small:after,\nblockquote.pull-right small:after,\n.blockquote-reverse .small:after,\nblockquote.pull-right .small:after {\n  content: '\\00A0 \\2014';\n}\nblockquote:before,\nblockquote:after {\n  content: \"\";\n}\naddress {\n  margin-bottom: 20px;\n  font-style: normal;\n  line-height: 1.42857143;\n}\ncode,\nkbd,\npre,\nsamp {\n  font-family: Menlo, Monaco, Consolas, \"Courier New\", monospace;\n}\ncode {\n  padding: 2px 4px;\n  font-size: 90%;\n  color: #c7254e;\n  background-color: #f9f2f4;\n  border-radius: 4px;\n}\nkbd {\n  padding: 2px 4px;\n  font-size: 90%;\n  color: #fff;\n  background-color: #333;\n  border-radius: 3px;\n  -webkit-box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .25);\n          box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .25);\n}\nkbd kbd {\n  padding: 0;\n  font-size: 100%;\n  -webkit-box-shadow: none;\n          box-shadow: none;\n}\npre {\n  display: block;\n  padding: 9.5px;\n  margin: 0 0 10px;\n  font-size: 13px;\n  line-height: 1.42857143;\n  color: #333;\n  word-break: break-all;\n  word-wrap: break-word;\n  background-color: #f5f5f5;\n  border: 1px solid #ccc;\n  border-radius: 4px;\n}\npre code {\n  padding: 0;\n  font-size: inherit;\n  color: inherit;\n  white-space: pre-wrap;\n  background-color: transparent;\n  border-radius: 0;\n}\n.pre-scrollable {\n  max-height: 340px;\n  overflow-y: scroll;\n}\n.container {\n  padding-right: 15px;\n  padding-left: 15px;\n  margin-right: auto;\n  margin-left: auto;\n}\n@media (min-width: 768px) {\n  .container {\n    width: 750px;\n  }\n}\n@media (min-width: 992px) {\n  .container {\n    width: 970px;\n  }\n}\n@media (min-width: 1200px) {\n  .container {\n    width: 1170px;\n  }\n}\n.container-fluid {\n  padding-right: 15px;\n  padding-left: 15px;\n  margin-right: auto;\n  margin-left: auto;\n}\n.row {\n  margin-right: -15px;\n  margin-left: -15px;\n}\n.col-xs-1, .col-sm-1, .col-md-1, .col-lg-1, .col-xs-2, .col-sm-2, .col-md-2, .col-lg-2, .col-xs-3, .col-sm-3, .col-md-3, .col-lg-3, .col-xs-4, .col-sm-4, .col-md-4, .col-lg-4, .col-xs-5, .col-sm-5, .col-md-5, .col-lg-5, .col-xs-6, .col-sm-6, .col-md-6, .col-lg-6, .col-xs-7, .col-sm-7, .col-md-7, .col-lg-7, .col-xs-8, .col-sm-8, .col-md-8, .col-lg-8, .col-xs-9, .col-sm-9, .col-md-9, .col-lg-9, .col-xs-10, .col-sm-10, .col-md-10, .col-lg-10, .col-xs-11, .col-sm-11, .col-md-11, .col-lg-11, .col-xs-12, .col-sm-12, .col-md-12, .col-lg-12 {\n  position: relative;\n  min-height: 1px;\n  padding-right: 15px;\n  padding-left: 15px;\n}\n.col-xs-1, .col-xs-2, .col-xs-3, .col-xs-4, .col-xs-5, .col-xs-6, .col-xs-7, .col-xs-8, .col-xs-9, .col-xs-10, .col-xs-11, .col-xs-12 {\n  float: left;\n}\n.col-xs-12 {\n  width: 100%;\n}\n.col-xs-11 {\n  width: 91.66666667%;\n}\n.col-xs-10 {\n  width: 83.33333333%;\n}\n.col-xs-9 {\n  width: 75%;\n}\n.col-xs-8 {\n  width: 66.66666667%;\n}\n.col-xs-7 {\n  width: 58.33333333%;\n}\n.col-xs-6 {\n  width: 50%;\n}\n.col-xs-5 {\n  width: 41.66666667%;\n}\n.col-xs-4 {\n  width: 33.33333333%;\n}\n.col-xs-3 {\n  width: 25%;\n}\n.col-xs-2 {\n  width: 16.66666667%;\n}\n.col-xs-1 {\n  width: 8.33333333%;\n}\n.col-xs-pull-12 {\n  right: 100%;\n}\n.col-xs-pull-11 {\n  right: 91.66666667%;\n}\n.col-xs-pull-10 {\n  right: 83.33333333%;\n}\n.col-xs-pull-9 {\n  right: 75%;\n}\n.col-xs-pull-8 {\n  right: 66.66666667%;\n}\n.col-xs-pull-7 {\n  right: 58.33333333%;\n}\n.col-xs-pull-6 {\n  right: 50%;\n}\n.col-xs-pull-5 {\n  right: 41.66666667%;\n}\n.col-xs-pull-4 {\n  right: 33.33333333%;\n}\n.col-xs-pull-3 {\n  right: 25%;\n}\n.col-xs-pull-2 {\n  right: 16.66666667%;\n}\n.col-xs-pull-1 {\n  right: 8.33333333%;\n}\n.col-xs-pull-0 {\n  right: auto;\n}\n.col-xs-push-12 {\n  left: 100%;\n}\n.col-xs-push-11 {\n  left: 91.66666667%;\n}\n.col-xs-push-10 {\n  left: 83.33333333%;\n}\n.col-xs-push-9 {\n  left: 75%;\n}\n.col-xs-push-8 {\n  left: 66.66666667%;\n}\n.col-xs-push-7 {\n  left: 58.33333333%;\n}\n.col-xs-push-6 {\n  left: 50%;\n}\n.col-xs-push-5 {\n  left: 41.66666667%;\n}\n.col-xs-push-4 {\n  left: 33.33333333%;\n}\n.col-xs-push-3 {\n  left: 25%;\n}\n.col-xs-push-2 {\n  left: 16.66666667%;\n}\n.col-xs-push-1 {\n  left: 8.33333333%;\n}\n.col-xs-push-0 {\n  left: auto;\n}\n.col-xs-offset-12 {\n  margin-left: 100%;\n}\n.col-xs-offset-11 {\n  margin-left: 91.66666667%;\n}\n.col-xs-offset-10 {\n  margin-left: 83.33333333%;\n}\n.col-xs-offset-9 {\n  margin-left: 75%;\n}\n.col-xs-offset-8 {\n  margin-left: 66.66666667%;\n}\n.col-xs-offset-7 {\n  margin-left: 58.33333333%;\n}\n.col-xs-offset-6 {\n  margin-left: 50%;\n}\n.col-xs-offset-5 {\n  margin-left: 41.66666667%;\n}\n.col-xs-offset-4 {\n  margin-left: 33.33333333%;\n}\n.col-xs-offset-3 {\n  margin-left: 25%;\n}\n.col-xs-offset-2 {\n  margin-left: 16.66666667%;\n}\n.col-xs-offset-1 {\n  margin-left: 8.33333333%;\n}\n.col-xs-offset-0 {\n  margin-left: 0;\n}\n@media (min-width: 768px) {\n  .col-sm-1, .col-sm-2, .col-sm-3, .col-sm-4, .col-sm-5, .col-sm-6, .col-sm-7, .col-sm-8, .col-sm-9, .col-sm-10, .col-sm-11, .col-sm-12 {\n    float: left;\n  }\n  .col-sm-12 {\n    width: 100%;\n  }\n  .col-sm-11 {\n    width: 91.66666667%;\n  }\n  .col-sm-10 {\n    width: 83.33333333%;\n  }\n  .col-sm-9 {\n    width: 75%;\n  }\n  .col-sm-8 {\n    width: 66.66666667%;\n  }\n  .col-sm-7 {\n    width: 58.33333333%;\n  }\n  .col-sm-6 {\n    width: 50%;\n  }\n  .col-sm-5 {\n    width: 41.66666667%;\n  }\n  .col-sm-4 {\n    width: 33.33333333%;\n  }\n  .col-sm-3 {\n    width: 25%;\n  }\n  .col-sm-2 {\n    width: 16.66666667%;\n  }\n  .col-sm-1 {\n    width: 8.33333333%;\n  }\n  .col-sm-pull-12 {\n    right: 100%;\n  }\n  .col-sm-pull-11 {\n    right: 91.66666667%;\n  }\n  .col-sm-pull-10 {\n    right: 83.33333333%;\n  }\n  .col-sm-pull-9 {\n    right: 75%;\n  }\n  .col-sm-pull-8 {\n    right: 66.66666667%;\n  }\n  .col-sm-pull-7 {\n    right: 58.33333333%;\n  }\n  .col-sm-pull-6 {\n    right: 50%;\n  }\n  .col-sm-pull-5 {\n    right: 41.66666667%;\n  }\n  .col-sm-pull-4 {\n    right: 33.33333333%;\n  }\n  .col-sm-pull-3 {\n    right: 25%;\n  }\n  .col-sm-pull-2 {\n    right: 16.66666667%;\n  }\n  .col-sm-pull-1 {\n    right: 8.33333333%;\n  }\n  .col-sm-pull-0 {\n    right: auto;\n  }\n  .col-sm-push-12 {\n    left: 100%;\n  }\n  .col-sm-push-11 {\n    left: 91.66666667%;\n  }\n  .col-sm-push-10 {\n    left: 83.33333333%;\n  }\n  .col-sm-push-9 {\n    left: 75%;\n  }\n  .col-sm-push-8 {\n    left: 66.66666667%;\n  }\n  .col-sm-push-7 {\n    left: 58.33333333%;\n  }\n  .col-sm-push-6 {\n    left: 50%;\n  }\n  .col-sm-push-5 {\n    left: 41.66666667%;\n  }\n  .col-sm-push-4 {\n    left: 33.33333333%;\n  }\n  .col-sm-push-3 {\n    left: 25%;\n  }\n  .col-sm-push-2 {\n    left: 16.66666667%;\n  }\n  .col-sm-push-1 {\n    left: 8.33333333%;\n  }\n  .col-sm-push-0 {\n    left: auto;\n  }\n  .col-sm-offset-12 {\n    margin-left: 100%;\n  }\n  .col-sm-offset-11 {\n    margin-left: 91.66666667%;\n  }\n  .col-sm-offset-10 {\n    margin-left: 83.33333333%;\n  }\n  .col-sm-offset-9 {\n    margin-left: 75%;\n  }\n  .col-sm-offset-8 {\n    margin-left: 66.66666667%;\n  }\n  .col-sm-offset-7 {\n    margin-left: 58.33333333%;\n  }\n  .col-sm-offset-6 {\n    margin-left: 50%;\n  }\n  .col-sm-offset-5 {\n    margin-left: 41.66666667%;\n  }\n  .col-sm-offset-4 {\n    margin-left: 33.33333333%;\n  }\n  .col-sm-offset-3 {\n    margin-left: 25%;\n  }\n  .col-sm-offset-2 {\n    margin-left: 16.66666667%;\n  }\n  .col-sm-offset-1 {\n    margin-left: 8.33333333%;\n  }\n  .col-sm-offset-0 {\n    margin-left: 0;\n  }\n}\n@media (min-width: 992px) {\n  .col-md-1, .col-md-2, .col-md-3, .col-md-4, .col-md-5, .col-md-6, .col-md-7, .col-md-8, .col-md-9, .col-md-10, .col-md-11, .col-md-12 {\n    float: left;\n  }\n  .col-md-12 {\n    width: 100%;\n  }\n  .col-md-11 {\n    width: 91.66666667%;\n  }\n  .col-md-10 {\n    width: 83.33333333%;\n  }\n  .col-md-9 {\n    width: 75%;\n  }\n  .col-md-8 {\n    width: 66.66666667%;\n  }\n  .col-md-7 {\n    width: 58.33333333%;\n  }\n  .col-md-6 {\n    width: 50%;\n  }\n  .col-md-5 {\n    width: 41.66666667%;\n  }\n  .col-md-4 {\n    width: 33.33333333%;\n  }\n  .col-md-3 {\n    width: 25%;\n  }\n  .col-md-2 {\n    width: 16.66666667%;\n  }\n  .col-md-1 {\n    width: 8.33333333%;\n  }\n  .col-md-pull-12 {\n    right: 100%;\n  }\n  .col-md-pull-11 {\n    right: 91.66666667%;\n  }\n  .col-md-pull-10 {\n    right: 83.33333333%;\n  }\n  .col-md-pull-9 {\n    right: 75%;\n  }\n  .col-md-pull-8 {\n    right: 66.66666667%;\n  }\n  .col-md-pull-7 {\n    right: 58.33333333%;\n  }\n  .col-md-pull-6 {\n    right: 50%;\n  }\n  .col-md-pull-5 {\n    right: 41.66666667%;\n  }\n  .col-md-pull-4 {\n    right: 33.33333333%;\n  }\n  .col-md-pull-3 {\n    right: 25%;\n  }\n  .col-md-pull-2 {\n    right: 16.66666667%;\n  }\n  .col-md-pull-1 {\n    right: 8.33333333%;\n  }\n  .col-md-pull-0 {\n    right: auto;\n  }\n  .col-md-push-12 {\n    left: 100%;\n  }\n  .col-md-push-11 {\n    left: 91.66666667%;\n  }\n  .col-md-push-10 {\n    left: 83.33333333%;\n  }\n  .col-md-push-9 {\n    left: 75%;\n  }\n  .col-md-push-8 {\n    left: 66.66666667%;\n  }\n  .col-md-push-7 {\n    left: 58.33333333%;\n  }\n  .col-md-push-6 {\n    left: 50%;\n  }\n  .col-md-push-5 {\n    left: 41.66666667%;\n  }\n  .col-md-push-4 {\n    left: 33.33333333%;\n  }\n  .col-md-push-3 {\n    left: 25%;\n  }\n  .col-md-push-2 {\n    left: 16.66666667%;\n  }\n  .col-md-push-1 {\n    left: 8.33333333%;\n  }\n  .col-md-push-0 {\n    left: auto;\n  }\n  .col-md-offset-12 {\n    margin-left: 100%;\n  }\n  .col-md-offset-11 {\n    margin-left: 91.66666667%;\n  }\n  .col-md-offset-10 {\n    margin-left: 83.33333333%;\n  }\n  .col-md-offset-9 {\n    margin-left: 75%;\n  }\n  .col-md-offset-8 {\n    margin-left: 66.66666667%;\n  }\n  .col-md-offset-7 {\n    margin-left: 58.33333333%;\n  }\n  .col-md-offset-6 {\n    margin-left: 50%;\n  }\n  .col-md-offset-5 {\n    margin-left: 41.66666667%;\n  }\n  .col-md-offset-4 {\n    margin-left: 33.33333333%;\n  }\n  .col-md-offset-3 {\n    margin-left: 25%;\n  }\n  .col-md-offset-2 {\n    margin-left: 16.66666667%;\n  }\n  .col-md-offset-1 {\n    margin-left: 8.33333333%;\n  }\n  .col-md-offset-0 {\n    margin-left: 0;\n  }\n}\n@media (min-width: 1200px) {\n  .col-lg-1, .col-lg-2, .col-lg-3, .col-lg-4, .col-lg-5, .col-lg-6, .col-lg-7, .col-lg-8, .col-lg-9, .col-lg-10, .col-lg-11, .col-lg-12 {\n    float: left;\n  }\n  .col-lg-12 {\n    width: 100%;\n  }\n  .col-lg-11 {\n    width: 91.66666667%;\n  }\n  .col-lg-10 {\n    width: 83.33333333%;\n  }\n  .col-lg-9 {\n    width: 75%;\n  }\n  .col-lg-8 {\n    width: 66.66666667%;\n  }\n  .col-lg-7 {\n    width: 58.33333333%;\n  }\n  .col-lg-6 {\n    width: 50%;\n  }\n  .col-lg-5 {\n    width: 41.66666667%;\n  }\n  .col-lg-4 {\n    width: 33.33333333%;\n  }\n  .col-lg-3 {\n    width: 25%;\n  }\n  .col-lg-2 {\n    width: 16.66666667%;\n  }\n  .col-lg-1 {\n    width: 8.33333333%;\n  }\n  .col-lg-pull-12 {\n    right: 100%;\n  }\n  .col-lg-pull-11 {\n    right: 91.66666667%;\n  }\n  .col-lg-pull-10 {\n    right: 83.33333333%;\n  }\n  .col-lg-pull-9 {\n    right: 75%;\n  }\n  .col-lg-pull-8 {\n    right: 66.66666667%;\n  }\n  .col-lg-pull-7 {\n    right: 58.33333333%;\n  }\n  .col-lg-pull-6 {\n    right: 50%;\n  }\n  .col-lg-pull-5 {\n    right: 41.66666667%;\n  }\n  .col-lg-pull-4 {\n    right: 33.33333333%;\n  }\n  .col-lg-pull-3 {\n    right: 25%;\n  }\n  .col-lg-pull-2 {\n    right: 16.66666667%;\n  }\n  .col-lg-pull-1 {\n    right: 8.33333333%;\n  }\n  .col-lg-pull-0 {\n    right: auto;\n  }\n  .col-lg-push-12 {\n    left: 100%;\n  }\n  .col-lg-push-11 {\n    left: 91.66666667%;\n  }\n  .col-lg-push-10 {\n    left: 83.33333333%;\n  }\n  .col-lg-push-9 {\n    left: 75%;\n  }\n  .col-lg-push-8 {\n    left: 66.66666667%;\n  }\n  .col-lg-push-7 {\n    left: 58.33333333%;\n  }\n  .col-lg-push-6 {\n    left: 50%;\n  }\n  .col-lg-push-5 {\n    left: 41.66666667%;\n  }\n  .col-lg-push-4 {\n    left: 33.33333333%;\n  }\n  .col-lg-push-3 {\n    left: 25%;\n  }\n  .col-lg-push-2 {\n    left: 16.66666667%;\n  }\n  .col-lg-push-1 {\n    left: 8.33333333%;\n  }\n  .col-lg-push-0 {\n    left: auto;\n  }\n  .col-lg-offset-12 {\n    margin-left: 100%;\n  }\n  .col-lg-offset-11 {\n    margin-left: 91.66666667%;\n  }\n  .col-lg-offset-10 {\n    margin-left: 83.33333333%;\n  }\n  .col-lg-offset-9 {\n    margin-left: 75%;\n  }\n  .col-lg-offset-8 {\n    margin-left: 66.66666667%;\n  }\n  .col-lg-offset-7 {\n    margin-left: 58.33333333%;\n  }\n  .col-lg-offset-6 {\n    margin-left: 50%;\n  }\n  .col-lg-offset-5 {\n    margin-left: 41.66666667%;\n  }\n  .col-lg-offset-4 {\n    margin-left: 33.33333333%;\n  }\n  .col-lg-offset-3 {\n    margin-left: 25%;\n  }\n  .col-lg-offset-2 {\n    margin-left: 16.66666667%;\n  }\n  .col-lg-offset-1 {\n    margin-left: 8.33333333%;\n  }\n  .col-lg-offset-0 {\n    margin-left: 0;\n  }\n}\ntable {\n  background-color: transparent;\n}\nth {\n  text-align: left;\n}\n.table {\n  width: 100%;\n  max-width: 100%;\n  margin-bottom: 20px;\n}\n.table > thead > tr > th,\n.table > tbody > tr > th,\n.table > tfoot > tr > th,\n.table > thead > tr > td,\n.table > tbody > tr > td,\n.table > tfoot > tr > td {\n  padding: 8px;\n  line-height: 1.42857143;\n  vertical-align: top;\n  border-top: 1px solid #ddd;\n}\n.table > thead > tr > th {\n  vertical-align: bottom;\n  border-bottom: 2px solid #ddd;\n}\n.table > caption + thead > tr:first-child > th,\n.table > colgroup + thead > tr:first-child > th,\n.table > thead:first-child > tr:first-child > th,\n.table > caption + thead > tr:first-child > td,\n.table > colgroup + thead > tr:first-child > td,\n.table > thead:first-child > tr:first-child > td {\n  border-top: 0;\n}\n.table > tbody + tbody {\n  border-top: 2px solid #ddd;\n}\n.table .table {\n  background-color: #fff;\n}\n.table-condensed > thead > tr > th,\n.table-condensed > tbody > tr > th,\n.table-condensed > tfoot > tr > th,\n.table-condensed > thead > tr > td,\n.table-condensed > tbody > tr > td,\n.table-condensed > tfoot > tr > td {\n  padding: 5px;\n}\n.table-bordered {\n  border: 1px solid #ddd;\n}\n.table-bordered > thead > tr > th,\n.table-bordered > tbody > tr > th,\n.table-bordered > tfoot > tr > th,\n.table-bordered > thead > tr > td,\n.table-bordered > tbody > tr > td,\n.table-bordered > tfoot > tr > td {\n  border: 1px solid #ddd;\n}\n.table-bordered > thead > tr > th,\n.table-bordered > thead > tr > td {\n  border-bottom-width: 2px;\n}\n.table-striped > tbody > tr:nth-child(odd) > td,\n.table-striped > tbody > tr:nth-child(odd) > th {\n  background-color: #f9f9f9;\n}\n.table-hover > tbody > tr:hover > td,\n.table-hover > tbody > tr:hover > th {\n  background-color: #f5f5f5;\n}\ntable col[class*=\"col-\"] {\n  position: static;\n  display: table-column;\n  float: none;\n}\ntable td[class*=\"col-\"],\ntable th[class*=\"col-\"] {\n  position: static;\n  display: table-cell;\n  float: none;\n}\n.table > thead > tr > td.active,\n.table > tbody > tr > td.active,\n.table > tfoot > tr > td.active,\n.table > thead > tr > th.active,\n.table > tbody > tr > th.active,\n.table > tfoot > tr > th.active,\n.table > thead > tr.active > td,\n.table > tbody > tr.active > td,\n.table > tfoot > tr.active > td,\n.table > thead > tr.active > th,\n.table > tbody > tr.active > th,\n.table > tfoot > tr.active > th {\n  background-color: #f5f5f5;\n}\n.table-hover > tbody > tr > td.active:hover,\n.table-hover > tbody > tr > th.active:hover,\n.table-hover > tbody > tr.active:hover > td,\n.table-hover > tbody > tr:hover > .active,\n.table-hover > tbody > tr.active:hover > th {\n  background-color: #e8e8e8;\n}\n.table > thead > tr > td.success,\n.table > tbody > tr > td.success,\n.table > tfoot > tr > td.success,\n.table > thead > tr > th.success,\n.table > tbody > tr > th.success,\n.table > tfoot > tr > th.success,\n.table > thead > tr.success > td,\n.table > tbody > tr.success > td,\n.table > tfoot > tr.success > td,\n.table > thead > tr.success > th,\n.table > tbody > tr.success > th,\n.table > tfoot > tr.success > th {\n  background-color: #dff0d8;\n}\n.table-hover > tbody > tr > td.success:hover,\n.table-hover > tbody > tr > th.success:hover,\n.table-hover > tbody > tr.success:hover > td,\n.table-hover > tbody > tr:hover > .success,\n.table-hover > tbody > tr.success:hover > th {\n  background-color: #d0e9c6;\n}\n.table > thead > tr > td.info,\n.table > tbody > tr > td.info,\n.table > tfoot > tr > td.info,\n.table > thead > tr > th.info,\n.table > tbody > tr > th.info,\n.table > tfoot > tr > th.info,\n.table > thead > tr.info > td,\n.table > tbody > tr.info > td,\n.table > tfoot > tr.info > td,\n.table > thead > tr.info > th,\n.table > tbody > tr.info > th,\n.table > tfoot > tr.info > th {\n  background-color: #d9edf7;\n}\n.table-hover > tbody > tr > td.info:hover,\n.table-hover > tbody > tr > th.info:hover,\n.table-hover > tbody > tr.info:hover > td,\n.table-hover > tbody > tr:hover > .info,\n.table-hover > tbody > tr.info:hover > th {\n  background-color: #c4e3f3;\n}\n.table > thead > tr > td.warning,\n.table > tbody > tr > td.warning,\n.table > tfoot > tr > td.warning,\n.table > thead > tr > th.warning,\n.table > tbody > tr > th.warning,\n.table > tfoot > tr > th.warning,\n.table > thead > tr.warning > td,\n.table > tbody > tr.warning > td,\n.table > tfoot > tr.warning > td,\n.table > thead > tr.warning > th,\n.table > tbody > tr.warning > th,\n.table > tfoot > tr.warning > th {\n  background-color: #fcf8e3;\n}\n.table-hover > tbody > tr > td.warning:hover,\n.table-hover > tbody > tr > th.warning:hover,\n.table-hover > tbody > tr.warning:hover > td,\n.table-hover > tbody > tr:hover > .warning,\n.table-hover > tbody > tr.warning:hover > th {\n  background-color: #faf2cc;\n}\n.table > thead > tr > td.danger,\n.table > tbody > tr > td.danger,\n.table > tfoot > tr > td.danger,\n.table > thead > tr > th.danger,\n.table > tbody > tr > th.danger,\n.table > tfoot > tr > th.danger,\n.table > thead > tr.danger > td,\n.table > tbody > tr.danger > td,\n.table > tfoot > tr.danger > td,\n.table > thead > tr.danger > th,\n.table > tbody > tr.danger > th,\n.table > tfoot > tr.danger > th {\n  background-color: #f2dede;\n}\n.table-hover > tbody > tr > td.danger:hover,\n.table-hover > tbody > tr > th.danger:hover,\n.table-hover > tbody > tr.danger:hover > td,\n.table-hover > tbody > tr:hover > .danger,\n.table-hover > tbody > tr.danger:hover > th {\n  background-color: #ebcccc;\n}\n@media screen and (max-width: 767px) {\n  .table-responsive {\n    width: 100%;\n    margin-bottom: 15px;\n    overflow-x: auto;\n    overflow-y: hidden;\n    -webkit-overflow-scrolling: touch;\n    -ms-overflow-style: -ms-autohiding-scrollbar;\n    border: 1px solid #ddd;\n  }\n  .table-responsive > .table {\n    margin-bottom: 0;\n  }\n  .table-responsive > .table > thead > tr > th,\n  .table-responsive > .table > tbody > tr > th,\n  .table-responsive > .table > tfoot > tr > th,\n  .table-responsive > .table > thead > tr > td,\n  .table-responsive > .table > tbody > tr > td,\n  .table-responsive > .table > tfoot > tr > td {\n    white-space: nowrap;\n  }\n  .table-responsive > .table-bordered {\n    border: 0;\n  }\n  .table-responsive > .table-bordered > thead > tr > th:first-child,\n  .table-responsive > .table-bordered > tbody > tr > th:first-child,\n  .table-responsive > .table-bordered > tfoot > tr > th:first-child,\n  .table-responsive > .table-bordered > thead > tr > td:first-child,\n  .table-responsive > .table-bordered > tbody > tr > td:first-child,\n  .table-responsive > .table-bordered > tfoot > tr > td:first-child {\n    border-left: 0;\n  }\n  .table-responsive > .table-bordered > thead > tr > th:last-child,\n  .table-responsive > .table-bordered > tbody > tr > th:last-child,\n  .table-responsive > .table-bordered > tfoot > tr > th:last-child,\n  .table-responsive > .table-bordered > thead > tr > td:last-child,\n  .table-responsive > .table-bordered > tbody > tr > td:last-child,\n  .table-responsive > .table-bordered > tfoot > tr > td:last-child {\n    border-right: 0;\n  }\n  .table-responsive > .table-bordered > tbody > tr:last-child > th,\n  .table-responsive > .table-bordered > tfoot > tr:last-child > th,\n  .table-responsive > .table-bordered > tbody > tr:last-child > td,\n  .table-responsive > .table-bordered > tfoot > tr:last-child > td {\n    border-bottom: 0;\n  }\n}\nfieldset {\n  min-width: 0;\n  padding: 0;\n  margin: 0;\n  border: 0;\n}\nlegend {\n  display: block;\n  width: 100%;\n  padding: 0;\n  margin-bottom: 20px;\n  font-size: 21px;\n  line-height: inherit;\n  color: #333;\n  border: 0;\n  border-bottom: 1px solid #e5e5e5;\n}\nlabel {\n  display: inline-block;\n  max-width: 100%;\n  margin-bottom: 5px;\n  font-weight: bold;\n}\ninput[type=\"search\"] {\n  -webkit-box-sizing: border-box;\n     -moz-box-sizing: border-box;\n          box-sizing: border-box;\n}\ninput[type=\"radio\"],\ninput[type=\"checkbox\"] {\n  margin: 4px 0 0;\n  margin-top: 1px \\9;\n  line-height: normal;\n}\ninput[type=\"file\"] {\n  display: block;\n}\ninput[type=\"range\"] {\n  display: block;\n  width: 100%;\n}\nselect[multiple],\nselect[size] {\n  height: auto;\n}\ninput[type=\"file\"]:focus,\ninput[type=\"radio\"]:focus,\ninput[type=\"checkbox\"]:focus {\n  outline: thin dotted;\n  outline: 5px auto -webkit-focus-ring-color;\n  outline-offset: -2px;\n}\noutput {\n  display: block;\n  padding-top: 7px;\n  font-size: 14px;\n  line-height: 1.42857143;\n  color: #555;\n}\n.form-control {\n  display: block;\n  width: 100%;\n  height: 34px;\n  padding: 6px 12px;\n  font-size: 14px;\n  line-height: 1.42857143;\n  color: #555;\n  background-color: #fff;\n  background-image: none;\n  border: 1px solid #ccc;\n  border-radius: 4px;\n  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);\n          box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);\n  -webkit-transition: border-color ease-in-out .15s, -webkit-box-shadow ease-in-out .15s;\n       -o-transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;\n          transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;\n}\n.form-control:focus {\n  border-color: #66afe9;\n  outline: 0;\n  -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102, 175, 233, .6);\n          box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102, 175, 233, .6);\n}\n.form-control::-moz-placeholder {\n  color: #777;\n  opacity: 1;\n}\n.form-control:-ms-input-placeholder {\n  color: #777;\n}\n.form-control::-webkit-input-placeholder {\n  color: #777;\n}\n.form-control[disabled],\n.form-control[readonly],\nfieldset[disabled] .form-control {\n  cursor: not-allowed;\n  background-color: #eee;\n  opacity: 1;\n}\ntextarea.form-control {\n  height: auto;\n}\ninput[type=\"search\"] {\n  -webkit-appearance: none;\n}\ninput[type=\"date\"],\ninput[type=\"time\"],\ninput[type=\"datetime-local\"],\ninput[type=\"month\"] {\n  line-height: 34px;\n  line-height: 1.42857143 \\0;\n}\ninput[type=\"date\"].input-sm,\ninput[type=\"time\"].input-sm,\ninput[type=\"datetime-local\"].input-sm,\ninput[type=\"month\"].input-sm {\n  line-height: 30px;\n}\ninput[type=\"date\"].input-lg,\ninput[type=\"time\"].input-lg,\ninput[type=\"datetime-local\"].input-lg,\ninput[type=\"month\"].input-lg {\n  line-height: 46px;\n}\n.form-group {\n  margin-bottom: 15px;\n}\n.radio,\n.checkbox {\n  position: relative;\n  display: block;\n  min-height: 20px;\n  margin-top: 10px;\n  margin-bottom: 10px;\n}\n.radio label,\n.checkbox label {\n  padding-left: 20px;\n  margin-bottom: 0;\n  font-weight: normal;\n  cursor: pointer;\n}\n.radio input[type=\"radio\"],\n.radio-inline input[type=\"radio\"],\n.checkbox input[type=\"checkbox\"],\n.checkbox-inline input[type=\"checkbox\"] {\n  position: absolute;\n  margin-top: 4px \\9;\n  margin-left: -20px;\n}\n.radio + .radio,\n.checkbox + .checkbox {\n  margin-top: -5px;\n}\n.radio-inline,\n.checkbox-inline {\n  display: inline-block;\n  padding-left: 20px;\n  margin-bottom: 0;\n  font-weight: normal;\n  vertical-align: middle;\n  cursor: pointer;\n}\n.radio-inline + .radio-inline,\n.checkbox-inline + .checkbox-inline {\n  margin-top: 0;\n  margin-left: 10px;\n}\ninput[type=\"radio\"][disabled],\ninput[type=\"checkbox\"][disabled],\ninput[type=\"radio\"].disabled,\ninput[type=\"checkbox\"].disabled,\nfieldset[disabled] input[type=\"radio\"],\nfieldset[disabled] input[type=\"checkbox\"] {\n  cursor: not-allowed;\n}\n.radio-inline.disabled,\n.checkbox-inline.disabled,\nfieldset[disabled] .radio-inline,\nfieldset[disabled] .checkbox-inline {\n  cursor: not-allowed;\n}\n.radio.disabled label,\n.checkbox.disabled label,\nfieldset[disabled] .radio label,\nfieldset[disabled] .checkbox label {\n  cursor: not-allowed;\n}\n.form-control-static {\n  padding-top: 7px;\n  padding-bottom: 7px;\n  margin-bottom: 0;\n}\n.form-control-static.input-lg,\n.form-control-static.input-sm {\n  padding-right: 0;\n  padding-left: 0;\n}\n.input-sm,\n.form-horizontal .form-group-sm .form-control {\n  height: 30px;\n  padding: 5px 10px;\n  font-size: 12px;\n  line-height: 1.5;\n  border-radius: 3px;\n}\nselect.input-sm {\n  height: 30px;\n  line-height: 30px;\n}\ntextarea.input-sm,\nselect[multiple].input-sm {\n  height: auto;\n}\n.input-lg,\n.form-horizontal .form-group-lg .form-control {\n  height: 46px;\n  padding: 10px 16px;\n  font-size: 18px;\n  line-height: 1.33;\n  border-radius: 6px;\n}\nselect.input-lg {\n  height: 46px;\n  line-height: 46px;\n}\ntextarea.input-lg,\nselect[multiple].input-lg {\n  height: auto;\n}\n.has-feedback {\n  position: relative;\n}\n.has-feedback .form-control {\n  padding-right: 42.5px;\n}\n.form-control-feedback {\n  position: absolute;\n  top: 25px;\n  right: 0;\n  z-index: 2;\n  display: block;\n  width: 34px;\n  height: 34px;\n  line-height: 34px;\n  text-align: center;\n}\n.input-lg + .form-control-feedback {\n  width: 46px;\n  height: 46px;\n  line-height: 46px;\n}\n.input-sm + .form-control-feedback {\n  width: 30px;\n  height: 30px;\n  line-height: 30px;\n}\n.has-success .help-block,\n.has-success .control-label,\n.has-success .radio,\n.has-success .checkbox,\n.has-success .radio-inline,\n.has-success .checkbox-inline {\n  color: #3c763d;\n}\n.has-success .form-control {\n  border-color: #3c763d;\n  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);\n          box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);\n}\n.has-success .form-control:focus {\n  border-color: #2b542c;\n  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 6px #67b168;\n          box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 6px #67b168;\n}\n.has-success .input-group-addon {\n  color: #3c763d;\n  background-color: #dff0d8;\n  border-color: #3c763d;\n}\n.has-success .form-control-feedback {\n  color: #3c763d;\n}\n.has-warning .help-block,\n.has-warning .control-label,\n.has-warning .radio,\n.has-warning .checkbox,\n.has-warning .radio-inline,\n.has-warning .checkbox-inline {\n  color: #8a6d3b;\n}\n.has-warning .form-control {\n  border-color: #8a6d3b;\n  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);\n          box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);\n}\n.has-warning .form-control:focus {\n  border-color: #66512c;\n  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 6px #c0a16b;\n          box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 6px #c0a16b;\n}\n.has-warning .input-group-addon {\n  color: #8a6d3b;\n  background-color: #fcf8e3;\n  border-color: #8a6d3b;\n}\n.has-warning .form-control-feedback {\n  color: #8a6d3b;\n}\n.has-error .help-block,\n.has-error .control-label,\n.has-error .radio,\n.has-error .checkbox,\n.has-error .radio-inline,\n.has-error .checkbox-inline {\n  color: #a94442;\n}\n.has-error .form-control {\n  border-color: #a94442;\n  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);\n          box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);\n}\n.has-error .form-control:focus {\n  border-color: #843534;\n  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 6px #ce8483;\n          box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 6px #ce8483;\n}\n.has-error .input-group-addon {\n  color: #a94442;\n  background-color: #f2dede;\n  border-color: #a94442;\n}\n.has-error .form-control-feedback {\n  color: #a94442;\n}\n.has-feedback label.sr-only ~ .form-control-feedback {\n  top: 0;\n}\n.help-block {\n  display: block;\n  margin-top: 5px;\n  margin-bottom: 10px;\n  color: #737373;\n}\n@media (min-width: 768px) {\n  .form-inline .form-group {\n    display: inline-block;\n    margin-bottom: 0;\n    vertical-align: middle;\n  }\n  .form-inline .form-control {\n    display: inline-block;\n    width: auto;\n    vertical-align: middle;\n  }\n  .form-inline .input-group {\n    display: inline-table;\n    vertical-align: middle;\n  }\n  .form-inline .input-group .input-group-addon,\n  .form-inline .input-group .input-group-btn,\n  .form-inline .input-group .form-control {\n    width: auto;\n  }\n  .form-inline .input-group > .form-control {\n    width: 100%;\n  }\n  .form-inline .control-label {\n    margin-bottom: 0;\n    vertical-align: middle;\n  }\n  .form-inline .radio,\n  .form-inline .checkbox {\n    display: inline-block;\n    margin-top: 0;\n    margin-bottom: 0;\n    vertical-align: middle;\n  }\n  .form-inline .radio label,\n  .form-inline .checkbox label {\n    padding-left: 0;\n  }\n  .form-inline .radio input[type=\"radio\"],\n  .form-inline .checkbox input[type=\"checkbox\"] {\n    position: relative;\n    margin-left: 0;\n  }\n  .form-inline .has-feedback .form-control-feedback {\n    top: 0;\n  }\n}\n.form-horizontal .radio,\n.form-horizontal .checkbox,\n.form-horizontal .radio-inline,\n.form-horizontal .checkbox-inline {\n  padding-top: 7px;\n  margin-top: 0;\n  margin-bottom: 0;\n}\n.form-horizontal .radio,\n.form-horizontal .checkbox {\n  min-height: 27px;\n}\n.form-horizontal .form-group {\n  margin-right: -15px;\n  margin-left: -15px;\n}\n@media (min-width: 768px) {\n  .form-horizontal .control-label {\n    padding-top: 7px;\n    margin-bottom: 0;\n    text-align: right;\n  }\n}\n.form-horizontal .has-feedback .form-control-feedback {\n  top: 0;\n  right: 15px;\n}\n@media (min-width: 768px) {\n  .form-horizontal .form-group-lg .control-label {\n    padding-top: 14.3px;\n  }\n}\n@media (min-width: 768px) {\n  .form-horizontal .form-group-sm .control-label {\n    padding-top: 6px;\n  }\n}\n.btn {\n  display: inline-block;\n  padding: 6px 12px;\n  margin-bottom: 0;\n  font-size: 14px;\n  font-weight: normal;\n  line-height: 1.42857143;\n  text-align: center;\n  white-space: nowrap;\n  vertical-align: middle;\n  cursor: pointer;\n  -webkit-user-select: none;\n     -moz-user-select: none;\n      -ms-user-select: none;\n          user-select: none;\n  background-image: none;\n  border: 1px solid transparent;\n  border-radius: 4px;\n}\n.btn:focus,\n.btn:active:focus,\n.btn.active:focus {\n  outline: thin dotted;\n  outline: 5px auto -webkit-focus-ring-color;\n  outline-offset: -2px;\n}\n.btn:hover,\n.btn:focus {\n  color: #333;\n  text-decoration: none;\n}\n.btn:active,\n.btn.active {\n  background-image: none;\n  outline: 0;\n  -webkit-box-shadow: inset 0 3px 5px rgba(0, 0, 0, .125);\n          box-shadow: inset 0 3px 5px rgba(0, 0, 0, .125);\n}\n.btn.disabled,\n.btn[disabled],\nfieldset[disabled] .btn {\n  pointer-events: none;\n  cursor: not-allowed;\n  filter: alpha(opacity=65);\n  -webkit-box-shadow: none;\n          box-shadow: none;\n  opacity: .65;\n}\n.btn-default {\n  color: #333;\n  background-color: #fff;\n  border-color: #ccc;\n}\n.btn-default:hover,\n.btn-default:focus,\n.btn-default:active,\n.btn-default.active,\n.open > .dropdown-toggle.btn-default {\n  color: #333;\n  background-color: #e6e6e6;\n  border-color: #adadad;\n}\n.btn-default:active,\n.btn-default.active,\n.open > .dropdown-toggle.btn-default {\n  background-image: none;\n}\n.btn-default.disabled,\n.btn-default[disabled],\nfieldset[disabled] .btn-default,\n.btn-default.disabled:hover,\n.btn-default[disabled]:hover,\nfieldset[disabled] .btn-default:hover,\n.btn-default.disabled:focus,\n.btn-default[disabled]:focus,\nfieldset[disabled] .btn-default:focus,\n.btn-default.disabled:active,\n.btn-default[disabled]:active,\nfieldset[disabled] .btn-default:active,\n.btn-default.disabled.active,\n.btn-default[disabled].active,\nfieldset[disabled] .btn-default.active {\n  background-color: #fff;\n  border-color: #ccc;\n}\n.btn-default .badge {\n  color: #fff;\n  background-color: #333;\n}\n.btn-primary {\n  color: #fff;\n  background-color: #428bca;\n  border-color: #357ebd;\n}\n.btn-primary:hover,\n.btn-primary:focus,\n.btn-primary:active,\n.btn-primary.active,\n.open > .dropdown-toggle.btn-primary {\n  color: #fff;\n  background-color: #3071a9;\n  border-color: #285e8e;\n}\n.btn-primary:active,\n.btn-primary.active,\n.open > .dropdown-toggle.btn-primary {\n  background-image: none;\n}\n.btn-primary.disabled,\n.btn-primary[disabled],\nfieldset[disabled] .btn-primary,\n.btn-primary.disabled:hover,\n.btn-primary[disabled]:hover,\nfieldset[disabled] .btn-primary:hover,\n.btn-primary.disabled:focus,\n.btn-primary[disabled]:focus,\nfieldset[disabled] .btn-primary:focus,\n.btn-primary.disabled:active,\n.btn-primary[disabled]:active,\nfieldset[disabled] .btn-primary:active,\n.btn-primary.disabled.active,\n.btn-primary[disabled].active,\nfieldset[disabled] .btn-primary.active {\n  background-color: #428bca;\n  border-color: #357ebd;\n}\n.btn-primary .badge {\n  color: #428bca;\n  background-color: #fff;\n}\n.btn-success {\n  color: #fff;\n  background-color: #5cb85c;\n  border-color: #4cae4c;\n}\n.btn-success:hover,\n.btn-success:focus,\n.btn-success:active,\n.btn-success.active,\n.open > .dropdown-toggle.btn-success {\n  color: #fff;\n  background-color: #449d44;\n  border-color: #398439;\n}\n.btn-success:active,\n.btn-success.active,\n.open > .dropdown-toggle.btn-success {\n  background-image: none;\n}\n.btn-success.disabled,\n.btn-success[disabled],\nfieldset[disabled] .btn-success,\n.btn-success.disabled:hover,\n.btn-success[disabled]:hover,\nfieldset[disabled] .btn-success:hover,\n.btn-success.disabled:focus,\n.btn-success[disabled]:focus,\nfieldset[disabled] .btn-success:focus,\n.btn-success.disabled:active,\n.btn-success[disabled]:active,\nfieldset[disabled] .btn-success:active,\n.btn-success.disabled.active,\n.btn-success[disabled].active,\nfieldset[disabled] .btn-success.active {\n  background-color: #5cb85c;\n  border-color: #4cae4c;\n}\n.btn-success .badge {\n  color: #5cb85c;\n  background-color: #fff;\n}\n.btn-info {\n  color: #fff;\n  background-color: #5bc0de;\n  border-color: #46b8da;\n}\n.btn-info:hover,\n.btn-info:focus,\n.btn-info:active,\n.btn-info.active,\n.open > .dropdown-toggle.btn-info {\n  color: #fff;\n  background-color: #31b0d5;\n  border-color: #269abc;\n}\n.btn-info:active,\n.btn-info.active,\n.open > .dropdown-toggle.btn-info {\n  background-image: none;\n}\n.btn-info.disabled,\n.btn-info[disabled],\nfieldset[disabled] .btn-info,\n.btn-info.disabled:hover,\n.btn-info[disabled]:hover,\nfieldset[disabled] .btn-info:hover,\n.btn-info.disabled:focus,\n.btn-info[disabled]:focus,\nfieldset[disabled] .btn-info:focus,\n.btn-info.disabled:active,\n.btn-info[disabled]:active,\nfieldset[disabled] .btn-info:active,\n.btn-info.disabled.active,\n.btn-info[disabled].active,\nfieldset[disabled] .btn-info.active {\n  background-color: #5bc0de;\n  border-color: #46b8da;\n}\n.btn-info .badge {\n  color: #5bc0de;\n  background-color: #fff;\n}\n.btn-warning {\n  color: #fff;\n  background-color: #f0ad4e;\n  border-color: #eea236;\n}\n.btn-warning:hover,\n.btn-warning:focus,\n.btn-warning:active,\n.btn-warning.active,\n.open > .dropdown-toggle.btn-warning {\n  color: #fff;\n  background-color: #ec971f;\n  border-color: #d58512;\n}\n.btn-warning:active,\n.btn-warning.active,\n.open > .dropdown-toggle.btn-warning {\n  background-image: none;\n}\n.btn-warning.disabled,\n.btn-warning[disabled],\nfieldset[disabled] .btn-warning,\n.btn-warning.disabled:hover,\n.btn-warning[disabled]:hover,\nfieldset[disabled] .btn-warning:hover,\n.btn-warning.disabled:focus,\n.btn-warning[disabled]:focus,\nfieldset[disabled] .btn-warning:focus,\n.btn-warning.disabled:active,\n.btn-warning[disabled]:active,\nfieldset[disabled] .btn-warning:active,\n.btn-warning.disabled.active,\n.btn-warning[disabled].active,\nfieldset[disabled] .btn-warning.active {\n  background-color: #f0ad4e;\n  border-color: #eea236;\n}\n.btn-warning .badge {\n  color: #f0ad4e;\n  background-color: #fff;\n}\n.btn-danger {\n  color: #fff;\n  background-color: #d9534f;\n  border-color: #d43f3a;\n}\n.btn-danger:hover,\n.btn-danger:focus,\n.btn-danger:active,\n.btn-danger.active,\n.open > .dropdown-toggle.btn-danger {\n  color: #fff;\n  background-color: #c9302c;\n  border-color: #ac2925;\n}\n.btn-danger:active,\n.btn-danger.active,\n.open > .dropdown-toggle.btn-danger {\n  background-image: none;\n}\n.btn-danger.disabled,\n.btn-danger[disabled],\nfieldset[disabled] .btn-danger,\n.btn-danger.disabled:hover,\n.btn-danger[disabled]:hover,\nfieldset[disabled] .btn-danger:hover,\n.btn-danger.disabled:focus,\n.btn-danger[disabled]:focus,\nfieldset[disabled] .btn-danger:focus,\n.btn-danger.disabled:active,\n.btn-danger[disabled]:active,\nfieldset[disabled] .btn-danger:active,\n.btn-danger.disabled.active,\n.btn-danger[disabled].active,\nfieldset[disabled] .btn-danger.active {\n  background-color: #d9534f;\n  border-color: #d43f3a;\n}\n.btn-danger .badge {\n  color: #d9534f;\n  background-color: #fff;\n}\n.btn-link {\n  font-weight: normal;\n  color: #428bca;\n  cursor: pointer;\n  border-radius: 0;\n}\n.btn-link,\n.btn-link:active,\n.btn-link[disabled],\nfieldset[disabled] .btn-link {\n  background-color: transparent;\n  -webkit-box-shadow: none;\n          box-shadow: none;\n}\n.btn-link,\n.btn-link:hover,\n.btn-link:focus,\n.btn-link:active {\n  border-color: transparent;\n}\n.btn-link:hover,\n.btn-link:focus {\n  color: #2a6496;\n  text-decoration: underline;\n  background-color: transparent;\n}\n.btn-link[disabled]:hover,\nfieldset[disabled] .btn-link:hover,\n.btn-link[disabled]:focus,\nfieldset[disabled] .btn-link:focus {\n  color: #777;\n  text-decoration: none;\n}\n.btn-lg,\n.btn-group-lg > .btn {\n  padding: 10px 16px;\n  font-size: 18px;\n  line-height: 1.33;\n  border-radius: 6px;\n}\n.btn-sm,\n.btn-group-sm > .btn {\n  padding: 5px 10px;\n  font-size: 12px;\n  line-height: 1.5;\n  border-radius: 3px;\n}\n.btn-xs,\n.btn-group-xs > .btn {\n  padding: 1px 5px;\n  font-size: 12px;\n  line-height: 1.5;\n  border-radius: 3px;\n}\n.btn-block {\n  display: block;\n  width: 100%;\n}\n.btn-block + .btn-block {\n  margin-top: 5px;\n}\ninput[type=\"submit\"].btn-block,\ninput[type=\"reset\"].btn-block,\ninput[type=\"button\"].btn-block {\n  width: 100%;\n}\n.fade {\n  opacity: 0;\n  -webkit-transition: opacity .15s linear;\n       -o-transition: opacity .15s linear;\n          transition: opacity .15s linear;\n}\n.fade.in {\n  opacity: 1;\n}\n.collapse {\n  display: none;\n}\n.collapse.in {\n  display: block;\n}\ntr.collapse.in {\n  display: table-row;\n}\ntbody.collapse.in {\n  display: table-row-group;\n}\n.collapsing {\n  position: relative;\n  height: 0;\n  overflow: hidden;\n  -webkit-transition: height .35s ease;\n       -o-transition: height .35s ease;\n          transition: height .35s ease;\n}\n.caret {\n  display: inline-block;\n  width: 0;\n  height: 0;\n  margin-left: 2px;\n  vertical-align: middle;\n  border-top: 4px solid;\n  border-right: 4px solid transparent;\n  border-left: 4px solid transparent;\n}\n.dropdown {\n  position: relative;\n}\n.dropdown-toggle:focus {\n  outline: 0;\n}\n.dropdown-menu {\n  position: absolute;\n  top: 100%;\n  left: 0;\n  z-index: 1000;\n  display: none;\n  float: left;\n  min-width: 160px;\n  padding: 5px 0;\n  margin: 2px 0 0;\n  font-size: 14px;\n  text-align: left;\n  list-style: none;\n  background-color: #fff;\n  -webkit-background-clip: padding-box;\n          background-clip: padding-box;\n  border: 1px solid #ccc;\n  border: 1px solid rgba(0, 0, 0, .15);\n  border-radius: 4px;\n  -webkit-box-shadow: 0 6px 12px rgba(0, 0, 0, .175);\n          box-shadow: 0 6px 12px rgba(0, 0, 0, .175);\n}\n.dropdown-menu.pull-right {\n  right: 0;\n  left: auto;\n}\n.dropdown-menu .divider {\n  height: 1px;\n  margin: 9px 0;\n  overflow: hidden;\n  background-color: #e5e5e5;\n}\n.dropdown-menu > li > a {\n  display: block;\n  padding: 3px 20px;\n  clear: both;\n  font-weight: normal;\n  line-height: 1.42857143;\n  color: #333;\n  white-space: nowrap;\n}\n.dropdown-menu > li > a:hover,\n.dropdown-menu > li > a:focus {\n  color: #262626;\n  text-decoration: none;\n  background-color: #f5f5f5;\n}\n.dropdown-menu > .active > a,\n.dropdown-menu > .active > a:hover,\n.dropdown-menu > .active > a:focus {\n  color: #fff;\n  text-decoration: none;\n  background-color: #428bca;\n  outline: 0;\n}\n.dropdown-menu > .disabled > a,\n.dropdown-menu > .disabled > a:hover,\n.dropdown-menu > .disabled > a:focus {\n  color: #777;\n}\n.dropdown-menu > .disabled > a:hover,\n.dropdown-menu > .disabled > a:focus {\n  text-decoration: none;\n  cursor: not-allowed;\n  background-color: transparent;\n  background-image: none;\n  filter: progid:DXImageTransform.Microsoft.gradient(enabled = false);\n}\n.open > .dropdown-menu {\n  display: block;\n}\n.open > a {\n  outline: 0;\n}\n.dropdown-menu-right {\n  right: 0;\n  left: auto;\n}\n.dropdown-menu-left {\n  right: auto;\n  left: 0;\n}\n.dropdown-header {\n  display: block;\n  padding: 3px 20px;\n  font-size: 12px;\n  line-height: 1.42857143;\n  color: #777;\n  white-space: nowrap;\n}\n.dropdown-backdrop {\n  position: fixed;\n  top: 0;\n  right: 0;\n  bottom: 0;\n  left: 0;\n  z-index: 990;\n}\n.pull-right > .dropdown-menu {\n  right: 0;\n  left: auto;\n}\n.dropup .caret,\n.navbar-fixed-bottom .dropdown .caret {\n  content: \"\";\n  border-top: 0;\n  border-bottom: 4px solid;\n}\n.dropup .dropdown-menu,\n.navbar-fixed-bottom .dropdown .dropdown-menu {\n  top: auto;\n  bottom: 100%;\n  margin-bottom: 1px;\n}\n@media (min-width: 768px) {\n  .navbar-right .dropdown-menu {\n    right: 0;\n    left: auto;\n  }\n  .navbar-right .dropdown-menu-left {\n    right: auto;\n    left: 0;\n  }\n}\n.btn-group,\n.btn-group-vertical {\n  position: relative;\n  display: inline-block;\n  vertical-align: middle;\n}\n.btn-group > .btn,\n.btn-group-vertical > .btn {\n  position: relative;\n  float: left;\n}\n.btn-group > .btn:hover,\n.btn-group-vertical > .btn:hover,\n.btn-group > .btn:focus,\n.btn-group-vertical > .btn:focus,\n.btn-group > .btn:active,\n.btn-group-vertical > .btn:active,\n.btn-group > .btn.active,\n.btn-group-vertical > .btn.active {\n  z-index: 2;\n}\n.btn-group > .btn:focus,\n.btn-group-vertical > .btn:focus {\n  outline: 0;\n}\n.btn-group .btn + .btn,\n.btn-group .btn + .btn-group,\n.btn-group .btn-group + .btn,\n.btn-group .btn-group + .btn-group {\n  margin-left: -1px;\n}\n.btn-toolbar {\n  margin-left: -5px;\n}\n.btn-toolbar .btn-group,\n.btn-toolbar .input-group {\n  float: left;\n}\n.btn-toolbar > .btn,\n.btn-toolbar > .btn-group,\n.btn-toolbar > .input-group {\n  margin-left: 5px;\n}\n.btn-group > .btn:not(:first-child):not(:last-child):not(.dropdown-toggle) {\n  border-radius: 0;\n}\n.btn-group > .btn:first-child {\n  margin-left: 0;\n}\n.btn-group > .btn:first-child:not(:last-child):not(.dropdown-toggle) {\n  border-top-right-radius: 0;\n  border-bottom-right-radius: 0;\n}\n.btn-group > .btn:last-child:not(:first-child),\n.btn-group > .dropdown-toggle:not(:first-child) {\n  border-top-left-radius: 0;\n  border-bottom-left-radius: 0;\n}\n.btn-group > .btn-group {\n  float: left;\n}\n.btn-group > .btn-group:not(:first-child):not(:last-child) > .btn {\n  border-radius: 0;\n}\n.btn-group > .btn-group:first-child > .btn:last-child,\n.btn-group > .btn-group:first-child > .dropdown-toggle {\n  border-top-right-radius: 0;\n  border-bottom-right-radius: 0;\n}\n.btn-group > .btn-group:last-child > .btn:first-child {\n  border-top-left-radius: 0;\n  border-bottom-left-radius: 0;\n}\n.btn-group .dropdown-toggle:active,\n.btn-group.open .dropdown-toggle {\n  outline: 0;\n}\n.btn-group > .btn + .dropdown-toggle {\n  padding-right: 8px;\n  padding-left: 8px;\n}\n.btn-group > .btn-lg + .dropdown-toggle {\n  padding-right: 12px;\n  padding-left: 12px;\n}\n.btn-group.open .dropdown-toggle {\n  -webkit-box-shadow: inset 0 3px 5px rgba(0, 0, 0, .125);\n          box-shadow: inset 0 3px 5px rgba(0, 0, 0, .125);\n}\n.btn-group.open .dropdown-toggle.btn-link {\n  -webkit-box-shadow: none;\n          box-shadow: none;\n}\n.btn .caret {\n  margin-left: 0;\n}\n.btn-lg .caret {\n  border-width: 5px 5px 0;\n  border-bottom-width: 0;\n}\n.dropup .btn-lg .caret {\n  border-width: 0 5px 5px;\n}\n.btn-group-vertical > .btn,\n.btn-group-vertical > .btn-group,\n.btn-group-vertical > .btn-group > .btn {\n  display: block;\n  float: none;\n  width: 100%;\n  max-width: 100%;\n}\n.btn-group-vertical > .btn-group > .btn {\n  float: none;\n}\n.btn-group-vertical > .btn + .btn,\n.btn-group-vertical > .btn + .btn-group,\n.btn-group-vertical > .btn-group + .btn,\n.btn-group-vertical > .btn-group + .btn-group {\n  margin-top: -1px;\n  margin-left: 0;\n}\n.btn-group-vertical > .btn:not(:first-child):not(:last-child) {\n  border-radius: 0;\n}\n.btn-group-vertical > .btn:first-child:not(:last-child) {\n  border-top-right-radius: 4px;\n  border-bottom-right-radius: 0;\n  border-bottom-left-radius: 0;\n}\n.btn-group-vertical > .btn:last-child:not(:first-child) {\n  border-top-left-radius: 0;\n  border-top-right-radius: 0;\n  border-bottom-left-radius: 4px;\n}\n.btn-group-vertical > .btn-group:not(:first-child):not(:last-child) > .btn {\n  border-radius: 0;\n}\n.btn-group-vertical > .btn-group:first-child:not(:last-child) > .btn:last-child,\n.btn-group-vertical > .btn-group:first-child:not(:last-child) > .dropdown-toggle {\n  border-bottom-right-radius: 0;\n  border-bottom-left-radius: 0;\n}\n.btn-group-vertical > .btn-group:last-child:not(:first-child) > .btn:first-child {\n  border-top-left-radius: 0;\n  border-top-right-radius: 0;\n}\n.btn-group-justified {\n  display: table;\n  width: 100%;\n  table-layout: fixed;\n  border-collapse: separate;\n}\n.btn-group-justified > .btn,\n.btn-group-justified > .btn-group {\n  display: table-cell;\n  float: none;\n  width: 1%;\n}\n.btn-group-justified > .btn-group .btn {\n  width: 100%;\n}\n.btn-group-justified > .btn-group .dropdown-menu {\n  left: auto;\n}\n[data-toggle=\"buttons\"] > .btn > input[type=\"radio\"],\n[data-toggle=\"buttons\"] > .btn > input[type=\"checkbox\"] {\n  position: absolute;\n  z-index: -1;\n  filter: alpha(opacity=0);\n  opacity: 0;\n}\n.input-group {\n  position: relative;\n  display: table;\n  border-collapse: separate;\n}\n.input-group[class*=\"col-\"] {\n  float: none;\n  padding-right: 0;\n  padding-left: 0;\n}\n.input-group .form-control {\n  position: relative;\n  z-index: 2;\n  float: left;\n  width: 100%;\n  margin-bottom: 0;\n}\n.input-group-lg > .form-control,\n.input-group-lg > .input-group-addon,\n.input-group-lg > .input-group-btn > .btn {\n  height: 46px;\n  padding: 10px 16px;\n  font-size: 18px;\n  line-height: 1.33;\n  border-radius: 6px;\n}\nselect.input-group-lg > .form-control,\nselect.input-group-lg > .input-group-addon,\nselect.input-group-lg > .input-group-btn > .btn {\n  height: 46px;\n  line-height: 46px;\n}\ntextarea.input-group-lg > .form-control,\ntextarea.input-group-lg > .input-group-addon,\ntextarea.input-group-lg > .input-group-btn > .btn,\nselect[multiple].input-group-lg > .form-control,\nselect[multiple].input-group-lg > .input-group-addon,\nselect[multiple].input-group-lg > .input-group-btn > .btn {\n  height: auto;\n}\n.input-group-sm > .form-control,\n.input-group-sm > .input-group-addon,\n.input-group-sm > .input-group-btn > .btn {\n  height: 30px;\n  padding: 5px 10px;\n  font-size: 12px;\n  line-height: 1.5;\n  border-radius: 3px;\n}\nselect.input-group-sm > .form-control,\nselect.input-group-sm > .input-group-addon,\nselect.input-group-sm > .input-group-btn > .btn {\n  height: 30px;\n  line-height: 30px;\n}\ntextarea.input-group-sm > .form-control,\ntextarea.input-group-sm > .input-group-addon,\ntextarea.input-group-sm > .input-group-btn > .btn,\nselect[multiple].input-group-sm > .form-control,\nselect[multiple].input-group-sm > .input-group-addon,\nselect[multiple].input-group-sm > .input-group-btn > .btn {\n  height: auto;\n}\n.input-group-addon,\n.input-group-btn,\n.input-group .form-control {\n  display: table-cell;\n}\n.input-group-addon:not(:first-child):not(:last-child),\n.input-group-btn:not(:first-child):not(:last-child),\n.input-group .form-control:not(:first-child):not(:last-child) {\n  border-radius: 0;\n}\n.input-group-addon,\n.input-group-btn {\n  width: 1%;\n  white-space: nowrap;\n  vertical-align: middle;\n}\n.input-group-addon {\n  padding: 6px 12px;\n  font-size: 14px;\n  font-weight: normal;\n  line-height: 1;\n  color: #555;\n  text-align: center;\n  background-color: #eee;\n  border: 1px solid #ccc;\n  border-radius: 4px;\n}\n.input-group-addon.input-sm {\n  padding: 5px 10px;\n  font-size: 12px;\n  border-radius: 3px;\n}\n.input-group-addon.input-lg {\n  padding: 10px 16px;\n  font-size: 18px;\n  border-radius: 6px;\n}\n.input-group-addon input[type=\"radio\"],\n.input-group-addon input[type=\"checkbox\"] {\n  margin-top: 0;\n}\n.input-group .form-control:first-child,\n.input-group-addon:first-child,\n.input-group-btn:first-child > .btn,\n.input-group-btn:first-child > .btn-group > .btn,\n.input-group-btn:first-child > .dropdown-toggle,\n.input-group-btn:last-child > .btn:not(:last-child):not(.dropdown-toggle),\n.input-group-btn:last-child > .btn-group:not(:last-child) > .btn {\n  border-top-right-radius: 0;\n  border-bottom-right-radius: 0;\n}\n.input-group-addon:first-child {\n  border-right: 0;\n}\n.input-group .form-control:last-child,\n.input-group-addon:last-child,\n.input-group-btn:last-child > .btn,\n.input-group-btn:last-child > .btn-group > .btn,\n.input-group-btn:last-child > .dropdown-toggle,\n.input-group-btn:first-child > .btn:not(:first-child),\n.input-group-btn:first-child > .btn-group:not(:first-child) > .btn {\n  border-top-left-radius: 0;\n  border-bottom-left-radius: 0;\n}\n.input-group-addon:last-child {\n  border-left: 0;\n}\n.input-group-btn {\n  position: relative;\n  font-size: 0;\n  white-space: nowrap;\n}\n.input-group-btn > .btn {\n  position: relative;\n}\n.input-group-btn > .btn + .btn {\n  margin-left: -1px;\n}\n.input-group-btn > .btn:hover,\n.input-group-btn > .btn:focus,\n.input-group-btn > .btn:active {\n  z-index: 2;\n}\n.input-group-btn:first-child > .btn,\n.input-group-btn:first-child > .btn-group {\n  margin-right: -1px;\n}\n.input-group-btn:last-child > .btn,\n.input-group-btn:last-child > .btn-group {\n  margin-left: -1px;\n}\n.nav {\n  padding-left: 0;\n  margin-bottom: 0;\n  list-style: none;\n}\n.nav > li {\n  position: relative;\n  display: block;\n}\n.nav > li > a {\n  position: relative;\n  display: block;\n  padding: 10px 15px;\n}\n.nav > li > a:hover,\n.nav > li > a:focus {\n  text-decoration: none;\n  background-color: #eee;\n}\n.nav > li.disabled > a {\n  color: #777;\n}\n.nav > li.disabled > a:hover,\n.nav > li.disabled > a:focus {\n  color: #777;\n  text-decoration: none;\n  cursor: not-allowed;\n  background-color: transparent;\n}\n.nav .open > a,\n.nav .open > a:hover,\n.nav .open > a:focus {\n  background-color: #eee;\n  border-color: #428bca;\n}\n.nav .nav-divider {\n  height: 1px;\n  margin: 9px 0;\n  overflow: hidden;\n  background-color: #e5e5e5;\n}\n.nav > li > a > img {\n  max-width: none;\n}\n.nav-tabs {\n  border-bottom: 1px solid #ddd;\n}\n.nav-tabs > li {\n  float: left;\n  margin-bottom: -1px;\n}\n.nav-tabs > li > a {\n  margin-right: 2px;\n  line-height: 1.42857143;\n  border: 1px solid transparent;\n  border-radius: 4px 4px 0 0;\n}\n.nav-tabs > li > a:hover {\n  border-color: #eee #eee #ddd;\n}\n.nav-tabs > li.active > a,\n.nav-tabs > li.active > a:hover,\n.nav-tabs > li.active > a:focus {\n  color: #555;\n  cursor: default;\n  background-color: #fff;\n  border: 1px solid #ddd;\n  border-bottom-color: transparent;\n}\n.nav-tabs.nav-justified {\n  width: 100%;\n  border-bottom: 0;\n}\n.nav-tabs.nav-justified > li {\n  float: none;\n}\n.nav-tabs.nav-justified > li > a {\n  margin-bottom: 5px;\n  text-align: center;\n}\n.nav-tabs.nav-justified > .dropdown .dropdown-menu {\n  top: auto;\n  left: auto;\n}\n@media (min-width: 768px) {\n  .nav-tabs.nav-justified > li {\n    display: table-cell;\n    width: 1%;\n  }\n  .nav-tabs.nav-justified > li > a {\n    margin-bottom: 0;\n  }\n}\n.nav-tabs.nav-justified > li > a {\n  margin-right: 0;\n  border-radius: 4px;\n}\n.nav-tabs.nav-justified > .active > a,\n.nav-tabs.nav-justified > .active > a:hover,\n.nav-tabs.nav-justified > .active > a:focus {\n  border: 1px solid #ddd;\n}\n@media (min-width: 768px) {\n  .nav-tabs.nav-justified > li > a {\n    border-bottom: 1px solid #ddd;\n    border-radius: 4px 4px 0 0;\n  }\n  .nav-tabs.nav-justified > .active > a,\n  .nav-tabs.nav-justified > .active > a:hover,\n  .nav-tabs.nav-justified > .active > a:focus {\n    border-bottom-color: #fff;\n  }\n}\n.nav-pills > li {\n  float: left;\n}\n.nav-pills > li > a {\n  border-radius: 4px;\n}\n.nav-pills > li + li {\n  margin-left: 2px;\n}\n.nav-pills > li.active > a,\n.nav-pills > li.active > a:hover,\n.nav-pills > li.active > a:focus {\n  color: #fff;\n  background-color: #428bca;\n}\n.nav-stacked > li {\n  float: none;\n}\n.nav-stacked > li + li {\n  margin-top: 2px;\n  margin-left: 0;\n}\n.nav-justified {\n  width: 100%;\n}\n.nav-justified > li {\n  float: none;\n}\n.nav-justified > li > a {\n  margin-bottom: 5px;\n  text-align: center;\n}\n.nav-justified > .dropdown .dropdown-menu {\n  top: auto;\n  left: auto;\n}\n@media (min-width: 768px) {\n  .nav-justified > li {\n    display: table-cell;\n    width: 1%;\n  }\n  .nav-justified > li > a {\n    margin-bottom: 0;\n  }\n}\n.nav-tabs-justified {\n  border-bottom: 0;\n}\n.nav-tabs-justified > li > a {\n  margin-right: 0;\n  border-radius: 4px;\n}\n.nav-tabs-justified > .active > a,\n.nav-tabs-justified > .active > a:hover,\n.nav-tabs-justified > .active > a:focus {\n  border: 1px solid #ddd;\n}\n@media (min-width: 768px) {\n  .nav-tabs-justified > li > a {\n    border-bottom: 1px solid #ddd;\n    border-radius: 4px 4px 0 0;\n  }\n  .nav-tabs-justified > .active > a,\n  .nav-tabs-justified > .active > a:hover,\n  .nav-tabs-justified > .active > a:focus {\n    border-bottom-color: #fff;\n  }\n}\n.tab-content > .tab-pane {\n  display: none;\n}\n.tab-content > .active {\n  display: block;\n}\n.nav-tabs .dropdown-menu {\n  margin-top: -1px;\n  border-top-left-radius: 0;\n  border-top-right-radius: 0;\n}\n.navbar {\n  position: relative;\n  min-height: 50px;\n  margin-bottom: 20px;\n  border: 1px solid transparent;\n}\n@media (min-width: 768px) {\n  .navbar {\n    border-radius: 4px;\n  }\n}\n@media (min-width: 768px) {\n  .navbar-header {\n    float: left;\n  }\n}\n.navbar-collapse {\n  padding-right: 15px;\n  padding-left: 15px;\n  overflow-x: visible;\n  -webkit-overflow-scrolling: touch;\n  border-top: 1px solid transparent;\n  -webkit-box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1);\n          box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1);\n}\n.navbar-collapse.in {\n  overflow-y: auto;\n}\n@media (min-width: 768px) {\n  .navbar-collapse {\n    width: auto;\n    border-top: 0;\n    -webkit-box-shadow: none;\n            box-shadow: none;\n  }\n  .navbar-collapse.collapse {\n    display: block !important;\n    height: auto !important;\n    padding-bottom: 0;\n    overflow: visible !important;\n  }\n  .navbar-collapse.in {\n    overflow-y: visible;\n  }\n  .navbar-fixed-top .navbar-collapse,\n  .navbar-static-top .navbar-collapse,\n  .navbar-fixed-bottom .navbar-collapse {\n    padding-right: 0;\n    padding-left: 0;\n  }\n}\n.navbar-fixed-top .navbar-collapse,\n.navbar-fixed-bottom .navbar-collapse {\n  max-height: 340px;\n}\n@media (max-width: 480px) and (orientation: landscape) {\n  .navbar-fixed-top .navbar-collapse,\n  .navbar-fixed-bottom .navbar-collapse {\n    max-height: 200px;\n  }\n}\n.container > .navbar-header,\n.container-fluid > .navbar-header,\n.container > .navbar-collapse,\n.container-fluid > .navbar-collapse {\n  margin-right: -15px;\n  margin-left: -15px;\n}\n@media (min-width: 768px) {\n  .container > .navbar-header,\n  .container-fluid > .navbar-header,\n  .container > .navbar-collapse,\n  .container-fluid > .navbar-collapse {\n    margin-right: 0;\n    margin-left: 0;\n  }\n}\n.navbar-static-top {\n  z-index: 1000;\n  border-width: 0 0 1px;\n}\n@media (min-width: 768px) {\n  .navbar-static-top {\n    border-radius: 0;\n  }\n}\n.navbar-fixed-top,\n.navbar-fixed-bottom {\n  position: fixed;\n  right: 0;\n  left: 0;\n  z-index: 1030;\n  -webkit-transform: translate3d(0, 0, 0);\n       -o-transform: translate3d(0, 0, 0);\n          transform: translate3d(0, 0, 0);\n}\n@media (min-width: 768px) {\n  .navbar-fixed-top,\n  .navbar-fixed-bottom {\n    border-radius: 0;\n  }\n}\n.navbar-fixed-top {\n  top: 0;\n  border-width: 0 0 1px;\n}\n.navbar-fixed-bottom {\n  bottom: 0;\n  margin-bottom: 0;\n  border-width: 1px 0 0;\n}\n.navbar-brand {\n  float: left;\n  height: 50px;\n  padding: 15px 15px;\n  font-size: 18px;\n  line-height: 20px;\n}\n.navbar-brand:hover,\n.navbar-brand:focus {\n  text-decoration: none;\n}\n@media (min-width: 768px) {\n  .navbar > .container .navbar-brand,\n  .navbar > .container-fluid .navbar-brand {\n    margin-left: -15px;\n  }\n}\n.navbar-toggle {\n  position: relative;\n  float: right;\n  padding: 9px 10px;\n  margin-top: 8px;\n  margin-right: 15px;\n  margin-bottom: 8px;\n  background-color: transparent;\n  background-image: none;\n  border: 1px solid transparent;\n  border-radius: 4px;\n}\n.navbar-toggle:focus {\n  outline: 0;\n}\n.navbar-toggle .icon-bar {\n  display: block;\n  width: 22px;\n  height: 2px;\n  border-radius: 1px;\n}\n.navbar-toggle .icon-bar + .icon-bar {\n  margin-top: 4px;\n}\n@media (min-width: 768px) {\n  .navbar-toggle {\n    display: none;\n  }\n}\n.navbar-nav {\n  margin: 7.5px -15px;\n}\n.navbar-nav > li > a {\n  padding-top: 10px;\n  padding-bottom: 10px;\n  line-height: 20px;\n}\n@media (max-width: 767px) {\n  .navbar-nav .open .dropdown-menu {\n    position: static;\n    float: none;\n    width: auto;\n    margin-top: 0;\n    background-color: transparent;\n    border: 0;\n    -webkit-box-shadow: none;\n            box-shadow: none;\n  }\n  .navbar-nav .open .dropdown-menu > li > a,\n  .navbar-nav .open .dropdown-menu .dropdown-header {\n    padding: 5px 15px 5px 25px;\n  }\n  .navbar-nav .open .dropdown-menu > li > a {\n    line-height: 20px;\n  }\n  .navbar-nav .open .dropdown-menu > li > a:hover,\n  .navbar-nav .open .dropdown-menu > li > a:focus {\n    background-image: none;\n  }\n}\n@media (min-width: 768px) {\n  .navbar-nav {\n    float: left;\n    margin: 0;\n  }\n  .navbar-nav > li {\n    float: left;\n  }\n  .navbar-nav > li > a {\n    padding-top: 15px;\n    padding-bottom: 15px;\n  }\n  .navbar-nav.navbar-right:last-child {\n    margin-right: -15px;\n  }\n}\n@media (min-width: 768px) {\n  .navbar-left {\n    float: left !important;\n  }\n  .navbar-right {\n    float: right !important;\n  }\n}\n.navbar-form {\n  padding: 10px 15px;\n  margin-top: 8px;\n  margin-right: -15px;\n  margin-bottom: 8px;\n  margin-left: -15px;\n  border-top: 1px solid transparent;\n  border-bottom: 1px solid transparent;\n  -webkit-box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1), 0 1px 0 rgba(255, 255, 255, .1);\n          box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1), 0 1px 0 rgba(255, 255, 255, .1);\n}\n@media (min-width: 768px) {\n  .navbar-form .form-group {\n    display: inline-block;\n    margin-bottom: 0;\n    vertical-align: middle;\n  }\n  .navbar-form .form-control {\n    display: inline-block;\n    width: auto;\n    vertical-align: middle;\n  }\n  .navbar-form .input-group {\n    display: inline-table;\n    vertical-align: middle;\n  }\n  .navbar-form .input-group .input-group-addon,\n  .navbar-form .input-group .input-group-btn,\n  .navbar-form .input-group .form-control {\n    width: auto;\n  }\n  .navbar-form .input-group > .form-control {\n    width: 100%;\n  }\n  .navbar-form .control-label {\n    margin-bottom: 0;\n    vertical-align: middle;\n  }\n  .navbar-form .radio,\n  .navbar-form .checkbox {\n    display: inline-block;\n    margin-top: 0;\n    margin-bottom: 0;\n    vertical-align: middle;\n  }\n  .navbar-form .radio label,\n  .navbar-form .checkbox label {\n    padding-left: 0;\n  }\n  .navbar-form .radio input[type=\"radio\"],\n  .navbar-form .checkbox input[type=\"checkbox\"] {\n    position: relative;\n    margin-left: 0;\n  }\n  .navbar-form .has-feedback .form-control-feedback {\n    top: 0;\n  }\n}\n@media (max-width: 767px) {\n  .navbar-form .form-group {\n    margin-bottom: 5px;\n  }\n}\n@media (min-width: 768px) {\n  .navbar-form {\n    width: auto;\n    padding-top: 0;\n    padding-bottom: 0;\n    margin-right: 0;\n    margin-left: 0;\n    border: 0;\n    -webkit-box-shadow: none;\n            box-shadow: none;\n  }\n  .navbar-form.navbar-right:last-child {\n    margin-right: -15px;\n  }\n}\n.navbar-nav > li > .dropdown-menu {\n  margin-top: 0;\n  border-top-left-radius: 0;\n  border-top-right-radius: 0;\n}\n.navbar-fixed-bottom .navbar-nav > li > .dropdown-menu {\n  border-bottom-right-radius: 0;\n  border-bottom-left-radius: 0;\n}\n.navbar-btn {\n  margin-top: 8px;\n  margin-bottom: 8px;\n}\n.navbar-btn.btn-sm {\n  margin-top: 10px;\n  margin-bottom: 10px;\n}\n.navbar-btn.btn-xs {\n  margin-top: 14px;\n  margin-bottom: 14px;\n}\n.navbar-text {\n  margin-top: 15px;\n  margin-bottom: 15px;\n}\n@media (min-width: 768px) {\n  .navbar-text {\n    float: left;\n    margin-right: 15px;\n    margin-left: 15px;\n  }\n  .navbar-text.navbar-right:last-child {\n    margin-right: 0;\n  }\n}\n.navbar-default {\n  background-color: #f8f8f8;\n  border-color: #e7e7e7;\n}\n.navbar-default .navbar-brand {\n  color: #777;\n}\n.navbar-default .navbar-brand:hover,\n.navbar-default .navbar-brand:focus {\n  color: #5e5e5e;\n  background-color: transparent;\n}\n.navbar-default .navbar-text {\n  color: #777;\n}\n.navbar-default .navbar-nav > li > a {\n  color: #777;\n}\n.navbar-default .navbar-nav > li > a:hover,\n.navbar-default .navbar-nav > li > a:focus {\n  color: #333;\n  background-color: transparent;\n}\n.navbar-default .navbar-nav > .active > a,\n.navbar-default .navbar-nav > .active > a:hover,\n.navbar-default .navbar-nav > .active > a:focus {\n  color: #555;\n  background-color: #e7e7e7;\n}\n.navbar-default .navbar-nav > .disabled > a,\n.navbar-default .navbar-nav > .disabled > a:hover,\n.navbar-default .navbar-nav > .disabled > a:focus {\n  color: #ccc;\n  background-color: transparent;\n}\n.navbar-default .navbar-toggle {\n  border-color: #ddd;\n}\n.navbar-default .navbar-toggle:hover,\n.navbar-default .navbar-toggle:focus {\n  background-color: #ddd;\n}\n.navbar-default .navbar-toggle .icon-bar {\n  background-color: #888;\n}\n.navbar-default .navbar-collapse,\n.navbar-default .navbar-form {\n  border-color: #e7e7e7;\n}\n.navbar-default .navbar-nav > .open > a,\n.navbar-default .navbar-nav > .open > a:hover,\n.navbar-default .navbar-nav > .open > a:focus {\n  color: #555;\n  background-color: #e7e7e7;\n}\n@media (max-width: 767px) {\n  .navbar-default .navbar-nav .open .dropdown-menu > li > a {\n    color: #777;\n  }\n  .navbar-default .navbar-nav .open .dropdown-menu > li > a:hover,\n  .navbar-default .navbar-nav .open .dropdown-menu > li > a:focus {\n    color: #333;\n    background-color: transparent;\n  }\n  .navbar-default .navbar-nav .open .dropdown-menu > .active > a,\n  .navbar-default .navbar-nav .open .dropdown-menu > .active > a:hover,\n  .navbar-default .navbar-nav .open .dropdown-menu > .active > a:focus {\n    color: #555;\n    background-color: #e7e7e7;\n  }\n  .navbar-default .navbar-nav .open .dropdown-menu > .disabled > a,\n  .navbar-default .navbar-nav .open .dropdown-menu > .disabled > a:hover,\n  .navbar-default .navbar-nav .open .dropdown-menu > .disabled > a:focus {\n    color: #ccc;\n    background-color: transparent;\n  }\n}\n.navbar-default .navbar-link {\n  color: #777;\n}\n.navbar-default .navbar-link:hover {\n  color: #333;\n}\n.navbar-default .btn-link {\n  color: #777;\n}\n.navbar-default .btn-link:hover,\n.navbar-default .btn-link:focus {\n  color: #333;\n}\n.navbar-default .btn-link[disabled]:hover,\nfieldset[disabled] .navbar-default .btn-link:hover,\n.navbar-default .btn-link[disabled]:focus,\nfieldset[disabled] .navbar-default .btn-link:focus {\n  color: #ccc;\n}\n.navbar-inverse {\n  background-color: #222;\n  border-color: #080808;\n}\n.navbar-inverse .navbar-brand {\n  color: #777;\n}\n.navbar-inverse .navbar-brand:hover,\n.navbar-inverse .navbar-brand:focus {\n  color: #fff;\n  background-color: transparent;\n}\n.navbar-inverse .navbar-text {\n  color: #777;\n}\n.navbar-inverse .navbar-nav > li > a {\n  color: #777;\n}\n.navbar-inverse .navbar-nav > li > a:hover,\n.navbar-inverse .navbar-nav > li > a:focus {\n  color: #fff;\n  background-color: transparent;\n}\n.navbar-inverse .navbar-nav > .active > a,\n.navbar-inverse .navbar-nav > .active > a:hover,\n.navbar-inverse .navbar-nav > .active > a:focus {\n  color: #fff;\n  background-color: #080808;\n}\n.navbar-inverse .navbar-nav > .disabled > a,\n.navbar-inverse .navbar-nav > .disabled > a:hover,\n.navbar-inverse .navbar-nav > .disabled > a:focus {\n  color: #444;\n  background-color: transparent;\n}\n.navbar-inverse .navbar-toggle {\n  border-color: #333;\n}\n.navbar-inverse .navbar-toggle:hover,\n.navbar-inverse .navbar-toggle:focus {\n  background-color: #333;\n}\n.navbar-inverse .navbar-toggle .icon-bar {\n  background-color: #fff;\n}\n.navbar-inverse .navbar-collapse,\n.navbar-inverse .navbar-form {\n  border-color: #101010;\n}\n.navbar-inverse .navbar-nav > .open > a,\n.navbar-inverse .navbar-nav > .open > a:hover,\n.navbar-inverse .navbar-nav > .open > a:focus {\n  color: #fff;\n  background-color: #080808;\n}\n@media (max-width: 767px) {\n  .navbar-inverse .navbar-nav .open .dropdown-menu > .dropdown-header {\n    border-color: #080808;\n  }\n  .navbar-inverse .navbar-nav .open .dropdown-menu .divider {\n    background-color: #080808;\n  }\n  .navbar-inverse .navbar-nav .open .dropdown-menu > li > a {\n    color: #777;\n  }\n  .navbar-inverse .navbar-nav .open .dropdown-menu > li > a:hover,\n  .navbar-inverse .navbar-nav .open .dropdown-menu > li > a:focus {\n    color: #fff;\n    background-color: transparent;\n  }\n  .navbar-inverse .navbar-nav .open .dropdown-menu > .active > a,\n  .navbar-inverse .navbar-nav .open .dropdown-menu > .active > a:hover,\n  .navbar-inverse .navbar-nav .open .dropdown-menu > .active > a:focus {\n    color: #fff;\n    background-color: #080808;\n  }\n  .navbar-inverse .navbar-nav .open .dropdown-menu > .disabled > a,\n  .navbar-inverse .navbar-nav .open .dropdown-menu > .disabled > a:hover,\n  .navbar-inverse .navbar-nav .open .dropdown-menu > .disabled > a:focus {\n    color: #444;\n    background-color: transparent;\n  }\n}\n.navbar-inverse .navbar-link {\n  color: #777;\n}\n.navbar-inverse .navbar-link:hover {\n  color: #fff;\n}\n.navbar-inverse .btn-link {\n  color: #777;\n}\n.navbar-inverse .btn-link:hover,\n.navbar-inverse .btn-link:focus {\n  color: #fff;\n}\n.navbar-inverse .btn-link[disabled]:hover,\nfieldset[disabled] .navbar-inverse .btn-link:hover,\n.navbar-inverse .btn-link[disabled]:focus,\nfieldset[disabled] .navbar-inverse .btn-link:focus {\n  color: #444;\n}\n.breadcrumb {\n  padding: 8px 15px;\n  margin-bottom: 20px;\n  list-style: none;\n  background-color: #f5f5f5;\n  border-radius: 4px;\n}\n.breadcrumb > li {\n  display: inline-block;\n}\n.breadcrumb > li + li:before {\n  padding: 0 5px;\n  color: #ccc;\n  content: \"/\\00a0\";\n}\n.breadcrumb > .active {\n  color: #777;\n}\n.pagination {\n  display: inline-block;\n  padding-left: 0;\n  margin: 20px 0;\n  border-radius: 4px;\n}\n.pagination > li {\n  display: inline;\n}\n.pagination > li > a,\n.pagination > li > span {\n  position: relative;\n  float: left;\n  padding: 6px 12px;\n  margin-left: -1px;\n  line-height: 1.42857143;\n  color: #428bca;\n  text-decoration: none;\n  background-color: #fff;\n  border: 1px solid #ddd;\n}\n.pagination > li:first-child > a,\n.pagination > li:first-child > span {\n  margin-left: 0;\n  border-top-left-radius: 4px;\n  border-bottom-left-radius: 4px;\n}\n.pagination > li:last-child > a,\n.pagination > li:last-child > span {\n  border-top-right-radius: 4px;\n  border-bottom-right-radius: 4px;\n}\n.pagination > li > a:hover,\n.pagination > li > span:hover,\n.pagination > li > a:focus,\n.pagination > li > span:focus {\n  color: #2a6496;\n  background-color: #eee;\n  border-color: #ddd;\n}\n.pagination > .active > a,\n.pagination > .active > span,\n.pagination > .active > a:hover,\n.pagination > .active > span:hover,\n.pagination > .active > a:focus,\n.pagination > .active > span:focus {\n  z-index: 2;\n  color: #fff;\n  cursor: default;\n  background-color: #428bca;\n  border-color: #428bca;\n}\n.pagination > .disabled > span,\n.pagination > .disabled > span:hover,\n.pagination > .disabled > span:focus,\n.pagination > .disabled > a,\n.pagination > .disabled > a:hover,\n.pagination > .disabled > a:focus {\n  color: #777;\n  cursor: not-allowed;\n  background-color: #fff;\n  border-color: #ddd;\n}\n.pagination-lg > li > a,\n.pagination-lg > li > span {\n  padding: 10px 16px;\n  font-size: 18px;\n}\n.pagination-lg > li:first-child > a,\n.pagination-lg > li:first-child > span {\n  border-top-left-radius: 6px;\n  border-bottom-left-radius: 6px;\n}\n.pagination-lg > li:last-child > a,\n.pagination-lg > li:last-child > span {\n  border-top-right-radius: 6px;\n  border-bottom-right-radius: 6px;\n}\n.pagination-sm > li > a,\n.pagination-sm > li > span {\n  padding: 5px 10px;\n  font-size: 12px;\n}\n.pagination-sm > li:first-child > a,\n.pagination-sm > li:first-child > span {\n  border-top-left-radius: 3px;\n  border-bottom-left-radius: 3px;\n}\n.pagination-sm > li:last-child > a,\n.pagination-sm > li:last-child > span {\n  border-top-right-radius: 3px;\n  border-bottom-right-radius: 3px;\n}\n.pager {\n  padding-left: 0;\n  margin: 20px 0;\n  text-align: center;\n  list-style: none;\n}\n.pager li {\n  display: inline;\n}\n.pager li > a,\n.pager li > span {\n  display: inline-block;\n  padding: 5px 14px;\n  background-color: #fff;\n  border: 1px solid #ddd;\n  border-radius: 15px;\n}\n.pager li > a:hover,\n.pager li > a:focus {\n  text-decoration: none;\n  background-color: #eee;\n}\n.pager .next > a,\n.pager .next > span {\n  float: right;\n}\n.pager .previous > a,\n.pager .previous > span {\n  float: left;\n}\n.pager .disabled > a,\n.pager .disabled > a:hover,\n.pager .disabled > a:focus,\n.pager .disabled > span {\n  color: #777;\n  cursor: not-allowed;\n  background-color: #fff;\n}\n.label {\n  display: inline;\n  padding: .2em .6em .3em;\n  font-size: 75%;\n  font-weight: bold;\n  line-height: 1;\n  color: #fff;\n  text-align: center;\n  white-space: nowrap;\n  vertical-align: baseline;\n  border-radius: .25em;\n}\na.label:hover,\na.label:focus {\n  color: #fff;\n  text-decoration: none;\n  cursor: pointer;\n}\n.label:empty {\n  display: none;\n}\n.btn .label {\n  position: relative;\n  top: -1px;\n}\n.label-default {\n  background-color: #777;\n}\n.label-default[href]:hover,\n.label-default[href]:focus {\n  background-color: #5e5e5e;\n}\n.label-primary {\n  background-color: #428bca;\n}\n.label-primary[href]:hover,\n.label-primary[href]:focus {\n  background-color: #3071a9;\n}\n.label-success {\n  background-color: #5cb85c;\n}\n.label-success[href]:hover,\n.label-success[href]:focus {\n  background-color: #449d44;\n}\n.label-info {\n  background-color: #5bc0de;\n}\n.label-info[href]:hover,\n.label-info[href]:focus {\n  background-color: #31b0d5;\n}\n.label-warning {\n  background-color: #f0ad4e;\n}\n.label-warning[href]:hover,\n.label-warning[href]:focus {\n  background-color: #ec971f;\n}\n.label-danger {\n  background-color: #d9534f;\n}\n.label-danger[href]:hover,\n.label-danger[href]:focus {\n  background-color: #c9302c;\n}\n.badge {\n  display: inline-block;\n  min-width: 10px;\n  padding: 3px 7px;\n  font-size: 12px;\n  font-weight: bold;\n  line-height: 1;\n  color: #fff;\n  text-align: center;\n  white-space: nowrap;\n  vertical-align: baseline;\n  background-color: #777;\n  border-radius: 10px;\n}\n.badge:empty {\n  display: none;\n}\n.btn .badge {\n  position: relative;\n  top: -1px;\n}\n.btn-xs .badge {\n  top: 0;\n  padding: 1px 5px;\n}\na.badge:hover,\na.badge:focus {\n  color: #fff;\n  text-decoration: none;\n  cursor: pointer;\n}\na.list-group-item.active > .badge,\n.nav-pills > .active > a > .badge {\n  color: #428bca;\n  background-color: #fff;\n}\n.nav-pills > li > a > .badge {\n  margin-left: 3px;\n}\n.jumbotron {\n  padding: 30px;\n  margin-bottom: 30px;\n  color: inherit;\n  background-color: #eee;\n}\n.jumbotron h1,\n.jumbotron .h1 {\n  color: inherit;\n}\n.jumbotron p {\n  margin-bottom: 15px;\n  font-size: 21px;\n  font-weight: 200;\n}\n.jumbotron > hr {\n  border-top-color: #d5d5d5;\n}\n.container .jumbotron {\n  border-radius: 6px;\n}\n.jumbotron .container {\n  max-width: 100%;\n}\n@media screen and (min-width: 768px) {\n  .jumbotron {\n    padding-top: 48px;\n    padding-bottom: 48px;\n  }\n  .container .jumbotron {\n    padding-right: 60px;\n    padding-left: 60px;\n  }\n  .jumbotron h1,\n  .jumbotron .h1 {\n    font-size: 63px;\n  }\n}\n.thumbnail {\n  display: block;\n  padding: 4px;\n  margin-bottom: 20px;\n  line-height: 1.42857143;\n  background-color: #fff;\n  border: 1px solid #ddd;\n  border-radius: 4px;\n  -webkit-transition: all .2s ease-in-out;\n       -o-transition: all .2s ease-in-out;\n          transition: all .2s ease-in-out;\n}\n.thumbnail > img,\n.thumbnail a > img {\n  margin-right: auto;\n  margin-left: auto;\n}\na.thumbnail:hover,\na.thumbnail:focus,\na.thumbnail.active {\n  border-color: #428bca;\n}\n.thumbnail .caption {\n  padding: 9px;\n  color: #333;\n}\n.alert {\n  padding: 15px;\n  margin-bottom: 20px;\n  border: 1px solid transparent;\n  border-radius: 4px;\n}\n.alert h4 {\n  margin-top: 0;\n  color: inherit;\n}\n.alert .alert-link {\n  font-weight: bold;\n}\n.alert > p,\n.alert > ul {\n  margin-bottom: 0;\n}\n.alert > p + p {\n  margin-top: 5px;\n}\n.alert-dismissable,\n.alert-dismissible {\n  padding-right: 35px;\n}\n.alert-dismissable .close,\n.alert-dismissible .close {\n  position: relative;\n  top: -2px;\n  right: -21px;\n  color: inherit;\n}\n.alert-success {\n  color: #3c763d;\n  background-color: #dff0d8;\n  border-color: #d6e9c6;\n}\n.alert-success hr {\n  border-top-color: #c9e2b3;\n}\n.alert-success .alert-link {\n  color: #2b542c;\n}\n.alert-info {\n  color: #31708f;\n  background-color: #d9edf7;\n  border-color: #bce8f1;\n}\n.alert-info hr {\n  border-top-color: #a6e1ec;\n}\n.alert-info .alert-link {\n  color: #245269;\n}\n.alert-warning {\n  color: #8a6d3b;\n  background-color: #fcf8e3;\n  border-color: #faebcc;\n}\n.alert-warning hr {\n  border-top-color: #f7e1b5;\n}\n.alert-warning .alert-link {\n  color: #66512c;\n}\n.alert-danger {\n  color: #a94442;\n  background-color: #f2dede;\n  border-color: #ebccd1;\n}\n.alert-danger hr {\n  border-top-color: #e4b9c0;\n}\n.alert-danger .alert-link {\n  color: #843534;\n}\n@-webkit-keyframes progress-bar-stripes {\n  from {\n    background-position: 40px 0;\n  }\n  to {\n    background-position: 0 0;\n  }\n}\n@-o-keyframes progress-bar-stripes {\n  from {\n    background-position: 40px 0;\n  }\n  to {\n    background-position: 0 0;\n  }\n}\n@keyframes progress-bar-stripes {\n  from {\n    background-position: 40px 0;\n  }\n  to {\n    background-position: 0 0;\n  }\n}\n.progress {\n  height: 20px;\n  margin-bottom: 20px;\n  overflow: hidden;\n  background-color: #f5f5f5;\n  border-radius: 4px;\n  -webkit-box-shadow: inset 0 1px 2px rgba(0, 0, 0, .1);\n          box-shadow: inset 0 1px 2px rgba(0, 0, 0, .1);\n}\n.progress-bar {\n  float: left;\n  width: 0;\n  height: 100%;\n  font-size: 12px;\n  line-height: 20px;\n  color: #fff;\n  text-align: center;\n  background-color: #428bca;\n  -webkit-box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .15);\n          box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .15);\n  -webkit-transition: width .6s ease;\n       -o-transition: width .6s ease;\n          transition: width .6s ease;\n}\n.progress-striped .progress-bar,\n.progress-bar-striped {\n  background-image: -webkit-linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%, transparent 75%, transparent);\n  background-image:      -o-linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%, transparent 75%, transparent);\n  background-image:         linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%, transparent 75%, transparent);\n  -webkit-background-size: 40px 40px;\n          background-size: 40px 40px;\n}\n.progress.active .progress-bar,\n.progress-bar.active {\n  -webkit-animation: progress-bar-stripes 2s linear infinite;\n       -o-animation: progress-bar-stripes 2s linear infinite;\n          animation: progress-bar-stripes 2s linear infinite;\n}\n.progress-bar[aria-valuenow=\"1\"],\n.progress-bar[aria-valuenow=\"2\"] {\n  min-width: 30px;\n}\n.progress-bar[aria-valuenow=\"0\"] {\n  min-width: 30px;\n  color: #777;\n  background-color: transparent;\n  background-image: none;\n  -webkit-box-shadow: none;\n          box-shadow: none;\n}\n.progress-bar-success {\n  background-color: #5cb85c;\n}\n.progress-striped .progress-bar-success {\n  background-image: -webkit-linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%, transparent 75%, transparent);\n  background-image:      -o-linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%, transparent 75%, transparent);\n  background-image:         linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%, transparent 75%, transparent);\n}\n.progress-bar-info {\n  background-color: #5bc0de;\n}\n.progress-striped .progress-bar-info {\n  background-image: -webkit-linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%, transparent 75%, transparent);\n  background-image:      -o-linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%, transparent 75%, transparent);\n  background-image:         linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%, transparent 75%, transparent);\n}\n.progress-bar-warning {\n  background-color: #f0ad4e;\n}\n.progress-striped .progress-bar-warning {\n  background-image: -webkit-linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%, transparent 75%, transparent);\n  background-image:      -o-linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%, transparent 75%, transparent);\n  background-image:         linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%, transparent 75%, transparent);\n}\n.progress-bar-danger {\n  background-color: #d9534f;\n}\n.progress-striped .progress-bar-danger {\n  background-image: -webkit-linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%, transparent 75%, transparent);\n  background-image:      -o-linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%, transparent 75%, transparent);\n  background-image:         linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%, transparent 75%, transparent);\n}\n.media,\n.media-body {\n  overflow: hidden;\n  zoom: 1;\n}\n.media,\n.media .media {\n  margin-top: 15px;\n}\n.media:first-child {\n  margin-top: 0;\n}\n.media-object {\n  display: block;\n}\n.media-heading {\n  margin: 0 0 5px;\n}\n.media > .pull-left {\n  margin-right: 10px;\n}\n.media > .pull-right {\n  margin-left: 10px;\n}\n.media-list {\n  padding-left: 0;\n  list-style: none;\n}\n.list-group {\n  padding-left: 0;\n  margin-bottom: 20px;\n}\n.list-group-item {\n  position: relative;\n  display: block;\n  padding: 10px 15px;\n  margin-bottom: -1px;\n  background-color: #fff;\n  border: 1px solid #ddd;\n}\n.list-group-item:first-child {\n  border-top-left-radius: 4px;\n  border-top-right-radius: 4px;\n}\n.list-group-item:last-child {\n  margin-bottom: 0;\n  border-bottom-right-radius: 4px;\n  border-bottom-left-radius: 4px;\n}\n.list-group-item > .badge {\n  float: right;\n}\n.list-group-item > .badge + .badge {\n  margin-right: 5px;\n}\na.list-group-item {\n  color: #555;\n}\na.list-group-item .list-group-item-heading {\n  color: #333;\n}\na.list-group-item:hover,\na.list-group-item:focus {\n  color: #555;\n  text-decoration: none;\n  background-color: #f5f5f5;\n}\n.list-group-item.disabled,\n.list-group-item.disabled:hover,\n.list-group-item.disabled:focus {\n  color: #777;\n  background-color: #eee;\n}\n.list-group-item.disabled .list-group-item-heading,\n.list-group-item.disabled:hover .list-group-item-heading,\n.list-group-item.disabled:focus .list-group-item-heading {\n  color: inherit;\n}\n.list-group-item.disabled .list-group-item-text,\n.list-group-item.disabled:hover .list-group-item-text,\n.list-group-item.disabled:focus .list-group-item-text {\n  color: #777;\n}\n.list-group-item.active,\n.list-group-item.active:hover,\n.list-group-item.active:focus {\n  z-index: 2;\n  color: #fff;\n  background-color: #428bca;\n  border-color: #428bca;\n}\n.list-group-item.active .list-group-item-heading,\n.list-group-item.active:hover .list-group-item-heading,\n.list-group-item.active:focus .list-group-item-heading,\n.list-group-item.active .list-group-item-heading > small,\n.list-group-item.active:hover .list-group-item-heading > small,\n.list-group-item.active:focus .list-group-item-heading > small,\n.list-group-item.active .list-group-item-heading > .small,\n.list-group-item.active:hover .list-group-item-heading > .small,\n.list-group-item.active:focus .list-group-item-heading > .small {\n  color: inherit;\n}\n.list-group-item.active .list-group-item-text,\n.list-group-item.active:hover .list-group-item-text,\n.list-group-item.active:focus .list-group-item-text {\n  color: #e1edf7;\n}\n.list-group-item-success {\n  color: #3c763d;\n  background-color: #dff0d8;\n}\na.list-group-item-success {\n  color: #3c763d;\n}\na.list-group-item-success .list-group-item-heading {\n  color: inherit;\n}\na.list-group-item-success:hover,\na.list-group-item-success:focus {\n  color: #3c763d;\n  background-color: #d0e9c6;\n}\na.list-group-item-success.active,\na.list-group-item-success.active:hover,\na.list-group-item-success.active:focus {\n  color: #fff;\n  background-color: #3c763d;\n  border-color: #3c763d;\n}\n.list-group-item-info {\n  color: #31708f;\n  background-color: #d9edf7;\n}\na.list-group-item-info {\n  color: #31708f;\n}\na.list-group-item-info .list-group-item-heading {\n  color: inherit;\n}\na.list-group-item-info:hover,\na.list-group-item-info:focus {\n  color: #31708f;\n  background-color: #c4e3f3;\n}\na.list-group-item-info.active,\na.list-group-item-info.active:hover,\na.list-group-item-info.active:focus {\n  color: #fff;\n  background-color: #31708f;\n  border-color: #31708f;\n}\n.list-group-item-warning {\n  color: #8a6d3b;\n  background-color: #fcf8e3;\n}\na.list-group-item-warning {\n  color: #8a6d3b;\n}\na.list-group-item-warning .list-group-item-heading {\n  color: inherit;\n}\na.list-group-item-warning:hover,\na.list-group-item-warning:focus {\n  color: #8a6d3b;\n  background-color: #faf2cc;\n}\na.list-group-item-warning.active,\na.list-group-item-warning.active:hover,\na.list-group-item-warning.active:focus {\n  color: #fff;\n  background-color: #8a6d3b;\n  border-color: #8a6d3b;\n}\n.list-group-item-danger {\n  color: #a94442;\n  background-color: #f2dede;\n}\na.list-group-item-danger {\n  color: #a94442;\n}\na.list-group-item-danger .list-group-item-heading {\n  color: inherit;\n}\na.list-group-item-danger:hover,\na.list-group-item-danger:focus {\n  color: #a94442;\n  background-color: #ebcccc;\n}\na.list-group-item-danger.active,\na.list-group-item-danger.active:hover,\na.list-group-item-danger.active:focus {\n  color: #fff;\n  background-color: #a94442;\n  border-color: #a94442;\n}\n.list-group-item-heading {\n  margin-top: 0;\n  margin-bottom: 5px;\n}\n.list-group-item-text {\n  margin-bottom: 0;\n  line-height: 1.3;\n}\n.panel {\n  margin-bottom: 20px;\n  background-color: #fff;\n  border: 1px solid transparent;\n  border-radius: 4px;\n  -webkit-box-shadow: 0 1px 1px rgba(0, 0, 0, .05);\n          box-shadow: 0 1px 1px rgba(0, 0, 0, .05);\n}\n.panel-body {\n  padding: 15px;\n}\n.panel-heading {\n  padding: 10px 15px;\n  border-bottom: 1px solid transparent;\n  border-top-left-radius: 3px;\n  border-top-right-radius: 3px;\n}\n.panel-heading > .dropdown .dropdown-toggle {\n  color: inherit;\n}\n.panel-title {\n  margin-top: 0;\n  margin-bottom: 0;\n  font-size: 16px;\n  color: inherit;\n}\n.panel-title > a {\n  color: inherit;\n}\n.panel-footer {\n  padding: 10px 15px;\n  background-color: #f5f5f5;\n  border-top: 1px solid #ddd;\n  border-bottom-right-radius: 3px;\n  border-bottom-left-radius: 3px;\n}\n.panel > .list-group {\n  margin-bottom: 0;\n}\n.panel > .list-group .list-group-item {\n  border-width: 1px 0;\n  border-radius: 0;\n}\n.panel > .list-group:first-child .list-group-item:first-child {\n  border-top: 0;\n  border-top-left-radius: 3px;\n  border-top-right-radius: 3px;\n}\n.panel > .list-group:last-child .list-group-item:last-child {\n  border-bottom: 0;\n  border-bottom-right-radius: 3px;\n  border-bottom-left-radius: 3px;\n}\n.panel-heading + .list-group .list-group-item:first-child {\n  border-top-width: 0;\n}\n.list-group + .panel-footer {\n  border-top-width: 0;\n}\n.panel > .table,\n.panel > .table-responsive > .table,\n.panel > .panel-collapse > .table {\n  margin-bottom: 0;\n}\n.panel > .table:first-child,\n.panel > .table-responsive:first-child > .table:first-child {\n  border-top-left-radius: 3px;\n  border-top-right-radius: 3px;\n}\n.panel > .table:first-child > thead:first-child > tr:first-child td:first-child,\n.panel > .table-responsive:first-child > .table:first-child > thead:first-child > tr:first-child td:first-child,\n.panel > .table:first-child > tbody:first-child > tr:first-child td:first-child,\n.panel > .table-responsive:first-child > .table:first-child > tbody:first-child > tr:first-child td:first-child,\n.panel > .table:first-child > thead:first-child > tr:first-child th:first-child,\n.panel > .table-responsive:first-child > .table:first-child > thead:first-child > tr:first-child th:first-child,\n.panel > .table:first-child > tbody:first-child > tr:first-child th:first-child,\n.panel > .table-responsive:first-child > .table:first-child > tbody:first-child > tr:first-child th:first-child {\n  border-top-left-radius: 3px;\n}\n.panel > .table:first-child > thead:first-child > tr:first-child td:last-child,\n.panel > .table-responsive:first-child > .table:first-child > thead:first-child > tr:first-child td:last-child,\n.panel > .table:first-child > tbody:first-child > tr:first-child td:last-child,\n.panel > .table-responsive:first-child > .table:first-child > tbody:first-child > tr:first-child td:last-child,\n.panel > .table:first-child > thead:first-child > tr:first-child th:last-child,\n.panel > .table-responsive:first-child > .table:first-child > thead:first-child > tr:first-child th:last-child,\n.panel > .table:first-child > tbody:first-child > tr:first-child th:last-child,\n.panel > .table-responsive:first-child > .table:first-child > tbody:first-child > tr:first-child th:last-child {\n  border-top-right-radius: 3px;\n}\n.panel > .table:last-child,\n.panel > .table-responsive:last-child > .table:last-child {\n  border-bottom-right-radius: 3px;\n  border-bottom-left-radius: 3px;\n}\n.panel > .table:last-child > tbody:last-child > tr:last-child td:first-child,\n.panel > .table-responsive:last-child > .table:last-child > tbody:last-child > tr:last-child td:first-child,\n.panel > .table:last-child > tfoot:last-child > tr:last-child td:first-child,\n.panel > .table-responsive:last-child > .table:last-child > tfoot:last-child > tr:last-child td:first-child,\n.panel > .table:last-child > tbody:last-child > tr:last-child th:first-child,\n.panel > .table-responsive:last-child > .table:last-child > tbody:last-child > tr:last-child th:first-child,\n.panel > .table:last-child > tfoot:last-child > tr:last-child th:first-child,\n.panel > .table-responsive:last-child > .table:last-child > tfoot:last-child > tr:last-child th:first-child {\n  border-bottom-left-radius: 3px;\n}\n.panel > .table:last-child > tbody:last-child > tr:last-child td:last-child,\n.panel > .table-responsive:last-child > .table:last-child > tbody:last-child > tr:last-child td:last-child,\n.panel > .table:last-child > tfoot:last-child > tr:last-child td:last-child,\n.panel > .table-responsive:last-child > .table:last-child > tfoot:last-child > tr:last-child td:last-child,\n.panel > .table:last-child > tbody:last-child > tr:last-child th:last-child,\n.panel > .table-responsive:last-child > .table:last-child > tbody:last-child > tr:last-child th:last-child,\n.panel > .table:last-child > tfoot:last-child > tr:last-child th:last-child,\n.panel > .table-responsive:last-child > .table:last-child > tfoot:last-child > tr:last-child th:last-child {\n  border-bottom-right-radius: 3px;\n}\n.panel > .panel-body + .table,\n.panel > .panel-body + .table-responsive {\n  border-top: 1px solid #ddd;\n}\n.panel > .table > tbody:first-child > tr:first-child th,\n.panel > .table > tbody:first-child > tr:first-child td {\n  border-top: 0;\n}\n.panel > .table-bordered,\n.panel > .table-responsive > .table-bordered {\n  border: 0;\n}\n.panel > .table-bordered > thead > tr > th:first-child,\n.panel > .table-responsive > .table-bordered > thead > tr > th:first-child,\n.panel > .table-bordered > tbody > tr > th:first-child,\n.panel > .table-responsive > .table-bordered > tbody > tr > th:first-child,\n.panel > .table-bordered > tfoot > tr > th:first-child,\n.panel > .table-responsive > .table-bordered > tfoot > tr > th:first-child,\n.panel > .table-bordered > thead > tr > td:first-child,\n.panel > .table-responsive > .table-bordered > thead > tr > td:first-child,\n.panel > .table-bordered > tbody > tr > td:first-child,\n.panel > .table-responsive > .table-bordered > tbody > tr > td:first-child,\n.panel > .table-bordered > tfoot > tr > td:first-child,\n.panel > .table-responsive > .table-bordered > tfoot > tr > td:first-child {\n  border-left: 0;\n}\n.panel > .table-bordered > thead > tr > th:last-child,\n.panel > .table-responsive > .table-bordered > thead > tr > th:last-child,\n.panel > .table-bordered > tbody > tr > th:last-child,\n.panel > .table-responsive > .table-bordered > tbody > tr > th:last-child,\n.panel > .table-bordered > tfoot > tr > th:last-child,\n.panel > .table-responsive > .table-bordered > tfoot > tr > th:last-child,\n.panel > .table-bordered > thead > tr > td:last-child,\n.panel > .table-responsive > .table-bordered > thead > tr > td:last-child,\n.panel > .table-bordered > tbody > tr > td:last-child,\n.panel > .table-responsive > .table-bordered > tbody > tr > td:last-child,\n.panel > .table-bordered > tfoot > tr > td:last-child,\n.panel > .table-responsive > .table-bordered > tfoot > tr > td:last-child {\n  border-right: 0;\n}\n.panel > .table-bordered > thead > tr:first-child > td,\n.panel > .table-responsive > .table-bordered > thead > tr:first-child > td,\n.panel > .table-bordered > tbody > tr:first-child > td,\n.panel > .table-responsive > .table-bordered > tbody > tr:first-child > td,\n.panel > .table-bordered > thead > tr:first-child > th,\n.panel > .table-responsive > .table-bordered > thead > tr:first-child > th,\n.panel > .table-bordered > tbody > tr:first-child > th,\n.panel > .table-responsive > .table-bordered > tbody > tr:first-child > th {\n  border-bottom: 0;\n}\n.panel > .table-bordered > tbody > tr:last-child > td,\n.panel > .table-responsive > .table-bordered > tbody > tr:last-child > td,\n.panel > .table-bordered > tfoot > tr:last-child > td,\n.panel > .table-responsive > .table-bordered > tfoot > tr:last-child > td,\n.panel > .table-bordered > tbody > tr:last-child > th,\n.panel > .table-responsive > .table-bordered > tbody > tr:last-child > th,\n.panel > .table-bordered > tfoot > tr:last-child > th,\n.panel > .table-responsive > .table-bordered > tfoot > tr:last-child > th {\n  border-bottom: 0;\n}\n.panel > .table-responsive {\n  margin-bottom: 0;\n  border: 0;\n}\n.panel-group {\n  margin-bottom: 20px;\n}\n.panel-group .panel {\n  margin-bottom: 0;\n  border-radius: 4px;\n}\n.panel-group .panel + .panel {\n  margin-top: 5px;\n}\n.panel-group .panel-heading {\n  border-bottom: 0;\n}\n.panel-group .panel-heading + .panel-collapse > .panel-body {\n  border-top: 1px solid #ddd;\n}\n.panel-group .panel-footer {\n  border-top: 0;\n}\n.panel-group .panel-footer + .panel-collapse .panel-body {\n  border-bottom: 1px solid #ddd;\n}\n.panel-default {\n  border-color: #ddd;\n}\n.panel-default > .panel-heading {\n  color: #333;\n  background-color: #f5f5f5;\n  border-color: #ddd;\n}\n.panel-default > .panel-heading + .panel-collapse > .panel-body {\n  border-top-color: #ddd;\n}\n.panel-default > .panel-heading .badge {\n  color: #f5f5f5;\n  background-color: #333;\n}\n.panel-default > .panel-footer + .panel-collapse > .panel-body {\n  border-bottom-color: #ddd;\n}\n.panel-primary {\n  border-color: #428bca;\n}\n.panel-primary > .panel-heading {\n  color: #fff;\n  background-color: #428bca;\n  border-color: #428bca;\n}\n.panel-primary > .panel-heading + .panel-collapse > .panel-body {\n  border-top-color: #428bca;\n}\n.panel-primary > .panel-heading .badge {\n  color: #428bca;\n  background-color: #fff;\n}\n.panel-primary > .panel-footer + .panel-collapse > .panel-body {\n  border-bottom-color: #428bca;\n}\n.panel-success {\n  border-color: #d6e9c6;\n}\n.panel-success > .panel-heading {\n  color: #3c763d;\n  background-color: #dff0d8;\n  border-color: #d6e9c6;\n}\n.panel-success > .panel-heading + .panel-collapse > .panel-body {\n  border-top-color: #d6e9c6;\n}\n.panel-success > .panel-heading .badge {\n  color: #dff0d8;\n  background-color: #3c763d;\n}\n.panel-success > .panel-footer + .panel-collapse > .panel-body {\n  border-bottom-color: #d6e9c6;\n}\n.panel-info {\n  border-color: #bce8f1;\n}\n.panel-info > .panel-heading {\n  color: #31708f;\n  background-color: #d9edf7;\n  border-color: #bce8f1;\n}\n.panel-info > .panel-heading + .panel-collapse > .panel-body {\n  border-top-color: #bce8f1;\n}\n.panel-info > .panel-heading .badge {\n  color: #d9edf7;\n  background-color: #31708f;\n}\n.panel-info > .panel-footer + .panel-collapse > .panel-body {\n  border-bottom-color: #bce8f1;\n}\n.panel-warning {\n  border-color: #faebcc;\n}\n.panel-warning > .panel-heading {\n  color: #8a6d3b;\n  background-color: #fcf8e3;\n  border-color: #faebcc;\n}\n.panel-warning > .panel-heading + .panel-collapse > .panel-body {\n  border-top-color: #faebcc;\n}\n.panel-warning > .panel-heading .badge {\n  color: #fcf8e3;\n  background-color: #8a6d3b;\n}\n.panel-warning > .panel-footer + .panel-collapse > .panel-body {\n  border-bottom-color: #faebcc;\n}\n.panel-danger {\n  border-color: #ebccd1;\n}\n.panel-danger > .panel-heading {\n  color: #a94442;\n  background-color: #f2dede;\n  border-color: #ebccd1;\n}\n.panel-danger > .panel-heading + .panel-collapse > .panel-body {\n  border-top-color: #ebccd1;\n}\n.panel-danger > .panel-heading .badge {\n  color: #f2dede;\n  background-color: #a94442;\n}\n.panel-danger > .panel-footer + .panel-collapse > .panel-body {\n  border-bottom-color: #ebccd1;\n}\n.embed-responsive {\n  position: relative;\n  display: block;\n  height: 0;\n  padding: 0;\n  overflow: hidden;\n}\n.embed-responsive .embed-responsive-item,\n.embed-responsive iframe,\n.embed-responsive embed,\n.embed-responsive object {\n  position: absolute;\n  top: 0;\n  bottom: 0;\n  left: 0;\n  width: 100%;\n  height: 100%;\n  border: 0;\n}\n.embed-responsive.embed-responsive-16by9 {\n  padding-bottom: 56.25%;\n}\n.embed-responsive.embed-responsive-4by3 {\n  padding-bottom: 75%;\n}\n.well {\n  min-height: 20px;\n  padding: 19px;\n  margin-bottom: 20px;\n  background-color: #f5f5f5;\n  border: 1px solid #e3e3e3;\n  border-radius: 4px;\n  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .05);\n          box-shadow: inset 0 1px 1px rgba(0, 0, 0, .05);\n}\n.well blockquote {\n  border-color: #ddd;\n  border-color: rgba(0, 0, 0, .15);\n}\n.well-lg {\n  padding: 24px;\n  border-radius: 6px;\n}\n.well-sm {\n  padding: 9px;\n  border-radius: 3px;\n}\n.close {\n  float: right;\n  font-size: 21px;\n  font-weight: bold;\n  line-height: 1;\n  color: #000;\n  text-shadow: 0 1px 0 #fff;\n  filter: alpha(opacity=20);\n  opacity: .2;\n}\n.close:hover,\n.close:focus {\n  color: #000;\n  text-decoration: none;\n  cursor: pointer;\n  filter: alpha(opacity=50);\n  opacity: .5;\n}\nbutton.close {\n  -webkit-appearance: none;\n  padding: 0;\n  cursor: pointer;\n  background: transparent;\n  border: 0;\n}\n.modal-open {\n  overflow: hidden;\n}\n.modal {\n  position: fixed;\n  top: 0;\n  right: 0;\n  bottom: 0;\n  left: 0;\n  z-index: 1050;\n  display: none;\n  overflow: hidden;\n  -webkit-overflow-scrolling: touch;\n  outline: 0;\n}\n.modal.fade .modal-dialog {\n  -webkit-transition: -webkit-transform .3s ease-out;\n       -o-transition:      -o-transform .3s ease-out;\n          transition:         transform .3s ease-out;\n  -webkit-transform: translate3d(0, -25%, 0);\n       -o-transform: translate3d(0, -25%, 0);\n          transform: translate3d(0, -25%, 0);\n}\n.modal.in .modal-dialog {\n  -webkit-transform: translate3d(0, 0, 0);\n       -o-transform: translate3d(0, 0, 0);\n          transform: translate3d(0, 0, 0);\n}\n.modal-open .modal {\n  overflow-x: hidden;\n  overflow-y: auto;\n}\n.modal-dialog {\n  position: relative;\n  width: auto;\n  margin: 10px;\n}\n.modal-content {\n  position: relative;\n  background-color: #fff;\n  -webkit-background-clip: padding-box;\n          background-clip: padding-box;\n  border: 1px solid #999;\n  border: 1px solid rgba(0, 0, 0, .2);\n  border-radius: 6px;\n  outline: 0;\n  -webkit-box-shadow: 0 3px 9px rgba(0, 0, 0, .5);\n          box-shadow: 0 3px 9px rgba(0, 0, 0, .5);\n}\n.modal-backdrop {\n  position: fixed;\n  top: 0;\n  right: 0;\n  bottom: 0;\n  left: 0;\n  z-index: 1040;\n  background-color: #000;\n}\n.modal-backdrop.fade {\n  filter: alpha(opacity=0);\n  opacity: 0;\n}\n.modal-backdrop.in {\n  filter: alpha(opacity=50);\n  opacity: .5;\n}\n.modal-header {\n  min-height: 16.42857143px;\n  padding: 15px;\n  border-bottom: 1px solid #e5e5e5;\n}\n.modal-header .close {\n  margin-top: -2px;\n}\n.modal-title {\n  margin: 0;\n  line-height: 1.42857143;\n}\n.modal-body {\n  position: relative;\n  padding: 15px;\n}\n.modal-footer {\n  padding: 15px;\n  text-align: right;\n  border-top: 1px solid #e5e5e5;\n}\n.modal-footer .btn + .btn {\n  margin-bottom: 0;\n  margin-left: 5px;\n}\n.modal-footer .btn-group .btn + .btn {\n  margin-left: -1px;\n}\n.modal-footer .btn-block + .btn-block {\n  margin-left: 0;\n}\n.modal-scrollbar-measure {\n  position: absolute;\n  top: -9999px;\n  width: 50px;\n  height: 50px;\n  overflow: scroll;\n}\n@media (min-width: 768px) {\n  .modal-dialog {\n    width: 600px;\n    margin: 30px auto;\n  }\n  .modal-content {\n    -webkit-box-shadow: 0 5px 15px rgba(0, 0, 0, .5);\n            box-shadow: 0 5px 15px rgba(0, 0, 0, .5);\n  }\n  .modal-sm {\n    width: 300px;\n  }\n}\n@media (min-width: 992px) {\n  .modal-lg {\n    width: 900px;\n  }\n}\n.tooltip {\n  position: absolute;\n  z-index: 1070;\n  display: block;\n  font-size: 12px;\n  line-height: 1.4;\n  visibility: visible;\n  filter: alpha(opacity=0);\n  opacity: 0;\n}\n.tooltip.in {\n  filter: alpha(opacity=90);\n  opacity: .9;\n}\n.tooltip.top {\n  padding: 5px 0;\n  margin-top: -3px;\n}\n.tooltip.right {\n  padding: 0 5px;\n  margin-left: 3px;\n}\n.tooltip.bottom {\n  padding: 5px 0;\n  margin-top: 3px;\n}\n.tooltip.left {\n  padding: 0 5px;\n  margin-left: -3px;\n}\n.tooltip-inner {\n  max-width: 200px;\n  padding: 3px 8px;\n  color: #fff;\n  text-align: center;\n  text-decoration: none;\n  background-color: #000;\n  border-radius: 4px;\n}\n.tooltip-arrow {\n  position: absolute;\n  width: 0;\n  height: 0;\n  border-color: transparent;\n  border-style: solid;\n}\n.tooltip.top .tooltip-arrow {\n  bottom: 0;\n  left: 50%;\n  margin-left: -5px;\n  border-width: 5px 5px 0;\n  border-top-color: #000;\n}\n.tooltip.top-left .tooltip-arrow {\n  bottom: 0;\n  left: 5px;\n  border-width: 5px 5px 0;\n  border-top-color: #000;\n}\n.tooltip.top-right .tooltip-arrow {\n  right: 5px;\n  bottom: 0;\n  border-width: 5px 5px 0;\n  border-top-color: #000;\n}\n.tooltip.right .tooltip-arrow {\n  top: 50%;\n  left: 0;\n  margin-top: -5px;\n  border-width: 5px 5px 5px 0;\n  border-right-color: #000;\n}\n.tooltip.left .tooltip-arrow {\n  top: 50%;\n  right: 0;\n  margin-top: -5px;\n  border-width: 5px 0 5px 5px;\n  border-left-color: #000;\n}\n.tooltip.bottom .tooltip-arrow {\n  top: 0;\n  left: 50%;\n  margin-left: -5px;\n  border-width: 0 5px 5px;\n  border-bottom-color: #000;\n}\n.tooltip.bottom-left .tooltip-arrow {\n  top: 0;\n  left: 5px;\n  border-width: 0 5px 5px;\n  border-bottom-color: #000;\n}\n.tooltip.bottom-right .tooltip-arrow {\n  top: 0;\n  right: 5px;\n  border-width: 0 5px 5px;\n  border-bottom-color: #000;\n}\n.popover {\n  position: absolute;\n  top: 0;\n  left: 0;\n  z-index: 1060;\n  display: none;\n  max-width: 276px;\n  padding: 1px;\n  text-align: left;\n  white-space: normal;\n  background-color: #fff;\n  -webkit-background-clip: padding-box;\n          background-clip: padding-box;\n  border: 1px solid #ccc;\n  border: 1px solid rgba(0, 0, 0, .2);\n  border-radius: 6px;\n  -webkit-box-shadow: 0 5px 10px rgba(0, 0, 0, .2);\n          box-shadow: 0 5px 10px rgba(0, 0, 0, .2);\n}\n.popover.top {\n  margin-top: -10px;\n}\n.popover.right {\n  margin-left: 10px;\n}\n.popover.bottom {\n  margin-top: 10px;\n}\n.popover.left {\n  margin-left: -10px;\n}\n.popover-title {\n  padding: 8px 14px;\n  margin: 0;\n  font-size: 14px;\n  font-weight: normal;\n  line-height: 18px;\n  background-color: #f7f7f7;\n  border-bottom: 1px solid #ebebeb;\n  border-radius: 5px 5px 0 0;\n}\n.popover-content {\n  padding: 9px 14px;\n}\n.popover > .arrow,\n.popover > .arrow:after {\n  position: absolute;\n  display: block;\n  width: 0;\n  height: 0;\n  border-color: transparent;\n  border-style: solid;\n}\n.popover > .arrow {\n  border-width: 11px;\n}\n.popover > .arrow:after {\n  content: \"\";\n  border-width: 10px;\n}\n.popover.top > .arrow {\n  bottom: -11px;\n  left: 50%;\n  margin-left: -11px;\n  border-top-color: #999;\n  border-top-color: rgba(0, 0, 0, .25);\n  border-bottom-width: 0;\n}\n.popover.top > .arrow:after {\n  bottom: 1px;\n  margin-left: -10px;\n  content: \" \";\n  border-top-color: #fff;\n  border-bottom-width: 0;\n}\n.popover.right > .arrow {\n  top: 50%;\n  left: -11px;\n  margin-top: -11px;\n  border-right-color: #999;\n  border-right-color: rgba(0, 0, 0, .25);\n  border-left-width: 0;\n}\n.popover.right > .arrow:after {\n  bottom: -10px;\n  left: 1px;\n  content: \" \";\n  border-right-color: #fff;\n  border-left-width: 0;\n}\n.popover.bottom > .arrow {\n  top: -11px;\n  left: 50%;\n  margin-left: -11px;\n  border-top-width: 0;\n  border-bottom-color: #999;\n  border-bottom-color: rgba(0, 0, 0, .25);\n}\n.popover.bottom > .arrow:after {\n  top: 1px;\n  margin-left: -10px;\n  content: \" \";\n  border-top-width: 0;\n  border-bottom-color: #fff;\n}\n.popover.left > .arrow {\n  top: 50%;\n  right: -11px;\n  margin-top: -11px;\n  border-right-width: 0;\n  border-left-color: #999;\n  border-left-color: rgba(0, 0, 0, .25);\n}\n.popover.left > .arrow:after {\n  right: 1px;\n  bottom: -10px;\n  content: \" \";\n  border-right-width: 0;\n  border-left-color: #fff;\n}\n.carousel {\n  position: relative;\n}\n.carousel-inner {\n  position: relative;\n  width: 100%;\n  overflow: hidden;\n}\n.carousel-inner > .item {\n  position: relative;\n  display: none;\n  -webkit-transition: .6s ease-in-out left;\n       -o-transition: .6s ease-in-out left;\n          transition: .6s ease-in-out left;\n}\n.carousel-inner > .item > img,\n.carousel-inner > .item > a > img {\n  line-height: 1;\n}\n.carousel-inner > .active,\n.carousel-inner > .next,\n.carousel-inner > .prev {\n  display: block;\n}\n.carousel-inner > .active {\n  left: 0;\n}\n.carousel-inner > .next,\n.carousel-inner > .prev {\n  position: absolute;\n  top: 0;\n  width: 100%;\n}\n.carousel-inner > .next {\n  left: 100%;\n}\n.carousel-inner > .prev {\n  left: -100%;\n}\n.carousel-inner > .next.left,\n.carousel-inner > .prev.right {\n  left: 0;\n}\n.carousel-inner > .active.left {\n  left: -100%;\n}\n.carousel-inner > .active.right {\n  left: 100%;\n}\n.carousel-control {\n  position: absolute;\n  top: 0;\n  bottom: 0;\n  left: 0;\n  width: 15%;\n  font-size: 20px;\n  color: #fff;\n  text-align: center;\n  text-shadow: 0 1px 2px rgba(0, 0, 0, .6);\n  filter: alpha(opacity=50);\n  opacity: .5;\n}\n.carousel-control.left {\n  background-image: -webkit-linear-gradient(left, rgba(0, 0, 0, .5) 0%, rgba(0, 0, 0, .0001) 100%);\n  background-image:      -o-linear-gradient(left, rgba(0, 0, 0, .5) 0%, rgba(0, 0, 0, .0001) 100%);\n  background-image: -webkit-gradient(linear, left top, right top, from(rgba(0, 0, 0, .5)), to(rgba(0, 0, 0, .0001)));\n  background-image:         linear-gradient(to right, rgba(0, 0, 0, .5) 0%, rgba(0, 0, 0, .0001) 100%);\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#80000000', endColorstr='#00000000', GradientType=1);\n  background-repeat: repeat-x;\n}\n.carousel-control.right {\n  right: 0;\n  left: auto;\n  background-image: -webkit-linear-gradient(left, rgba(0, 0, 0, .0001) 0%, rgba(0, 0, 0, .5) 100%);\n  background-image:      -o-linear-gradient(left, rgba(0, 0, 0, .0001) 0%, rgba(0, 0, 0, .5) 100%);\n  background-image: -webkit-gradient(linear, left top, right top, from(rgba(0, 0, 0, .0001)), to(rgba(0, 0, 0, .5)));\n  background-image:         linear-gradient(to right, rgba(0, 0, 0, .0001) 0%, rgba(0, 0, 0, .5) 100%);\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#00000000', endColorstr='#80000000', GradientType=1);\n  background-repeat: repeat-x;\n}\n.carousel-control:hover,\n.carousel-control:focus {\n  color: #fff;\n  text-decoration: none;\n  filter: alpha(opacity=90);\n  outline: 0;\n  opacity: .9;\n}\n.carousel-control .icon-prev,\n.carousel-control .icon-next,\n.carousel-control .glyphicon-chevron-left,\n.carousel-control .glyphicon-chevron-right {\n  position: absolute;\n  top: 50%;\n  z-index: 5;\n  display: inline-block;\n}\n.carousel-control .icon-prev,\n.carousel-control .glyphicon-chevron-left {\n  left: 50%;\n  margin-left: -10px;\n}\n.carousel-control .icon-next,\n.carousel-control .glyphicon-chevron-right {\n  right: 50%;\n  margin-right: -10px;\n}\n.carousel-control .icon-prev,\n.carousel-control .icon-next {\n  width: 20px;\n  height: 20px;\n  margin-top: -10px;\n  font-family: serif;\n}\n.carousel-control .icon-prev:before {\n  content: '\\2039';\n}\n.carousel-control .icon-next:before {\n  content: '\\203a';\n}\n.carousel-indicators {\n  position: absolute;\n  bottom: 10px;\n  left: 50%;\n  z-index: 15;\n  width: 60%;\n  padding-left: 0;\n  margin-left: -30%;\n  text-align: center;\n  list-style: none;\n}\n.carousel-indicators li {\n  display: inline-block;\n  width: 10px;\n  height: 10px;\n  margin: 1px;\n  text-indent: -999px;\n  cursor: pointer;\n  background-color: #000 \\9;\n  background-color: rgba(0, 0, 0, 0);\n  border: 1px solid #fff;\n  border-radius: 10px;\n}\n.carousel-indicators .active {\n  width: 12px;\n  height: 12px;\n  margin: 0;\n  background-color: #fff;\n}\n.carousel-caption {\n  position: absolute;\n  right: 15%;\n  bottom: 20px;\n  left: 15%;\n  z-index: 10;\n  padding-top: 20px;\n  padding-bottom: 20px;\n  color: #fff;\n  text-align: center;\n  text-shadow: 0 1px 2px rgba(0, 0, 0, .6);\n}\n.carousel-caption .btn {\n  text-shadow: none;\n}\n@media screen and (min-width: 768px) {\n  .carousel-control .glyphicon-chevron-left,\n  .carousel-control .glyphicon-chevron-right,\n  .carousel-control .icon-prev,\n  .carousel-control .icon-next {\n    width: 30px;\n    height: 30px;\n    margin-top: -15px;\n    font-size: 30px;\n  }\n  .carousel-control .glyphicon-chevron-left,\n  .carousel-control .icon-prev {\n    margin-left: -15px;\n  }\n  .carousel-control .glyphicon-chevron-right,\n  .carousel-control .icon-next {\n    margin-right: -15px;\n  }\n  .carousel-caption {\n    right: 20%;\n    left: 20%;\n    padding-bottom: 30px;\n  }\n  .carousel-indicators {\n    bottom: 20px;\n  }\n}\n.clearfix:before,\n.clearfix:after,\n.dl-horizontal dd:before,\n.dl-horizontal dd:after,\n.container:before,\n.container:after,\n.container-fluid:before,\n.container-fluid:after,\n.row:before,\n.row:after,\n.form-horizontal .form-group:before,\n.form-horizontal .form-group:after,\n.btn-toolbar:before,\n.btn-toolbar:after,\n.btn-group-vertical > .btn-group:before,\n.btn-group-vertical > .btn-group:after,\n.nav:before,\n.nav:after,\n.navbar:before,\n.navbar:after,\n.navbar-header:before,\n.navbar-header:after,\n.navbar-collapse:before,\n.navbar-collapse:after,\n.pager:before,\n.pager:after,\n.panel-body:before,\n.panel-body:after,\n.modal-footer:before,\n.modal-footer:after {\n  display: table;\n  content: \" \";\n}\n.clearfix:after,\n.dl-horizontal dd:after,\n.container:after,\n.container-fluid:after,\n.row:after,\n.form-horizontal .form-group:after,\n.btn-toolbar:after,\n.btn-group-vertical > .btn-group:after,\n.nav:after,\n.navbar:after,\n.navbar-header:after,\n.navbar-collapse:after,\n.pager:after,\n.panel-body:after,\n.modal-footer:after {\n  clear: both;\n}\n.center-block {\n  display: block;\n  margin-right: auto;\n  margin-left: auto;\n}\n.pull-right {\n  float: right !important;\n}\n.pull-left {\n  float: left !important;\n}\n.hide {\n  display: none !important;\n}\n.show {\n  display: block !important;\n}\n.invisible {\n  visibility: hidden;\n}\n.text-hide {\n  font: 0/0 a;\n  color: transparent;\n  text-shadow: none;\n  background-color: transparent;\n  border: 0;\n}\n.hidden {\n  display: none !important;\n  visibility: hidden !important;\n}\n.affix {\n  position: fixed;\n  -webkit-transform: translate3d(0, 0, 0);\n       -o-transform: translate3d(0, 0, 0);\n          transform: translate3d(0, 0, 0);\n}\n@-ms-viewport {\n  width: device-width;\n}\n.visible-xs,\n.visible-sm,\n.visible-md,\n.visible-lg {\n  display: none !important;\n}\n.visible-xs-block,\n.visible-xs-inline,\n.visible-xs-inline-block,\n.visible-sm-block,\n.visible-sm-inline,\n.visible-sm-inline-block,\n.visible-md-block,\n.visible-md-inline,\n.visible-md-inline-block,\n.visible-lg-block,\n.visible-lg-inline,\n.visible-lg-inline-block {\n  display: none !important;\n}\n@media (max-width: 767px) {\n  .visible-xs {\n    display: block !important;\n  }\n  table.visible-xs {\n    display: table;\n  }\n  tr.visible-xs {\n    display: table-row !important;\n  }\n  th.visible-xs,\n  td.visible-xs {\n    display: table-cell !important;\n  }\n}\n@media (max-width: 767px) {\n  .visible-xs-block {\n    display: block !important;\n  }\n}\n@media (max-width: 767px) {\n  .visible-xs-inline {\n    display: inline !important;\n  }\n}\n@media (max-width: 767px) {\n  .visible-xs-inline-block {\n    display: inline-block !important;\n  }\n}\n@media (min-width: 768px) and (max-width: 991px) {\n  .visible-sm {\n    display: block !important;\n  }\n  table.visible-sm {\n    display: table;\n  }\n  tr.visible-sm {\n    display: table-row !important;\n  }\n  th.visible-sm,\n  td.visible-sm {\n    display: table-cell !important;\n  }\n}\n@media (min-width: 768px) and (max-width: 991px) {\n  .visible-sm-block {\n    display: block !important;\n  }\n}\n@media (min-width: 768px) and (max-width: 991px) {\n  .visible-sm-inline {\n    display: inline !important;\n  }\n}\n@media (min-width: 768px) and (max-width: 991px) {\n  .visible-sm-inline-block {\n    display: inline-block !important;\n  }\n}\n@media (min-width: 992px) and (max-width: 1199px) {\n  .visible-md {\n    display: block !important;\n  }\n  table.visible-md {\n    display: table;\n  }\n  tr.visible-md {\n    display: table-row !important;\n  }\n  th.visible-md,\n  td.visible-md {\n    display: table-cell !important;\n  }\n}\n@media (min-width: 992px) and (max-width: 1199px) {\n  .visible-md-block {\n    display: block !important;\n  }\n}\n@media (min-width: 992px) and (max-width: 1199px) {\n  .visible-md-inline {\n    display: inline !important;\n  }\n}\n@media (min-width: 992px) and (max-width: 1199px) {\n  .visible-md-inline-block {\n    display: inline-block !important;\n  }\n}\n@media (min-width: 1200px) {\n  .visible-lg {\n    display: block !important;\n  }\n  table.visible-lg {\n    display: table;\n  }\n  tr.visible-lg {\n    display: table-row !important;\n  }\n  th.visible-lg,\n  td.visible-lg {\n    display: table-cell !important;\n  }\n}\n@media (min-width: 1200px) {\n  .visible-lg-block {\n    display: block !important;\n  }\n}\n@media (min-width: 1200px) {\n  .visible-lg-inline {\n    display: inline !important;\n  }\n}\n@media (min-width: 1200px) {\n  .visible-lg-inline-block {\n    display: inline-block !important;\n  }\n}\n@media (max-width: 767px) {\n  .hidden-xs {\n    display: none !important;\n  }\n}\n@media (min-width: 768px) and (max-width: 991px) {\n  .hidden-sm {\n    display: none !important;\n  }\n}\n@media (min-width: 992px) and (max-width: 1199px) {\n  .hidden-md {\n    display: none !important;\n  }\n}\n@media (min-width: 1200px) {\n  .hidden-lg {\n    display: none !important;\n  }\n}\n.visible-print {\n  display: none !important;\n}\n@media print {\n  .visible-print {\n    display: block !important;\n  }\n  table.visible-print {\n    display: table;\n  }\n  tr.visible-print {\n    display: table-row !important;\n  }\n  th.visible-print,\n  td.visible-print {\n    display: table-cell !important;\n  }\n}\n.visible-print-block {\n  display: none !important;\n}\n@media print {\n  .visible-print-block {\n    display: block !important;\n  }\n}\n.visible-print-inline {\n  display: none !important;\n}\n@media print {\n  .visible-print-inline {\n    display: inline !important;\n  }\n}\n.visible-print-inline-block {\n  display: none !important;\n}\n@media print {\n  .visible-print-inline-block {\n    display: inline-block !important;\n  }\n}\n@media print {\n  .hidden-print {\n    display: none !important;\n  }\n}\n/*# sourceMappingURL=bootstrap.css.map */\n", ""]);
 
 /***/ },
@@ -13749,7 +13749,7 @@
 	var content = __webpack_require__(26);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(30)(content);
+	var update = __webpack_require__(31)(content);
 	// Hot Module Replacement
 	if(false) {
 		// When the styles change, update the <style> tags
@@ -13766,7 +13766,7 @@
 /* 26 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(49)();
+	exports = module.exports = __webpack_require__(50)();
 	exports.push([module.id, "/*!\n * Fuel UX v3.0.1 \n * Copyright 2012-2014 ExactTarget\n * Licensed under the BSD-3-Clause license ()\n */\n\n.fuelux {\n  \n}@charset \"UTF-8\";\n.fuelux .clearfix {\n  *zoom: 1;\n}\n.fuelux .clearfix:before,\n.fuelux .clearfix:after {\n  display: table;\n  content: \"\";\n  line-height: 0;\n}\n.fuelux .clearfix:after {\n  clear: both;\n}\n@font-face {\n  font-family: \"fuelux\";\n  src: url("+__webpack_require__(69)+");\n  src: url("+__webpack_require__(69)+"?#iefix) format(\"embedded-opentype\"), url("+__webpack_require__(70)+") format(\"woff\"), url("+__webpack_require__(71)+") format(\"truetype\"), url("+__webpack_require__(72)+"#fuelux) format(\"svg\");\n  font-weight: normal;\n  font-style: normal;\n}\n.fuelux [class^=\"fueluxicon-\"]:before,\n.fuelux [class*=\" fueluxicon-\"]:before {\n  font-family: \"fuelux\" !important;\n  font-style: normal !important;\n  font-weight: normal !important;\n  font-variant: normal !important;\n  text-transform: none !important;\n  line-height: 1;\n  speak: none;\n  -webkit-font-smoothing: antialiased;\n  -moz-osx-font-smoothing: grayscale;\n}\n.fuelux .fueluxicon-loader-full:before {\n  content: \"\\e000\";\n}\n.fuelux .fueluxicon-loader-1:before {\n  content: \"\\e001\";\n}\n.fuelux .fueluxicon-loader-2:before {\n  content: \"\\e002\";\n}\n.fuelux .fueluxicon-loader-3:before {\n  content: \"\\e003\";\n}\n.fuelux .fueluxicon-loader-4:before {\n  content: \"\\e004\";\n}\n.fuelux .fueluxicon-loader-5:before {\n  content: \"\\e005\";\n}\n.fuelux .fueluxicon-loader-6:before {\n  content: \"\\e006\";\n}\n.fuelux .fueluxicon-loader-7:before {\n  content: \"\\e007\";\n}\n.fuelux .fueluxicon-loader-8:before {\n  content: \"\\e008\";\n}\n.fuelux .fueluxicon-bullet:before {\n  content: \"\\e009\";\n}\n.fuelux .checkbox {\n  /* for keyboard tabbing */\n}\n.fuelux .checkbox.highlight {\n  padding: 4px;\n}\n.fuelux .checkbox.highlight.checked {\n  background: #e9e9e9;\n  border-radius: 4px;\n}\n.fuelux .checkbox input[type=\"checkbox\"]:focus + .checkbox-label,\n.fuelux .checkbox input[type=\"checkbox\"]:hover + .checkbox-label,\n.fuelux .checkbox .checkbox-label:hover {\n  color: #999999;\n}\n.fuelux .checkbox-custom {\n  position: relative;\n  /* for keyboard tabbing */\n}\n.fuelux .checkbox-custom:before {\n  font-family: \"Glyphicons Halflings\" !important;\n  font-style: normal !important;\n  font-weight: normal !important;\n  font-variant: normal !important;\n  text-transform: none !important;\n  line-height: 1;\n  speak: none;\n  -webkit-font-smoothing: antialiased;\n  -moz-osx-font-smoothing: grayscale;\n  border: 1px solid #adadad;\n  border-radius: 4px;\n  color: #fff;\n  content: \" \";\n  font-size: 9px;\n  height: 14px;\n  left: 0px;\n  padding: 1px 0 0 1px;\n  position: absolute;\n  top: 3px;\n  width: 14px;\n}\n.fuelux .checkbox-custom.checked:before {\n  background: #39b3d7;\n  border-color: #39b3d7;\n  content: \"\\e013\";\n}\n.fuelux .checkbox-custom.disabled {\n  cursor: not-allowed;\n}\n.fuelux .checkbox-custom.disabled:before {\n  cursor: not-allowed;\n  opacity: .5;\n}\n.fuelux .checkbox-custom.checkbox-inline:before {\n  left: 0;\n  top: 3px;\n}\n.fuelux .checkbox-custom.checkbox-inline.highlight {\n  padding: 4px 4px 4px 24px;\n}\n.fuelux .checkbox-custom.checkbox-inline.highlight:before {\n  left: 4px;\n  top: 7px;\n}\n.fuelux .checkbox-custom.checkbox-inline.highlight.checked {\n  background: #e9e9e9;\n  border-radius: 4px;\n}\n.fuelux .checkbox-custom input[type=\"checkbox\"]:focus + .checkbox-label {\n  color: #999999;\n}\n.fuelux .combobox.disabled .input-group-btn {\n  cursor: not-allowed;\n}\n.fuelux .datepicker-calendar {\n  padding: 16px 16px 0;\n  min-height: 262px;\n}\n.fuelux .datepicker-calendar button {\n  border: 0;\n  padding: 0;\n  background-color: transparent;\n}\n.fuelux .datepicker-calendar-days {\n  height: 182px;\n  margin: 10px 0 12px;\n  width: 100%;\n  /* for spacing */\n}\n.fuelux .datepicker-calendar-days thead {\n  border-bottom: 1px solid #cccaca;\n}\n.fuelux .datepicker-calendar-days tbody:before {\n  line-height: 3px;\n  content: \"\\200C\";\n  display: block;\n}\n.fuelux .datepicker-calendar-days td,\n.fuelux .datepicker-calendar-days th {\n  font-size: 14px;\n  height: 32px;\n  text-align: center;\n  vertical-align: middle;\n  width: 14.29%;\n}\n.fuelux .datepicker-calendar-days td button {\n  color: #231f20;\n  display: inline-block;\n  height: 30px;\n  text-decoration: none;\n  width: 30px;\n}\n.fuelux .datepicker-calendar-days td span {\n  display: block;\n}\n.fuelux .datepicker-calendar-days td span:hover {\n  background: #b7e3f8;\n  text-decoration: none;\n}\n.fuelux .datepicker-calendar-days td.current-day button {\n  border: 1px solid #1d75bb;\n}\n.fuelux .datepicker-calendar-days td.last-month,\n.fuelux .datepicker-calendar-days td.next-month {\n  background: #e3e2e1;\n}\n.fuelux .datepicker-calendar-days td.past button {\n  color: #8d8787;\n}\n.fuelux .datepicker-calendar-days td.restricted button {\n  cursor: no-drop;\n  position: relative;\n}\n.fuelux .datepicker-calendar-days td.restricted button:before {\n  border-top: 1px solid #a94442;\n  bottom: 0;\n  content: \" \";\n  display: block;\n  left: 5px;\n  position: absolute;\n  right: 5px;\n  top: 50%;\n}\n.fuelux .datepicker-calendar-days td.restricted button:hover {\n  background: none;\n}\n.fuelux .datepicker-calendar-days td.selected span {\n  background: #1d75bb;\n}\n.fuelux .datepicker-calendar-days td.selected span:hover {\n  background: #0f5f9f;\n}\n.fuelux .datepicker-calendar-days td.selected button {\n  color: #fff;\n}\n.fuelux .datepicker-calendar-days td.selected.current-day {\n  box-shadow: 0 0 0 1px #fff offset;\n}\n.fuelux .datepicker-calendar-days th {\n  font-weight: bold;\n  height: 22px;\n  vertical-align: top;\n}\n.fuelux .datepicker-calendar-header {\n  *zoom: 1;\n}\n.fuelux .datepicker-calendar-header:before,\n.fuelux .datepicker-calendar-header:after {\n  display: table;\n  content: \"\";\n  line-height: 0;\n}\n.fuelux .datepicker-calendar-header:after {\n  clear: both;\n}\n.fuelux .datepicker-calendar-header button {\n  border: 0;\n  padding: 0;\n  background-color: transparent;\n}\n.fuelux .datepicker-calendar-header .title {\n  margin: 0 auto;\n  text-align: center;\n  display: block;\n  width: 174px;\n  color: #4d4d4f;\n  font-size: 20px;\n  line-height: 30px;\n  text-decoration: underline;\n  vertical-align: middle;\n}\n.fuelux .datepicker-calendar-header .title:hover {\n  color: #1d75bb;\n  text-decoration: underline;\n}\n.fuelux .datepicker-calendar-header .title.disabled {\n  cursor: default;\n  pointer-events: none;\n  text-decoration: none;\n}\n.fuelux .datepicker-calendar-header .title .month {\n  display: inline;\n  margin: 0;\n  padding: 0;\n}\n.fuelux .datepicker-calendar-header .title .month span {\n  display: none;\n}\n.fuelux .datepicker-calendar-header .title .month span.current {\n  display: inline;\n}\n.fuelux .datepicker-calendar-header .next,\n.fuelux .datepicker-calendar-header .prev {\n  background: #666669;\n  background-clip: padding-box;\n  border-radius: 30px;\n  cursor: pointer;\n  float: left;\n  height: 30px;\n  text-align: center;\n  width: 30px;\n}\n.fuelux .datepicker-calendar-header .next span.glyphicon,\n.fuelux .datepicker-calendar-header .prev span.glyphicon {\n  color: #fff;\n  font-size: 16px;\n  line-height: 30px;\n}\n.fuelux .datepicker-calendar-header .next:hover,\n.fuelux .datepicker-calendar-header .prev:hover {\n  background: #1d75bb;\n}\n.fuelux .datepicker-calendar-header .next {\n  float: right;\n}\n.fuelux .datepicker-calendar-header .next span.glyphicon {\n  line-height: 28px;\n}\n.fuelux .datepicker-calendar-footer {\n  background: #e3e2e1;\n  background-clip: padding-box;\n  border-radius: 0 0 4px 4px;\n  border-top: 1px solid #cccaca;\n  height: 30px;\n  margin: 0 -16px;\n  padding: 4px 14px;\n}\n.fuelux .datepicker-calendar-footer .datepicker-today {\n  color: #231f20;\n  font-size: 14px;\n  text-decoration: underline;\n}\n.fuelux .datepicker-calendar-footer .datepicker-today:hover {\n  color: #1b75bb;\n  text-decoration: underline;\n}\n.fuelux .datepicker-calendar-footer .datepicker-today.disabled {\n  color: #8b8c8e;\n  cursor: default;\n  pointer-events: none;\n}\n.fuelux .datepicker-calendar-footer .datepicker-today.disabled:hover {\n  color: #8b8c8e;\n}\n.fuelux .datepicker-calendar-wrapper {\n  border: 1px solid #6e6f71;\n  min-height: 20px;\n  padding: 0;\n  width: 300px;\n}\n.fuelux .datepicker-wheels {\n  display: none;\n}\n.fuelux .datepicker-wheels ul button {\n  border: 0;\n  padding: 0;\n  background-color: transparent;\n}\n.fuelux .datepicker-wheels-footer {\n  background: #e3e2e1;\n  border-radius: 0 0 4px 4px;\n  border-top: 1px solid #cccaca;\n  clear: both;\n}\n.fuelux .datepicker-wheels-footer .datepicker-wheels-back {\n  display: block;\n  color: #4d4d4f;\n  float: left;\n  line-height: 22px;\n  border: 0;\n  background-color: transparent;\n}\n.fuelux .datepicker-wheels-footer .datepicker-wheels-back:hover {\n  color: #1d75bb;\n}\n.fuelux .datepicker-wheels-footer .datepicker-wheels-select {\n  float: right;\n  background-color: transparent;\n  color: #049cdb;\n}\n.fuelux .datepicker-wheels-footer .datepicker-wheels-select:hover {\n  color: #1d75bb;\n}\n.fuelux .datepicker-wheels-month,\n.fuelux .datepicker-wheels-year {\n  float: left;\n  width: 50%;\n}\n.fuelux .datepicker-wheels-month ul,\n.fuelux .datepicker-wheels-year ul {\n  height: 217px;\n  list-style-type: none;\n  margin: 0;\n  overflow: auto;\n  padding: 0;\n  text-align: center;\n}\n.fuelux .datepicker-wheels-month ul li,\n.fuelux .datepicker-wheels-year ul li {\n  margin: 4px 0;\n}\n.fuelux .datepicker-wheels-month ul li button,\n.fuelux .datepicker-wheels-year ul li button {\n  width: 100%;\n  text-align: center;\n  color: #414041;\n  display: block;\n  font-size: 16px;\n  line-height: 24px;\n  text-decoration: none;\n}\n.fuelux .datepicker-wheels-month ul li button:hover,\n.fuelux .datepicker-wheels-year ul li button:hover {\n  background: #aee0f8;\n  text-decoration: none;\n}\n.fuelux .datepicker-wheels-month ul li.selected button,\n.fuelux .datepicker-wheels-year ul li.selected button {\n  background: #1d75bb;\n  color: #fff;\n}\n.fuelux .datepicker-wheels-month ul li.selected button:hover,\n.fuelux .datepicker-wheels-year ul li.selected button:hover {\n  background: #0f5f9f;\n}\n.fuelux .datepicker-wheels-month .header,\n.fuelux .datepicker-wheels-year .header {\n  background: #e3e2e1;\n  background-clip: padding-box;\n  border-bottom: 1px solid #cccaca;\n  border-radius: 4px 0 0 0;\n  color: #4d4d4f;\n  font-size: 20px;\n  font-weight: bold;\n  line-height: 30px;\n  margin-top: 0;\n  margin-bottom: 0;\n  text-align: center;\n}\n.fuelux .datepicker-wheels-month.full,\n.fuelux .datepicker-wheels-year.full {\n  border-left: 0;\n  width: 100%;\n}\n.fuelux .datepicker-wheels-month.full .header,\n.fuelux .datepicker-wheels-year.full .header {\n  border-radius: 4px 4px 0 0;\n}\n.fuelux .datepicker-wheels-year {\n  border-left: 1px solid #cccaca;\n  float: right;\n}\n.fuelux .datepicker-wheels-year .header {\n  border-radius: 0 4px 0 0;\n}\n.fuelux .infinitescroll {\n  overflow-y: auto;\n}\n.fuelux .infinitescroll .infinitescroll-end {\n  clear: both;\n  font-style: italic;\n  padding: 6px;\n  text-align: center;\n}\n.fuelux .infinitescroll .infinitescroll-load {\n  clear: both;\n  padding: 6px;\n}\n.fuelux .infinitescroll .infinitescroll-load button {\n  padding: 5px 12px;\n  width: 100%;\n}\n.fuelux .infinitescroll .infinitescroll-load .loader {\n  font-size: 32px;\n  height: 32px;\n  margin: 0 auto;\n  width: 32px;\n}\n.fuelux .dropUp {\n  -webkit-box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);\n  -moz-box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);\n  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);\n}\n.fuelux .loader {\n  height: 64px;\n  font-size: 64px;\n  position: relative;\n  width: 64px;\n}\n.fuelux .loader:after,\n.fuelux .loader:before {\n  font-family: \"fuelux\" !important;\n  font-style: normal !important;\n  font-weight: normal !important;\n  font-variant: normal !important;\n  text-transform: none !important;\n  line-height: 1;\n  speak: none;\n  -webkit-font-smoothing: antialiased;\n  -moz-osx-font-smoothing: grayscale;\n  bottom: 0;\n  display: block;\n  left: 0;\n  position: absolute;\n  right: 0;\n  top: 0;\n}\n.fuelux .loader:before {\n  content: '\\e000';\n  opacity: 0.33;\n}\n.fuelux .loader.iefix:before {\n  color: #bcbcbc;\n  opacity: 1;\n}\n.fuelux .loader[data-frame=\"1\"]:after {\n  content: '\\e001';\n}\n.fuelux .loader[data-frame=\"2\"]:after {\n  content: '\\e002';\n}\n.fuelux .loader[data-frame=\"3\"]:after {\n  content: '\\e003';\n}\n.fuelux .loader[data-frame=\"4\"]:after {\n  content: '\\e004';\n}\n.fuelux .loader[data-frame=\"5\"]:after {\n  content: '\\e005';\n}\n.fuelux .loader[data-frame=\"6\"]:after {\n  content: '\\e006';\n}\n.fuelux .loader[data-frame=\"7\"]:after {\n  content: '\\e007';\n}\n.fuelux .loader[data-frame=\"8\"]:after {\n  content: '\\e008';\n}\n.fuelux input.glass,\n.fuelux textarea.glass {\n  background: transparent;\n  border: 1px solid #fff;\n  box-shadow: none;\n}\n.fuelux input.glass:hover,\n.fuelux textarea.glass:hover {\n  background: #d9edf7;\n  border-color: #66afe9;\n  cursor: pointer;\n}\n.fuelux input.glass:hover[disabled],\n.fuelux textarea.glass:hover[disabled] {\n  background: transparent;\n  border-color: #fff;\n  cursor: not-allowed;\n}\n.fuelux input.glass:focus,\n.fuelux textarea.glass:focus {\n  background: #fff;\n  border-color: #66afe9;\n  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(102, 175, 233, 0.6);\n  cursor: auto;\n}\n.fuelux input.glass:focus[disabled],\n.fuelux textarea.glass:focus[disabled] {\n  background: transparent;\n  border-color: #fff;\n  cursor: not-allowed;\n}\n.fuelux input.glass[disabled],\n.fuelux textarea.glass[disabled] {\n  cursor: not-allowed;\n}\n.fuelux [data-toggle=\"buttons\"] > .btn > input[type=\"radio\"],\n.fuelux [data-toggle=\"buttons\"] > .btn > input[type=\"checkbox\"] {\n  display: inline;\n  position: absolute;\n  left: -9999px;\n}\n.fuelux .pillbox {\n  border: 1px solid #BBBBBB;\n  border-radius: 4px;\n  cursor: text;\n  padding: 3px;\n}\n.fuelux .pillbox[data-readonly] {\n  border: 1px solid transparent;\n}\n.fuelux .pillbox[data-readonly].truncate .pillbox-input-wrap {\n  display: inline-block;\n}\n.fuelux .pillbox[data-readonly].truncate .pillbox-input-wrap.truncated {\n  display: none;\n}\n.fuelux .pillbox[data-readonly].truncate .pillbox-more {\n  display: inline;\n}\n.fuelux .pillbox[data-readonly] .pill span.glyphicon-close {\n  display: none;\n}\n.fuelux .pillbox[data-readonly] .pillbox-add-item {\n  display: none;\n}\n.fuelux .pillbox[data-readonly] .pillbox-input-wrap {\n  display: none;\n}\n.fuelux .pillbox[data-readonly] .pillbox-input-wrap button.dropdown-toggle {\n  display: none;\n}\n.fuelux .pillbox.pills-editable .pill-group .pill span {\n  cursor: text;\n}\n.fuelux .pillbox.pills-editable .pill-group .pill span.glyphicon-close {\n  cursor: pointer;\n}\n.fuelux .pillbox > .pill-group {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n}\n.fuelux .pillbox > .pill-group > .pill {\n  margin: 2px;\n  cursor: default;\n  float: left;\n  word-break: break-all;\n}\n.fuelux .pillbox > .pill-group > .pill.pillbox-highlight {\n  outline: 1px dotted #999999;\n}\n.fuelux .pillbox > .pill-group > .pill.truncated {\n  display: none;\n}\n.fuelux .pillbox > .pill-group > .pill .pillbox-list-edit {\n  border: none;\n  color: #333333;\n  font-weight: normal;\n  border-radius: 2px;\n}\n.fuelux .pillbox > .pill-group > .pill .pillbox-list-edit:focus {\n  outline: none;\n  border: none;\n}\n.fuelux .pillbox > .pill-group > .pill .glyphicon-close {\n  cursor: pointer;\n  top: -1px;\n  left: 2px;\n}\n.fuelux .pillbox > .pill-group > .pill .glyphicon-close:before {\n  content: \" \\00d7\";\n}\n.fuelux .pillbox > .pill-group > .pill .glyphicon-close:hover {\n  opacity: .4;\n}\n.fuelux .pillbox .pillbox-input-wrap {\n  position: relative;\n  margin: 4px 0 3px 3px;\n  float: left;\n}\n.fuelux .pillbox .pillbox-input-wrap.editing {\n  border: 1px solid #ccc;\n  border-radius: 4px;\n  margin: 2px 0 3px 3px;\n}\n.fuelux .pillbox .pillbox-input-wrap.editing input.pillbox-add-item {\n  border-radius: 4px;\n  color: #333;\n  height: 32px;\n}\n.fuelux .pillbox .pillbox-add-item {\n  border: none;\n  box-shadow: none;\n}\n.fuelux .pillbox .pillbox-add-item:focus {\n  outline: none;\n  border: none;\n}\n.fuelux .pillbox .pillbox-more {\n  cursor: pointer;\n  display: none;\n  line-height: 30px;\n}\n.fuelux .pillbox .suggest {\n  max-height: 166px;\n  overflow-y: auto;\n}\n.fuelux .pillbox .suggest > li {\n  white-space: nowrap;\n  cursor: pointer;\n  padding: 3px 20px;\n}\n.fuelux .pillbox .suggest > li.pillbox-suggest-sel {\n  background-color: #eeeeee;\n}\n.fuelux .pillbox .suggest > li:hover {\n  background-color: #eeeeee;\n}\n.fuelux .placard {\n  display: inline-block;\n  position: relative;\n}\n.fuelux .placard[data-ellipsis=\"true\"].showing input.placard-field {\n  overflow: visible;\n  text-overflow: clip;\n  white-space: normal;\n}\n.fuelux .placard[data-ellipsis=\"true\"] input.placard-field {\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n.fuelux .placard[data-ellipsis=\"true\"] textarea.placard-field[readonly] {\n  overflow: hidden;\n}\n.fuelux .placard.showing .placard-footer,\n.fuelux .placard.showing .placard-header,\n.fuelux .placard.showing .placard-popup {\n  display: block;\n  z-index: 1;\n}\n.fuelux .placard.showing input.placard-field,\n.fuelux .placard.showing textarea.placard-field {\n  background: #fff;\n  border: 1px solid #CCCCCC;\n  box-shadow: none;\n  position: relative;\n  z-index: 1;\n}\n.fuelux .placard input.placard-field,\n.fuelux .placard textarea.placard-field {\n  resize: none;\n}\n.fuelux .placard input.placard-field[readonly],\n.fuelux .placard textarea.placard-field[readonly] {\n  background: #fff;\n  cursor: auto;\n}\n.fuelux .placard input.placard-field[readonly].glass,\n.fuelux .placard textarea.placard-field[readonly].glass {\n  background: none;\n}\n.fuelux .placard input.placard-field[readonly].glass:hover,\n.fuelux .placard textarea.placard-field[readonly].glass:hover {\n  background: #d9edf7;\n  cursor: pointer;\n}\n.fuelux .placard input.placard-field:focus,\n.fuelux .placard textarea.placard-field:focus {\n  border: 1px solid #CCCCCC;\n  box-shadow: none;\n}\n.fuelux .placard-cancel {\n  font-size: 12px;\n  margin-right: 4px;\n  vertical-align: middle;\n}\n.fuelux .placard-footer,\n.fuelux .placard-header {\n  display: none;\n  left: 0;\n  line-height: 1;\n  position: absolute;\n  right: 0;\n}\n.fuelux .placard-footer {\n  padding: 4px 0 8px 0;\n  text-align: right;\n  top: 100%;\n}\n.fuelux .placard-header {\n  bottom: 100%;\n  padding: 8px 0 4px 0;\n}\n.fuelux .placard-header h1,\n.fuelux .placard-header h2,\n.fuelux .placard-header h3,\n.fuelux .placard-header h4,\n.fuelux .placard-header h5,\n.fuelux .placard-header h6 {\n  margin: 0;\n}\n.fuelux .placard-popup {\n  background: #d9edf7;\n  background-clip: padding-box;\n  border: 1px solid #ccc;\n  border-radius: 4px;\n  bottom: -8px;\n  box-shadow: 0 0 0 1px #fff inset;\n  display: none;\n  left: -8px;\n  position: absolute;\n  right: -8px;\n  top: -8px;\n}\n.fuelux .radio {\n  /* for keyboard tabbing */\n}\n.fuelux .radio.highlight {\n  padding: 4px;\n}\n.fuelux .radio.highlight.checked {\n  background: #e9e9e9;\n  border-radius: 4px;\n}\n.fuelux .radio input[type=\"radio\"]:focus + .radio-label,\n.fuelux .radio input[type=\"radio\"]:hover + .radio-label,\n.fuelux .radio .radio-label:hover {\n  color: #999999;\n}\n.fuelux .radio-custom {\n  position: relative;\n  /* for keyboard tabbing */\n}\n.fuelux .radio-custom:after {\n  background: transparent;\n  border-radius: 6px;\n  content: \" \";\n  height: 6px;\n  left: 4px;\n  position: absolute;\n  top: 7px;\n  width: 6px;\n}\n.fuelux .radio-custom:before {\n  border: 1px solid #adadad;\n  border-radius: 14px;\n  content: \" \";\n  height: 14px;\n  left: 0px;\n  position: absolute;\n  top: 3px;\n  width: 14px;\n}\n.fuelux .radio-custom.checked:after {\n  background: #fff;\n}\n.fuelux .radio-custom.checked:before {\n  background: #39b3d7;\n  border-color: #39b3d7;\n}\n.fuelux .radio-custom.disabled {\n  cursor: not-allowed;\n}\n.fuelux .radio-custom.disabled:after {\n  cursor: not-allowed;\n}\n.fuelux .radio-custom.disabled:before {\n  cursor: not-allowed;\n  opacity: .5;\n}\n.fuelux .radio-custom.radio-inline:after {\n  left: 4px;\n  top: 7px;\n}\n.fuelux .radio-custom.radio-inline:before {\n  left: 0;\n  top: 3px;\n}\n.fuelux .radio-custom.radio-inline.highlight {\n  padding: 4px 4px 4px 24px;\n}\n.fuelux .radio-custom.radio-inline.highlight:after {\n  left: 8px;\n  top: 11px;\n}\n.fuelux .radio-custom.radio-inline.highlight:before {\n  left: 4px;\n  top: 7px;\n}\n.fuelux .radio-custom.radio-inline.highlight.checked {\n  background: #e9e9e9;\n  border-radius: 4px;\n}\n.fuelux .radio-custom input[type=\"radio\"]:focus + .radio-label {\n  color: #999999;\n}\n.fuelux .repeater {\n  border: 1px solid #ddd;\n  border-radius: 4px;\n}\n.fuelux .repeater-canvas.scrolling {\n  bottom: 0;\n  left: 0;\n  overflow-y: auto;\n  position: absolute;\n  right: 0;\n  top: 0;\n}\n.fuelux .repeater-header,\n.fuelux .repeater-footer {\n  background: #f9f9f9;\n  min-height: 50px;\n  padding: 8px;\n  *zoom: 1;\n}\n.fuelux .repeater-header:before,\n.fuelux .repeater-footer:before,\n.fuelux .repeater-header:after,\n.fuelux .repeater-footer:after {\n  display: table;\n  content: \"\";\n  line-height: 0;\n}\n.fuelux .repeater-header:after,\n.fuelux .repeater-footer:after {\n  clear: both;\n}\n.fuelux .repeater-header-left,\n.fuelux .repeater-footer-left {\n  float: left;\n}\n.fuelux .repeater-header-right,\n.fuelux .repeater-footer-right {\n  float: right;\n}\n@media (max-width: 625px) {\n  .fuelux .repeater-header-left,\n  .fuelux .repeater-footer-left,\n  .fuelux .repeater-header-right,\n  .fuelux .repeater-footer-right {\n    float: none;\n    *zoom: 1;\n  }\n  .fuelux .repeater-header-left:before,\n  .fuelux .repeater-footer-left:before,\n  .fuelux .repeater-header-right:before,\n  .fuelux .repeater-footer-right:before,\n  .fuelux .repeater-header-left:after,\n  .fuelux .repeater-footer-left:after,\n  .fuelux .repeater-header-right:after,\n  .fuelux .repeater-footer-right:after {\n    display: table;\n    content: \"\";\n    line-height: 0;\n  }\n  .fuelux .repeater-header-left:after,\n  .fuelux .repeater-footer-left:after,\n  .fuelux .repeater-header-right:after,\n  .fuelux .repeater-footer-right:after {\n    clear: both;\n  }\n  .fuelux .repeater-header-left,\n  .fuelux .repeater-footer-left {\n    margin-bottom: 8px;\n  }\n}\n.fuelux .repeater-header {\n  border-bottom: 1px solid #ddd;\n  border-top-right-radius: 4px;\n  border-top-left-radius: 4px;\n}\n.fuelux .repeater-footer {\n  border-top: 1px solid #ddd;\n  border-bottom-right-radius: 4px;\n  border-bottom-left-radius: 4px;\n}\n.fuelux .repeater-loader {\n  display: none;\n  left: 50%;\n  position: absolute;\n  margin: -32px 0 0 -32px;\n  top: 50%;\n}\n.fuelux .repeater-viewport {\n  min-height: 80px;\n  position: relative;\n}\n.fuelux .repeater-pagination label {\n  font-weight: normal;\n}\n.fuelux .repeater-pagination .repeater-primaryPaging {\n  display: none;\n  vertical-align: middle;\n  width: 116px;\n}\n.fuelux .repeater-pagination .repeater-primaryPaging.active {\n  display: inline-block;\n}\n.fuelux .repeater-pagination .repeater-primaryPaging ul.dropdown-menu {\n  min-width: 116px;\n}\n.fuelux .repeater-pagination .repeater-secondaryPaging {\n  display: none;\n  width: 82px;\n}\n.fuelux .repeater-pagination .repeater-secondaryPaging.active {\n  display: inline-block;\n}\n.fuelux .repeater-search {\n  float: left;\n  width: 200px;\n}\n.fuelux .repeater-title {\n  display: block;\n  float: left;\n  line-height: 34px;\n  margin-right: 10px;\n}\n.fuelux .repeater[data-currentview=\"list\"] .repeater-loader {\n  margin-top: -12px;\n}\n.fuelux .repeater[data-currentview=\"list\"] .repeater-loader.noHeader {\n  margin-top: -32px;\n}\n.fuelux .repeater-list-check {\n  display: inline-block;\n  height: 0;\n  line-height: 0;\n  position: relative;\n  vertical-align: top;\n  width: 0;\n}\n.fuelux .repeater-list-check span.glyphicon {\n  left: -22px;\n  position: absolute;\n  top: 2px;\n}\n.fuelux .repeater-list-header,\n.fuelux .repeater-list-items {\n  margin-bottom: 0;\n  width: 100%;\n}\n.fuelux .repeater-list-header td,\n.fuelux .repeater-list-items td {\n  border-bottom: 1px solid #ddd;\n  border-left: 1px solid #ddd;\n  border-top: none;\n}\n.fuelux .repeater-list-header td:first-child,\n.fuelux .repeater-list-items td:first-child {\n  border-left: none;\n}\n.fuelux .repeater-list-header {\n  background: #F9F9F9;\n}\n.fuelux .repeater-list-header td {\n  font-weight: bold;\n}\n.fuelux .repeater-list-header td.sortable:hover,\n.fuelux .repeater-list-header td.sortable.sorted {\n  background: #F1F1F1;\n  cursor: pointer;\n  background-color: #f1f1f1;\n  background-image: -moz-linear-gradient(top, #f9f9f9, #e5e5e5);\n  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#f9f9f9), to(#e5e5e5));\n  background-image: -webkit-linear-gradient(top, #f9f9f9, #e5e5e5);\n  background-image: -o-linear-gradient(top, #f9f9f9, #e5e5e5);\n  background-image: linear-gradient(to bottom, #f9f9f9, #e5e5e5);\n  background-repeat: repeat-x;\n  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#fff9f9f9', endColorstr='#ffe5e5e5', GradientType=0);\n}\n.fuelux .repeater-list-header td.sortable.sorted span.glyphicon {\n  display: block;\n}\n.fuelux .repeater-list-header td span.glyphicon {\n  display: none;\n  float: right;\n  margin-top: 2px;\n}\n.fuelux .repeater-list-items tr.empty td {\n  border-bottom: none;\n  font-style: italic;\n  padding: 20px;\n  text-align: center;\n  width: 100%;\n}\n.fuelux .repeater-list-items tr.selectable:hover {\n  background: #d9edf7;\n  cursor: pointer;\n}\n.fuelux .repeater-list-items tr.selected {\n  background: #66AFE9;\n  color: #fff;\n}\n.fuelux .repeater-list-items tr.selected:hover {\n  background: #428bca;\n}\n.fuelux .repeater-list-items tr.selected td:first-child {\n  padding-left: 30px;\n}\n.fuelux .repeater-list-wrapper {\n  overflow-y: auto;\n}\n.fuelux .repeater-thumbnail {\n  border: 1px solid #ddd;\n  color: #666;\n  float: left;\n  font-size: 12px;\n  height: 130px;\n  line-height: 36px;\n  margin: 10px 12px;\n  text-align: center;\n  width: 100px;\n  -webkit-box-shadow: 0 1px 4px 0 #ddd;\n  box-shadow: 0 1px 4px 0 #ddd;\n}\n.fuelux .repeater-thumbnail img {\n  display: block;\n  margin-top: 12px;\n}\n.fuelux .repeater-thumbnail-cont {\n  height: 100%;\n  overflow-y: auto;\n  padding: 10px;\n  width: 100%;\n}\n.fuelux .repeater-thumbnail-cont div.empty {\n  font-style: italic;\n  padding: 20px 10px;\n  text-align: center;\n}\n.fuelux .spinbox {\n  display: inline-block;\n  position: relative;\n}\n.fuelux .spinbox.digits-3 {\n  width: 60px;\n}\n.fuelux .spinbox.disabled .spinbox-buttons {\n  cursor: not-allowed;\n}\n.fuelux .spinbox .spinbox-input {\n  float: left;\n  padding-bottom: 3px;\n  /* Magic number */\n  padding: 0px 25px 0px 7px;\n}\n.fuelux .spinbox .btn {\n  position: relative;\n  width: 20px;\n  height: 13px;\n  padding-top: 0;\n  padding-right: 9px;\n  padding-left: 9px;\n}\n.fuelux .spinbox .btn.disabled {\n  cursor: not-allowed;\n}\n.fuelux .spinbox .spinbox-buttons {\n  position: absolute;\n  height: 28px;\n  width: 20px;\n  right: 2px;\n}\n.fuelux .spinbox .spinbox-up {\n  padding: 0 0 14px 1px;\n  top: 2px;\n}\n.fuelux .spinbox .spinbox-up .glyphicon-chevron-up {\n  position: relative;\n  top: 0px;\n}\n.fuelux .spinbox .btn-group > .btn.spinbox-up {\n  border-top-right-radius: 4px;\n}\n.fuelux .spinbox .spinbox-down {\n  padding: 0 0 8px 1px;\n  top: 2px;\n  height: 15px;\n  border-bottom-left-radius: 4px;\n}\n.fuelux .spinbox .spinbox-down .glyphicon-chevron-down {\n  position: relative;\n  left: -1px;\n  top: 0px;\n}\n.fuelux .scheduler {\n  /* -------------------------------\n\tSTART DATE/TIME\n------------------------------- */\n  /* -------------------------------\n\tTIMEZONE\n------------------------------- */\n  /* -------------------------------\n\tREPEAT PANELS\n------------------------------- */\n  /* -------------------------------\nEND\n------------------------------- */\n}\n.fuelux .scheduler .control-label {\n  min-width: 7em;\n}\n.fuelux .scheduler .inline-form-text {\n  float: left;\n  line-height: 27px;\n  margin-top: 4px;\n}\n.fuelux .scheduler .start-datetime.form-group {\n  margin-bottom: 0;\n}\n.fuelux .scheduler .start-datetime .form-group {\n  margin-left: 0;\n}\n.fuelux .scheduler .start-datetime .combobox {\n  max-width: 9em;\n}\n.fuelux .scheduler .start-datetime .combobox .dropdown-menu {\n  max-height: 200px;\n  overflow: auto;\n}\n.fuelux .scheduler .start-datetime .dropdown {\n  float: left;\n  margin: 0 10px 0 0;\n}\n.fuelux .scheduler .timezone-container .input-group {\n  max-width: 20em;\n}\n.fuelux .scheduler .timezone-container .dropdown-label {\n  height: 18px;\n  white-space: nowrap;\n  max-width: 20em;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n.fuelux .scheduler .timezone-container .dropdown-menu {\n  max-height: 200px;\n  overflow: auto;\n}\n.fuelux .scheduler .repeat-panel {\n  margin-left: 0;\n}\n.fuelux .scheduler .repeat-panel label {\n  font-weight: normal;\n}\n.fuelux .scheduler .repeat-panel .radio {\n  margin-right: 10px;\n}\n.fuelux .scheduler .repeat-panel .form-group {\n  margin-left: 0;\n}\n.fuelux .scheduler .repeat-interval {\n  margin-left: 0;\n  *zoom: 1;\n}\n.fuelux .scheduler .repeat-interval:before,\n.fuelux .scheduler .repeat-interval:after {\n  display: table;\n  content: \"\";\n  line-height: 0;\n}\n.fuelux .scheduler .repeat-interval:after {\n  clear: both;\n}\n.fuelux .scheduler .repeat-interval .form-group {\n  margin-left: 0;\n}\n.fuelux .scheduler .repeat-interval .dropdown-menu {\n  max-height: 200px;\n  overflow: auto;\n}\n.fuelux .scheduler .repeat-interval .repeat-every-panel {\n  float: left;\n}\n.fuelux .scheduler .repeat-interval .repeat-every-panel .repeat-every-pretext {\n  padding: 0 10px;\n}\n.fuelux .scheduler .repeat-interval .repeat-every-panel .spinbox {\n  float: left;\n  margin-right: 10px;\n}\n.fuelux .scheduler .repeat-interval .repeat-every-panel .spinbox input {\n  margin-bottom: 0;\n}\n.fuelux .scheduler .repeat-monthly .repeat-monthly-date {\n  margin-top: 10px;\n  *zoom: 1;\n}\n.fuelux .scheduler .repeat-monthly .repeat-monthly-date:before,\n.fuelux .scheduler .repeat-monthly .repeat-monthly-date:after {\n  display: table;\n  content: \"\";\n  line-height: 0;\n}\n.fuelux .scheduler .repeat-monthly .repeat-monthly-date:after {\n  clear: both;\n}\n.fuelux .scheduler .repeat-monthly .repeat-monthly-date .selectlist {\n  margin-left: 5px;\n}\n.fuelux .scheduler .repeat-monthly .repeat-monthly-day {\n  margin-top: 10px;\n  *zoom: 1;\n}\n.fuelux .scheduler .repeat-monthly .repeat-monthly-day:before,\n.fuelux .scheduler .repeat-monthly .repeat-monthly-day:after {\n  display: table;\n  content: \"\";\n  line-height: 0;\n}\n.fuelux .scheduler .repeat-monthly .repeat-monthly-day:after {\n  clear: both;\n}\n.fuelux .scheduler .repeat-monthly .month-days {\n  margin-left: 10px;\n}\n.fuelux .scheduler .repeat-yearly .repeat-yearly-date {\n  margin-top: 10px;\n  *zoom: 1;\n}\n.fuelux .scheduler .repeat-yearly .repeat-yearly-date:before,\n.fuelux .scheduler .repeat-yearly .repeat-yearly-date:after {\n  display: table;\n  content: \"\";\n  line-height: 0;\n}\n.fuelux .scheduler .repeat-yearly .repeat-yearly-date:after {\n  clear: both;\n}\n.fuelux .scheduler .repeat-yearly .repeat-yearly-date .year-month-day {\n  margin-left: 10px;\n}\n.fuelux .scheduler .repeat-yearly .year-month-days {\n  margin-left: 10px;\n}\n.fuelux .scheduler .repeat-yearly .year-month {\n  margin-left: 10px;\n}\n.fuelux .scheduler .repeat-yearly .repeat-yearly-day {\n  margin-top: 10px;\n  *zoom: 1;\n}\n.fuelux .scheduler .repeat-yearly .repeat-yearly-day:before,\n.fuelux .scheduler .repeat-yearly .repeat-yearly-day:after {\n  display: table;\n  content: \"\";\n  line-height: 0;\n}\n.fuelux .scheduler .repeat-yearly .repeat-yearly-day:after {\n  clear: both;\n}\n.fuelux .scheduler .repeat-yearly .repeat-yearly-day .repeat-yearly-day-text {\n  margin-left: 10px;\n}\n.fuelux .scheduler .repeat-weekly button:not(.active) {\n  background-color: #fff;\n}\n.fuelux .scheduler .repeat-weekly .btn-group.disabled {\n  position: relative;\n  opacity: 0.65;\n}\n.fuelux .scheduler .repeat-weekly .btn-group.disabled:before {\n  background: transparent;\n  bottom: 0;\n  content: \"\";\n  left: 0;\n  position: absolute;\n  right: 0;\n  top: 0;\n  z-index: 5;\n}\n.fuelux .scheduler .selectlist {\n  float: left;\n}\n.fuelux .scheduler label.radio {\n  float: left;\n  line-height: 27px;\n}\n.fuelux .scheduler label.radio input {\n  margin-top: 8px;\n}\n.fuelux .scheduler .repeat-end .end-after {\n  float: left;\n  display: inline-block;\n  margin-right: 10px;\n}\n.fuelux .scheduler .repeat-end .form-group {\n  margin-left: 0;\n}\n.fuelux .search.disabled .input-group-btn {\n  cursor: not-allowed;\n}\n.fuelux .selectlist.disabled {\n  cursor: not-allowed;\n}\n.fuelux .selectlist-sizer {\n  display: inline-block;\n  position: absolute;\n  visibility: hidden;\n  top: 0;\n}\n.fuelux .selectlist .selected-label {\n  overflow: hidden;\n  min-width: 2em;\n}\n.fuelux .selectlist .btn.dropdown-toggle {\n  white-space: normal;\n}\n.fuelux .selectlist .btn.dropdown-toggle .selected-label {\n  padding-right: 10px;\n  text-align: left;\n}\n.fuelux .tree {\n  border: 1px solid #999999;\n  border-radius: 4px 4px 4px 4px;\n  padding: 10px 15px 0 15px;\n  overflow-x: auto;\n  overflow-y: auto;\n  position: relative;\n  list-style: none;\n}\n.fuelux .tree *:focus {\n  outline: none;\n}\n.fuelux .tree button:focus {\n  color: #999999;\n}\n.fuelux .tree ul {\n  padding-left: 0;\n  margin-top: 0;\n  margin-bottom: 0;\n  list-style: none;\n}\n.fuelux .tree li {\n  margin: 0;\n  margin-top: 5px;\n  margin-bottom: 5px;\n}\n.fuelux .tree .tree-loader {\n  margin-left: 45px;\n}\n.fuelux .tree .tree-open > .tree-branch-header .glyphicon-play {\n  transform: rotate(90deg);\n  -ms-transform: rotate(90deg);\n  -webkit-transform: rotate(90deg);\n  position: relative;\n  left: -5px;\n}\n.fuelux .tree [data-children=false] > .tree-branch-header .icon-caret:before {\n  content: '\\00a0';\n}\n.fuelux .tree .tree-branch .tree-branch-header {\n  position: relative;\n  border-radius: 6px;\n}\n.fuelux .tree .tree-branch .tree-branch-header .tree-branch-name:hover {\n  color: #999999;\n}\n.fuelux .tree .tree-branch .tree-branch-header .glyphicon-play {\n  font-size: 10px;\n  padding-right: 5px;\n}\n.fuelux .tree .tree-branch .tree-branch-header .glyphicon-play:before {\n  position: relative;\n  top: -2px;\n}\n.fuelux .tree .tree-branch .tree-branch-header .tree-branch-name {\n  white-space: nowrap;\n  border-radius: 6px;\n  background-color: transparent;\n  border: 0;\n}\n.fuelux .tree .tree-branch .tree-branch-header label {\n  font-weight: normal;\n  padding-left: 3px;\n  margin-bottom: 0;\n  cursor: pointer;\n}\n.fuelux .tree .tree-branch .tree-branch-children {\n  margin-left: 14px;\n}\n.fuelux .tree .tree-item {\n  position: relative;\n  cursor: pointer;\n  border-radius: 6px;\n  margin-left: 19px;\n}\n.fuelux .tree .tree-item .tree-item-name {\n  white-space: nowrap;\n  border-radius: 6px;\n  background-color: transparent;\n  border: 0;\n}\n.fuelux .tree .tree-item .tree-item-name:hover {\n  color: #999999;\n}\n.fuelux .tree .tree-item.tree-selected .tree-item-name {\n  background-color: #4f4f4f;\n  color: #fff;\n}\n.fuelux .tree .tree-item label {\n  font-weight: normal;\n  padding-left: 7px;\n  margin-bottom: 0;\n  cursor: pointer;\n}\n.fuelux .tree .tree-item .tree-dot {\n  position: absolute;\n  top: 8px;\n  left: 10px;\n  display: block;\n  width: 4px;\n  height: 4px;\n  background-color: #333333;\n  border-radius: 6px;\n}\n.fuelux .tree .icon-caret:hover + .tree-branch-name {\n  color: #999999;\n}\n.fuelux .tree.tree-folder-select .tree-branch .icon-caret {\n  background-color: transparent;\n  border: 0;\n}\n.fuelux .tree.tree-folder-select .tree-branch .icon-caret:hover {\n  cursor: pointer;\n  color: #999999;\n}\n.fuelux .tree.tree-folder-select .tree-branch > .tree-branch-name {\n  padding: 1px 5px 0 5px;\n  border-radius: 6px;\n}\n.fuelux .tree.tree-folder-select .tree-branch > .tree-branch-name.tree-selected {\n  background-color: #4f4f4f;\n  color: #fff;\n}\n.fuelux .tree.tree-folder-select .tree-branch.tree-selected > .tree-branch-header .tree-branch-name {\n  background-color: #4f4f4f;\n  color: #fff;\n}\n.fuelux .tree.tree-folder-select .tree-branch.tree-selected > .tree-branch-header .tree-branch-name:hover {\n  background-color: #4f4f4f;\n  color: #fff;\n}\n.fuelux .wizard {\n  *zoom: 1;\n  border: 1px solid #d4d4d4;\n  border-radius: 4px;\n  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.065);\n  background-color: #f9f9f9;\n  position: relative;\n  min-height: 48px;\n  overflow: hidden;\n}\n.fuelux .wizard:before,\n.fuelux .wizard:after {\n  display: table;\n  content: \"\";\n  line-height: 0;\n}\n.fuelux .wizard:after {\n  clear: both;\n}\n.fuelux .wizard > .steps {\n  list-style: none outside none;\n  padding: 0;\n  margin: 0;\n  width: 4000px;\n}\n.fuelux .wizard > .steps.previous-disabled li.complete {\n  cursor: default;\n}\n.fuelux .wizard > .steps.previous-disabled li.complete:hover {\n  background: #f3f4f5;\n  color: #468847;\n  cursor: default;\n}\n.fuelux .wizard > .steps.previous-disabled li.complete:hover .chevron:before {\n  border-left-color: #f3f4f5;\n}\n.fuelux .wizard > .steps li {\n  float: left;\n  margin: 0;\n  padding: 0 20px 0 30px;\n  height: 46px;\n  line-height: 46px;\n  position: relative;\n  background: #ededed;\n  color: #999999;\n  font-size: 16px;\n  cursor: not-allowed;\n}\n.fuelux .wizard > .steps li .chevron {\n  border: 24px solid transparent;\n  border-left: 14px solid #d4d4d4;\n  border-right: 0;\n  display: block;\n  position: absolute;\n  right: -14px;\n  top: 0;\n  z-index: 1;\n}\n.fuelux .wizard > .steps li .chevron:before {\n  border: 24px solid transparent;\n  border-left: 14px solid #ededed;\n  border-right: 0;\n  content: \"\";\n  display: block;\n  position: absolute;\n  right: 1px;\n  top: -24px;\n}\n.fuelux .wizard > .steps li.complete {\n  background: #f3f4f5;\n  color: #468847;\n}\n.fuelux .wizard > .steps li.complete:hover {\n  background: #e7eff8;\n  cursor: pointer;\n}\n.fuelux .wizard > .steps li.complete:hover .chevron:before {\n  border-left: 14px solid #e7eff8;\n}\n.fuelux .wizard > .steps li.complete .chevron:before {\n  border-left: 14px solid #f3f4f5;\n}\n.fuelux .wizard > .steps li.active {\n  background: #f1f6fc;\n  color: #3a87ad;\n  cursor: default;\n}\n.fuelux .wizard > .steps li.active .chevron:before {\n  border-left: 14px solid #f1f6fc;\n}\n.fuelux .wizard > .steps li.active .badge {\n  background-color: #3a87ad;\n}\n.fuelux .wizard > .steps li .badge {\n  margin-right: 8px;\n}\n.fuelux .wizard > .steps li .badge-success {\n  background-color: #468847;\n}\n.fuelux .wizard > .steps li:first-child {\n  border-radius: 4px 0 0 4px;\n  padding-left: 20px;\n}\n.fuelux .wizard > .actions {\n  z-index: 1000;\n  position: absolute;\n  right: 0;\n  line-height: 46px;\n  float: right;\n  padding-left: 15px;\n  padding-right: 15px;\n  vertical-align: middle;\n  background-color: #e5e5e5;\n  border-left: 1px solid #d4d4d4;\n}\n.fuelux .wizard > .actions a {\n  line-height: 45px;\n  font-size: 12px;\n  margin-right: 8px;\n}\n.fuelux .wizard > .actions .btn-prev[disabled] {\n  cursor: not-allowed;\n}\n.fuelux .wizard > .actions .btn-prev span {\n  margin-right: 5px;\n}\n.fuelux .wizard > .actions .btn-next[disabled] {\n  cursor: not-allowed;\n}\n.fuelux .wizard > .actions .btn-next span {\n  margin-left: 5px;\n}\n.fuelux .wizard .step-content {\n  border-top: 1px solid #D4D4D4;\n  padding: 10px;\n  float: left;\n  width: 100%;\n}\n.fuelux .wizard .step-content .step-pane {\n  display: none;\n}\n.fuelux .wizard .step-content > .active {\n  display: block;\n}\n.fuelux .wizard .step-content > .active .btn-group .active {\n  display: inline-block;\n}\n.fuelux .wizard.complete > .actions .glyphicon-arrow-right:before {\n  display: none;\n}\n.fuelux .wizard.complete > .actions .glyphicon-arrow-right {\n  margin-left: 0;\n}\n/*# sourceMappingURL=fuelux.css.map */", ""]);
 
 /***/ },
@@ -13775,12 +13775,12 @@
 
 	/* global require module Exception */
 	var _ = __webpack_require__(46);
-	var TreeModel = __webpack_require__(64);
+	var TreeModel = __webpack_require__(63);
 	var shared = __webpack_require__(48);
 
 	var AppDispatcher = __webpack_require__(28);
 	var ActionTypes = __webpack_require__(29).ActionTypes;
-	var BaseStore = __webpack_require__(31);
+	var BaseStore = __webpack_require__(30);
 
 	var tree = new TreeModel(shared.treeOptions);
 	var root;
@@ -13870,8 +13870,8 @@
 	/* global require module */
 
 	// var ChatConstants = require('../constants/ChatConstants');
-	var Dispatcher = __webpack_require__(84);
-	var copyProperties = __webpack_require__(50);
+	var Dispatcher = __webpack_require__(83);
+	var copyProperties = __webpack_require__(49);
 
 	// var PayloadSources = ChatConstants.PayloadSources;
 
@@ -13963,6 +13963,41 @@
 
 /***/ },
 /* 30 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* global require module */
+	var copyProperties = __webpack_require__(49);
+	var EventEmitter = __webpack_require__(61).EventEmitter;
+
+	var CHANGE_EVENT = "change";
+
+	function BaseStore() { "use strict";
+	  EventEmitter.call(this);
+	}
+
+	BaseStore.prototype = new EventEmitter();
+
+	BaseStore.prototype.emitChange = function() {
+	  this.emit(CHANGE_EVENT);
+	};
+
+	BaseStore.prototype.addChangeListener = function(callback) {
+	  this.on(CHANGE_EVENT, callback);
+	};
+
+	BaseStore.prototype.removeChangeListener = function(callback) {
+	  this.removeListener(CHANGE_EVENT, callback);
+	};
+
+	BaseStore.extend = function(data) {
+	  return copyProperties(new BaseStore(), data);
+	};
+
+	module.exports = BaseStore;
+
+
+/***/ },
+/* 31 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -14084,47 +14119,12 @@
 
 
 /***/ },
-/* 31 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/* global require module */
-	var copyProperties = __webpack_require__(50);
-	var EventEmitter = __webpack_require__(61).EventEmitter;
-
-	var CHANGE_EVENT = "change";
-
-	function BaseStore() { "use strict";
-	  EventEmitter.call(this);
-	}
-
-	BaseStore.prototype = new EventEmitter();
-
-	BaseStore.prototype.emitChange = function() {
-	  this.emit(CHANGE_EVENT);
-	};
-
-	BaseStore.prototype.addChangeListener = function(callback) {
-	  this.on(CHANGE_EVENT, callback);
-	};
-
-	BaseStore.prototype.removeChangeListener = function(callback) {
-	  this.removeListener(CHANGE_EVENT, callback);
-	};
-
-	BaseStore.extend = function(data) {
-	  return copyProperties(new BaseStore(), data);
-	};
-
-	module.exports = BaseStore;
-
-
-/***/ },
 /* 32 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */
 
-	var React = __webpack_require__(11);
+	var React = __webpack_require__(10);
 	var TerminalsActions = __webpack_require__(6);
 	var TerminalsStore = __webpack_require__(51);
 	var WatchStoreMixin = __webpack_require__(40);
@@ -14183,7 +14183,7 @@
 
 	/* global require module */
 	var AppDispatcher = __webpack_require__(28);
-	var BaseStore = __webpack_require__(31);
+	var BaseStore = __webpack_require__(30);
 	var ActionTypes = __webpack_require__(29).ActionTypes;
 
 	var state = {
@@ -14209,7 +14209,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */
-	var React = __webpack_require__(11);
+	var React = __webpack_require__(10);
 
 	var WatchStoreMixin = __webpack_require__(40);
 
@@ -14358,9 +14358,9 @@
 
 	var _ = __webpack_require__(46);
 	// var Immutable = require("immutable");
-	var React = __webpack_require__(11);
+	var React = __webpack_require__(10);
 	// var ReactPropTypes = React.PropTypes;
-	var key = __webpack_require__(10);
+	var key = __webpack_require__(11);
 
 	var WatchStoreMixin = __webpack_require__(40);
 
@@ -14500,14 +14500,14 @@
 	/** @jsx React.DOM */
 
 	var _ = __webpack_require__(46);
-	var React = __webpack_require__(11);
+	var React = __webpack_require__(10);
 
 	var Config = __webpack_require__(3);
 
 	var TerminalsActions = __webpack_require__(6);
 	var TerminalsStore = __webpack_require__(51);
 
-	var Terminal = __webpack_require__(57);
+	var Terminal = __webpack_require__(59);
 
 	var WatchStoreMixin = __webpack_require__(40);
 
@@ -14587,10 +14587,10 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */
-	var React = __webpack_require__(11);
+	var React = __webpack_require__(10);
 
 	var WatchStoreMixin = __webpack_require__(40);
-	var ContextMenuStore = __webpack_require__(59);
+	var ContextMenuStore = __webpack_require__(57);
 
 	var ContextMenu = React.createClass({displayName: 'ContextMenu',
 	  mixins: [ WatchStoreMixin(ContextMenuStore) ],
@@ -14645,7 +14645,7 @@
 
 	/** @jsx React.DOM */
 
-	var React = __webpack_require__(11);
+	var React = __webpack_require__(10);
 	var ModalActions = __webpack_require__(55);
 	var ModalStore = __webpack_require__(58);
 	var WatchStoreMixin = __webpack_require__(40);
@@ -14714,7 +14714,7 @@
 
 	/** @jsx React.DOM */
 
-	var React = __webpack_require__(11);
+	var React = __webpack_require__(10);
 
 	var Loader = React.createClass({displayName: 'Loader',
 	  getInitialState: function() {
@@ -14787,7 +14787,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	
-	module.exports = __webpack_require__(63);
+	module.exports = __webpack_require__(62);
 
 
 /***/ },
@@ -23589,7 +23589,7 @@
 
 	(function(mod) {
 	  if (true) // CommonJS
-	    mod(__webpack_require__(42), __webpack_require__(62), __webpack_require__(12), __webpack_require__(44));
+	    mod(__webpack_require__(42), __webpack_require__(64), __webpack_require__(14), __webpack_require__(44));
 	  else if (typeof define == "function" && define.amd) // AMD
 	    define(["../../lib/codemirror", "../xml/xml", "../javascript/javascript", "../css/css"], mod);
 	  else // Plain browser env
@@ -30960,27 +30960,6 @@
 /* 49 */
 /***/ function(module, exports, __webpack_require__) {
 
-	module.exports = function() {
-		var list = [];
-		list.toString = function toString() {
-			var result = [];
-			for(var i = 0; i < this.length; i++) {
-				var item = this[i];
-				if(item[2]) {
-					result.push("@media " + item[2] + "{" + item[1] + "}");
-				} else {
-					result.push(item[1]);
-				}
-			}
-			return result.join("");
-		};
-		return list;
-	}
-
-/***/ },
-/* 50 */
-/***/ function(module, exports, __webpack_require__) {
-
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2014 Facebook, Inc.
 	 *
@@ -31039,6 +31018,27 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
+/* 50 */
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = function() {
+		var list = [];
+		list.toString = function toString() {
+			var result = [];
+			for(var i = 0; i < this.length; i++) {
+				var item = this[i];
+				if(item[2]) {
+					result.push("@media " + item[2] + "{" + item[1] + "}");
+				} else {
+					result.push(item[1]);
+				}
+			}
+			return result.join("");
+		};
+		return list;
+	}
+
+/***/ },
 /* 51 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -31050,7 +31050,7 @@
 	var AppDispatcher = __webpack_require__(28);
 	var ActionTypes = __webpack_require__(29).ActionTypes;
 
-	var BaseStore = __webpack_require__(31);
+	var BaseStore = __webpack_require__(30);
 
 	var terminals = {};
 
@@ -31131,7 +31131,7 @@
 
 	"use strict";
 
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	/**
 	 * Constructs an enumeration with keys equal to their value.
@@ -31178,7 +31178,7 @@
 	/** @jsx React.DOM */
 
 	var _ = __webpack_require__(46);
-	var React = __webpack_require__(11);
+	var React = __webpack_require__(10);
 
 	var TreeActions = __webpack_require__(5);
 	var TreeStore = __webpack_require__(27);
@@ -31316,7 +31316,7 @@
 
 	/** @jsx React.DOM */
 
-	var React = __webpack_require__(11);
+	var React = __webpack_require__(10);
 	var CodeMirror = __webpack_require__(42);
 
 	var Editor = React.createClass({displayName: 'Editor',
@@ -31362,93 +31362,9 @@
 /* 57 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/** @jsx React.DOM */
-
-	var React = __webpack_require__(11);
-	var TerminalsActions = __webpack_require__(6);
-
-	var Terminal = React.createClass({displayName: 'Terminal',
-	  render: function() {
-	    return (
-	      React.DOM.div({className: "row"}, 
-	        React.DOM.div({className: "col-md-12"}, 
-	          React.DOM.div({ref: "terminal"})
-	        )
-	      )
-	    );
-	  },
-
-	  shouldComponentUpdate: function() {
-	    return false;
-	  },
-
-	  componentDidMount: function() {
-	    var terminal = this.props.terminal;
-
-	    terminal.terminal.on("data", function(data) {
-	      TerminalsActions.startUpdateTerminal({
-	        id: terminal.id,
-	        data: data
-	      });
-	    });
-
-	    terminal.terminal.open(this.refs.terminal.getDOMNode());
-	  }
-	});
-
-
-	module.exports = Terminal;
-
-
-/***/ },
-/* 58 */
-/***/ function(module, exports, __webpack_require__) {
-
 	/* global require module */
 	var AppDispatcher = __webpack_require__(28);
-	var BaseStore = __webpack_require__(31);
-	var ActionTypes = __webpack_require__(29).ActionTypes;
-
-	var state = {
-	  isVisible: false,
-	  content: function() {
-	    return null;
-	  },
-	  title: "",
-	  onApply: function() {},
-	  onClose: function() {}
-	};
-
-	var ModalStore = BaseStore.extend({
-	  getState: function() {
-	    return state;
-	  }
-	});
-
-	AppDispatcher.registerHandler(ActionTypes.MODAL_CLOSE, function() {
-	  state.isVisible = false;
-	  ModalStore.emitChange();
-	});
-
-	AppDispatcher.registerHandler(ActionTypes.MODAL_OPEN, function(payload) {
-	  state.isVisible = true;
-	  state.content = payload.options.content;
-	  state.onApply = payload.options.onApply;
-	  state.onClose = payload.options.onClose;
-	  state.title = payload.options.title;
-	  ModalStore.emitChange();
-	});
-
-	module.exports = ModalStore;
-
-
-/***/ },
-/* 59 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/* global require module */
-	var AppDispatcher = __webpack_require__(28);
-	var BaseStore = __webpack_require__(31);
+	var BaseStore = __webpack_require__(30);
 	var ActionTypes = __webpack_require__(29).ActionTypes;
 
 	var state = {
@@ -31498,6 +31414,90 @@
 	});
 
 	module.exports = ContextMenuStore;
+
+
+/***/ },
+/* 58 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* global require module */
+	var AppDispatcher = __webpack_require__(28);
+	var BaseStore = __webpack_require__(30);
+	var ActionTypes = __webpack_require__(29).ActionTypes;
+
+	var state = {
+	  isVisible: false,
+	  content: function() {
+	    return null;
+	  },
+	  title: "",
+	  onApply: function() {},
+	  onClose: function() {}
+	};
+
+	var ModalStore = BaseStore.extend({
+	  getState: function() {
+	    return state;
+	  }
+	});
+
+	AppDispatcher.registerHandler(ActionTypes.MODAL_CLOSE, function() {
+	  state.isVisible = false;
+	  ModalStore.emitChange();
+	});
+
+	AppDispatcher.registerHandler(ActionTypes.MODAL_OPEN, function(payload) {
+	  state.isVisible = true;
+	  state.content = payload.options.content;
+	  state.onApply = payload.options.onApply;
+	  state.onClose = payload.options.onClose;
+	  state.title = payload.options.title;
+	  ModalStore.emitChange();
+	});
+
+	module.exports = ModalStore;
+
+
+/***/ },
+/* 59 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/** @jsx React.DOM */
+
+	var React = __webpack_require__(10);
+	var TerminalsActions = __webpack_require__(6);
+
+	var Terminal = React.createClass({displayName: 'Terminal',
+	  render: function() {
+	    return (
+	      React.DOM.div({className: "row"}, 
+	        React.DOM.div({className: "col-md-12"}, 
+	          React.DOM.div({ref: "terminal"})
+	        )
+	      )
+	    );
+	  },
+
+	  shouldComponentUpdate: function() {
+	    return false;
+	  },
+
+	  componentDidMount: function() {
+	    var terminal = this.props.terminal;
+
+	    terminal.terminal.on("data", function(data) {
+	      TerminalsActions.startUpdateTerminal({
+	        id: terminal.id,
+	        data: data
+	      });
+	    });
+
+	    terminal.terminal.open(this.refs.terminal.getDOMNode());
+	  }
+	});
+
+
+	module.exports = Terminal;
 
 
 /***/ },
@@ -32090,6 +32090,325 @@
 /* 62 */
 /***/ function(module, exports, __webpack_require__) {
 
+	
+	/**
+	 * Module dependencies.
+	 */
+
+	var url = __webpack_require__(140);
+	var parser = __webpack_require__(145);
+	var Manager = __webpack_require__(141);
+	var debug = __webpack_require__(150)('socket.io-client');
+
+	/**
+	 * Module exports.
+	 */
+
+	module.exports = exports = lookup;
+
+	/**
+	 * Managers cache.
+	 */
+
+	var cache = exports.managers = {};
+
+	/**
+	 * Looks up an existing `Manager` for multiplexing.
+	 * If the user summons:
+	 *
+	 *   `io('http://localhost/a');`
+	 *   `io('http://localhost/b');`
+	 *
+	 * We reuse the existing instance based on same scheme/port/host,
+	 * and we initialize sockets for each namespace.
+	 *
+	 * @api public
+	 */
+
+	function lookup(uri, opts) {
+	  if (typeof uri == 'object') {
+	    opts = uri;
+	    uri = undefined;
+	  }
+
+	  opts = opts || {};
+
+	  var parsed = url(uri);
+	  var source = parsed.source;
+	  var id = parsed.id;
+	  var io;
+
+	  if (opts.forceNew || opts['force new connection'] || false === opts.multiplex) {
+	    debug('ignoring socket cache for %s', source);
+	    io = Manager(source, opts);
+	  } else {
+	    if (!cache[id]) {
+	      debug('new io instance for %s', source);
+	      cache[id] = Manager(source, opts);
+	    }
+	    io = cache[id];
+	  }
+
+	  return io.socket(parsed.path);
+	}
+
+	/**
+	 * Protocol version.
+	 *
+	 * @api public
+	 */
+
+	exports.protocol = parser.protocol;
+
+	/**
+	 * `connect`.
+	 *
+	 * @param {String} uri
+	 * @api public
+	 */
+
+	exports.connect = lookup;
+
+	/**
+	 * Expose constructors for standalone build.
+	 *
+	 * @api public
+	 */
+
+	exports.Manager = __webpack_require__(141);
+	exports.Socket = __webpack_require__(142);
+
+
+/***/ },
+/* 63 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var mergeSort, findInsertIndex;
+	mergeSort = __webpack_require__(214);
+	findInsertIndex = __webpack_require__(215);
+
+	module.exports = (function () {
+	  'use strict';
+
+	  var walkStrategies;
+
+	  walkStrategies = {};
+
+	  function TreeModel(config) {
+	    config = config || {};
+	    this.config = config;
+	    this.config.childrenPropertyName = config.childrenPropertyName || 'children';
+	    this.config.modelComparatorFn = config.modelComparatorFn;
+	  }
+
+	  TreeModel.prototype.parse = function (model) {
+	    var i, childCount, node;
+
+	    if (!(model instanceof Object)) {
+	      throw new TypeError('Model must be of type object.');
+	    }
+
+	    node = new Node(this.config, model);
+	    if (model[this.config.childrenPropertyName] instanceof Array) {
+	      if (this.config.modelComparatorFn) {
+	        model[this.config.childrenPropertyName] = mergeSort(
+	          this.config.modelComparatorFn,
+	          model[this.config.childrenPropertyName]);
+	      }
+	      for (i = 0, childCount = model[this.config.childrenPropertyName].length; i < childCount; i++) {
+	        _addChildToNode(node, this.parse(model[this.config.childrenPropertyName][i]));
+	      }
+	    }
+	    return node;
+	  };
+
+	  function _addChildToNode(node, child) {
+	    child.parent = node;
+	    node.children.push(child);
+	    return child;
+	  }
+
+	  function Node(config, model) {
+	    this.config = config;
+	    this.model = model;
+	    this.children = [];
+	  }
+
+	  Node.prototype.isRoot = function () {
+	    return this.parent === undefined;
+	  };
+
+	  Node.prototype.hasChildren = function () {
+	    return this.children.length > 0;
+	  };
+
+	  Node.prototype.addChild = function (child) {
+	    var index;
+
+	    if (!(child instanceof Node)) {
+	      throw new TypeError('Child must be of type Node.');
+	    }
+
+	    child.parent = this;
+	    if (!(this.model[this.config.childrenPropertyName] instanceof Array)) {
+	      this.model[this.config.childrenPropertyName] = [];
+	    }
+
+	    if (this.config.modelComparatorFn) {
+	      // Find the index to insert the child
+	      index = findInsertIndex(
+	        this.config.modelComparatorFn,
+	        this.model[this.config.childrenPropertyName],
+	        child.model);
+	      // Add to the model children
+	      this.model[this.config.childrenPropertyName].splice(index, 0, child.model);
+	      // Add to the node children
+	      this.children.splice(index, 0, child);
+	    } else {
+	      this.model[this.config.childrenPropertyName].push(child.model);
+	      this.children.push(child);
+	    }
+	    return child;
+	  };
+
+	  Node.prototype.getPath = function () {
+	    var path = [];
+	    (function addToPath(node) {
+	      path.unshift(node);
+	      if (!node.isRoot()) {
+	        addToPath(node.parent);
+	      }
+	    })(this);
+	    return path;
+	  };
+
+	  /**
+	   * Parse the arguments of traversal functions. These functions can take one optional
+	   * first argument which is an options object. If present, this object will be stored
+	   * in args.options. The only mandatory argument is the callback function which can
+	   * appear in the first or second position (if an options object is given). This
+	   * function will be saved to args.fn. The last optional argument is the context on
+	   * which the callback function will be called. It will be available in args.ctx.
+	   *
+	   * @returns Parsed arguments.
+	   */
+	  function parseArgs() {
+	    var args = {};
+	    if (arguments.length === 1) {
+	      args.fn = arguments[0];
+	    } else if (arguments.length === 2) {
+	      if (typeof arguments[0] === 'function') {
+	        args.fn = arguments[0];
+	        args.ctx = arguments[1];
+	      } else {
+	        args.options = arguments[0];
+	        args.fn = arguments[1];
+	      }
+	    } else {
+	      args.options = arguments[0];
+	      args.fn = arguments[1];
+	      args.ctx = arguments[2];
+	    }
+	    args.options = args.options || {};
+	    if (!args.options.strategy) {
+	      args.options.strategy = 'pre';
+	    }
+	    if (!walkStrategies[args.options.strategy]) {
+	      throw new Error('Unknown tree walk strategy. Valid strategies are \'pre\' [default], \'post\' and \'breadth\'.');
+	    }
+	    return args;
+	  }
+
+	  Node.prototype.walk = function () {
+	    var args;
+	    args = parseArgs.apply(this, arguments);
+	    walkStrategies[args.options.strategy].call(this, args.fn, args.ctx);
+	  };
+
+	  walkStrategies.pre = function depthFirstPreOrder(callback, context) {
+	    var i, childCount, keepGoing;
+	    keepGoing = callback.call(context, this);
+	    for (i = 0, childCount = this.children.length; i < childCount; i++) {
+	      if (keepGoing === false) {
+	        return false;
+	      }
+	      keepGoing = depthFirstPreOrder.call(this.children[i], callback, context);
+	    }
+	    return keepGoing;
+	  };
+
+	  walkStrategies.post = function depthFirstPostOrder(callback, context) {
+	    var i, childCount, keepGoing;
+	    for (i = 0, childCount = this.children.length; i < childCount; i++) {
+	      keepGoing = depthFirstPostOrder.call(this.children[i], callback, context);
+	      if (keepGoing === false) {
+	        return false;
+	      }
+	    }
+	    keepGoing = callback.call(context, this);
+	    return keepGoing;
+	  };
+
+	  walkStrategies.breadth = function breadthFirst(callback, context) {
+	    var queue = [this];
+	    (function processQueue() {
+	      var i, childCount, node;
+	      if (queue.length === 0) {
+	        return;
+	      }
+	      node = queue.shift();
+	      for (i = 0, childCount = node.children.length; i < childCount; i++) {
+	        queue.push(node.children[i]);
+	      }
+	      if (callback.call(context, node) !== false) {
+	        processQueue();
+	      }
+	    })();
+	  };
+
+	  Node.prototype.all = function () {
+	    var args, all = [];
+	    args = parseArgs.apply(this, arguments);
+	    walkStrategies[args.options.strategy].call(this, function (node) {
+	      if (args.fn.call(args.ctx, node)) {
+	        all.push(node);
+	      }
+	    }, args.ctx);
+	    return all;
+	  };
+
+	  Node.prototype.first = function () {
+	    var args, first;
+	    args = parseArgs.apply(this, arguments);
+	    walkStrategies[args.options.strategy].call(this, function (node) {
+	      if (args.fn.call(args.ctx, node)) {
+	        first = node;
+	        return false;
+	      }
+	    }, args.ctx);
+	    return first;
+	  };
+
+	  Node.prototype.drop = function () {
+	    var indexOfChild;
+	    if (!this.isRoot()) {
+	      indexOfChild = this.parent.children.indexOf(this);
+	      this.parent.children.splice(indexOfChild, 1);
+	      this.parent.model[this.config.childrenPropertyName].splice(indexOfChild, 1);
+	      this.parent = undefined;
+	      delete this.parent;
+	    }
+	    return this;
+	  };
+
+	  return TreeModel;
+	})();
+
+
+/***/ },
+/* 64 */
+/***/ function(module, exports, __webpack_require__) {
+
 	// CodeMirror, copyright (c) by Marijn Haverbeke and others
 	// Distributed under an MIT license: http://codemirror.net/LICENSE
 
@@ -32477,325 +32796,6 @@
 
 
 /***/ },
-/* 63 */
-/***/ function(module, exports, __webpack_require__) {
-
-	
-	/**
-	 * Module dependencies.
-	 */
-
-	var url = __webpack_require__(130);
-	var parser = __webpack_require__(145);
-	var Manager = __webpack_require__(131);
-	var debug = __webpack_require__(146)('socket.io-client');
-
-	/**
-	 * Module exports.
-	 */
-
-	module.exports = exports = lookup;
-
-	/**
-	 * Managers cache.
-	 */
-
-	var cache = exports.managers = {};
-
-	/**
-	 * Looks up an existing `Manager` for multiplexing.
-	 * If the user summons:
-	 *
-	 *   `io('http://localhost/a');`
-	 *   `io('http://localhost/b');`
-	 *
-	 * We reuse the existing instance based on same scheme/port/host,
-	 * and we initialize sockets for each namespace.
-	 *
-	 * @api public
-	 */
-
-	function lookup(uri, opts) {
-	  if (typeof uri == 'object') {
-	    opts = uri;
-	    uri = undefined;
-	  }
-
-	  opts = opts || {};
-
-	  var parsed = url(uri);
-	  var source = parsed.source;
-	  var id = parsed.id;
-	  var io;
-
-	  if (opts.forceNew || opts['force new connection'] || false === opts.multiplex) {
-	    debug('ignoring socket cache for %s', source);
-	    io = Manager(source, opts);
-	  } else {
-	    if (!cache[id]) {
-	      debug('new io instance for %s', source);
-	      cache[id] = Manager(source, opts);
-	    }
-	    io = cache[id];
-	  }
-
-	  return io.socket(parsed.path);
-	}
-
-	/**
-	 * Protocol version.
-	 *
-	 * @api public
-	 */
-
-	exports.protocol = parser.protocol;
-
-	/**
-	 * `connect`.
-	 *
-	 * @param {String} uri
-	 * @api public
-	 */
-
-	exports.connect = lookup;
-
-	/**
-	 * Expose constructors for standalone build.
-	 *
-	 * @api public
-	 */
-
-	exports.Manager = __webpack_require__(131);
-	exports.Socket = __webpack_require__(132);
-
-
-/***/ },
-/* 64 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var mergeSort, findInsertIndex;
-	mergeSort = __webpack_require__(202);
-	findInsertIndex = __webpack_require__(203);
-
-	module.exports = (function () {
-	  'use strict';
-
-	  var walkStrategies;
-
-	  walkStrategies = {};
-
-	  function TreeModel(config) {
-	    config = config || {};
-	    this.config = config;
-	    this.config.childrenPropertyName = config.childrenPropertyName || 'children';
-	    this.config.modelComparatorFn = config.modelComparatorFn;
-	  }
-
-	  TreeModel.prototype.parse = function (model) {
-	    var i, childCount, node;
-
-	    if (!(model instanceof Object)) {
-	      throw new TypeError('Model must be of type object.');
-	    }
-
-	    node = new Node(this.config, model);
-	    if (model[this.config.childrenPropertyName] instanceof Array) {
-	      if (this.config.modelComparatorFn) {
-	        model[this.config.childrenPropertyName] = mergeSort(
-	          this.config.modelComparatorFn,
-	          model[this.config.childrenPropertyName]);
-	      }
-	      for (i = 0, childCount = model[this.config.childrenPropertyName].length; i < childCount; i++) {
-	        _addChildToNode(node, this.parse(model[this.config.childrenPropertyName][i]));
-	      }
-	    }
-	    return node;
-	  };
-
-	  function _addChildToNode(node, child) {
-	    child.parent = node;
-	    node.children.push(child);
-	    return child;
-	  }
-
-	  function Node(config, model) {
-	    this.config = config;
-	    this.model = model;
-	    this.children = [];
-	  }
-
-	  Node.prototype.isRoot = function () {
-	    return this.parent === undefined;
-	  };
-
-	  Node.prototype.hasChildren = function () {
-	    return this.children.length > 0;
-	  };
-
-	  Node.prototype.addChild = function (child) {
-	    var index;
-
-	    if (!(child instanceof Node)) {
-	      throw new TypeError('Child must be of type Node.');
-	    }
-
-	    child.parent = this;
-	    if (!(this.model[this.config.childrenPropertyName] instanceof Array)) {
-	      this.model[this.config.childrenPropertyName] = [];
-	    }
-
-	    if (this.config.modelComparatorFn) {
-	      // Find the index to insert the child
-	      index = findInsertIndex(
-	        this.config.modelComparatorFn,
-	        this.model[this.config.childrenPropertyName],
-	        child.model);
-	      // Add to the model children
-	      this.model[this.config.childrenPropertyName].splice(index, 0, child.model);
-	      // Add to the node children
-	      this.children.splice(index, 0, child);
-	    } else {
-	      this.model[this.config.childrenPropertyName].push(child.model);
-	      this.children.push(child);
-	    }
-	    return child;
-	  };
-
-	  Node.prototype.getPath = function () {
-	    var path = [];
-	    (function addToPath(node) {
-	      path.unshift(node);
-	      if (!node.isRoot()) {
-	        addToPath(node.parent);
-	      }
-	    })(this);
-	    return path;
-	  };
-
-	  /**
-	   * Parse the arguments of traversal functions. These functions can take one optional
-	   * first argument which is an options object. If present, this object will be stored
-	   * in args.options. The only mandatory argument is the callback function which can
-	   * appear in the first or second position (if an options object is given). This
-	   * function will be saved to args.fn. The last optional argument is the context on
-	   * which the callback function will be called. It will be available in args.ctx.
-	   *
-	   * @returns Parsed arguments.
-	   */
-	  function parseArgs() {
-	    var args = {};
-	    if (arguments.length === 1) {
-	      args.fn = arguments[0];
-	    } else if (arguments.length === 2) {
-	      if (typeof arguments[0] === 'function') {
-	        args.fn = arguments[0];
-	        args.ctx = arguments[1];
-	      } else {
-	        args.options = arguments[0];
-	        args.fn = arguments[1];
-	      }
-	    } else {
-	      args.options = arguments[0];
-	      args.fn = arguments[1];
-	      args.ctx = arguments[2];
-	    }
-	    args.options = args.options || {};
-	    if (!args.options.strategy) {
-	      args.options.strategy = 'pre';
-	    }
-	    if (!walkStrategies[args.options.strategy]) {
-	      throw new Error('Unknown tree walk strategy. Valid strategies are \'pre\' [default], \'post\' and \'breadth\'.');
-	    }
-	    return args;
-	  }
-
-	  Node.prototype.walk = function () {
-	    var args;
-	    args = parseArgs.apply(this, arguments);
-	    walkStrategies[args.options.strategy].call(this, args.fn, args.ctx);
-	  };
-
-	  walkStrategies.pre = function depthFirstPreOrder(callback, context) {
-	    var i, childCount, keepGoing;
-	    keepGoing = callback.call(context, this);
-	    for (i = 0, childCount = this.children.length; i < childCount; i++) {
-	      if (keepGoing === false) {
-	        return false;
-	      }
-	      keepGoing = depthFirstPreOrder.call(this.children[i], callback, context);
-	    }
-	    return keepGoing;
-	  };
-
-	  walkStrategies.post = function depthFirstPostOrder(callback, context) {
-	    var i, childCount, keepGoing;
-	    for (i = 0, childCount = this.children.length; i < childCount; i++) {
-	      keepGoing = depthFirstPostOrder.call(this.children[i], callback, context);
-	      if (keepGoing === false) {
-	        return false;
-	      }
-	    }
-	    keepGoing = callback.call(context, this);
-	    return keepGoing;
-	  };
-
-	  walkStrategies.breadth = function breadthFirst(callback, context) {
-	    var queue = [this];
-	    (function processQueue() {
-	      var i, childCount, node;
-	      if (queue.length === 0) {
-	        return;
-	      }
-	      node = queue.shift();
-	      for (i = 0, childCount = node.children.length; i < childCount; i++) {
-	        queue.push(node.children[i]);
-	      }
-	      if (callback.call(context, node) !== false) {
-	        processQueue();
-	      }
-	    })();
-	  };
-
-	  Node.prototype.all = function () {
-	    var args, all = [];
-	    args = parseArgs.apply(this, arguments);
-	    walkStrategies[args.options.strategy].call(this, function (node) {
-	      if (args.fn.call(args.ctx, node)) {
-	        all.push(node);
-	      }
-	    }, args.ctx);
-	    return all;
-	  };
-
-	  Node.prototype.first = function () {
-	    var args, first;
-	    args = parseArgs.apply(this, arguments);
-	    walkStrategies[args.options.strategy].call(this, function (node) {
-	      if (args.fn.call(args.ctx, node)) {
-	        first = node;
-	        return false;
-	      }
-	    }, args.ctx);
-	    return first;
-	  };
-
-	  Node.prototype.drop = function () {
-	    var indexOfChild;
-	    if (!this.isRoot()) {
-	      indexOfChild = this.parent.children.indexOf(this);
-	      this.parent.children.splice(indexOfChild, 1);
-	      this.parent.model[this.config.childrenPropertyName].splice(indexOfChild, 1);
-	      this.parent = undefined;
-	      delete this.parent;
-	    }
-	    return this;
-	  };
-
-	  return TreeModel;
-	})();
-
-
-/***/ },
 /* 65 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -32868,8 +32868,8 @@
 
 	"use strict";
 
-	var ReactLink = __webpack_require__(121);
-	var ReactStateSetters = __webpack_require__(122);
+	var ReactLink = __webpack_require__(100);
+	var ReactStateSetters = __webpack_require__(101);
 
 	/**
 	 * A simple mixin around ReactLink.forState().
@@ -32919,27 +32919,27 @@
 
 	"use strict";
 
-	var DOMPropertyOperations = __webpack_require__(100);
-	var EventPluginUtils = __webpack_require__(101);
-	var ReactChildren = __webpack_require__(102);
-	var ReactComponent = __webpack_require__(103);
-	var ReactCompositeComponent = __webpack_require__(104);
-	var ReactContext = __webpack_require__(105);
-	var ReactCurrentOwner = __webpack_require__(106);
-	var ReactDescriptor = __webpack_require__(107);
-	var ReactDOM = __webpack_require__(108);
-	var ReactDOMComponent = __webpack_require__(109);
-	var ReactDefaultInjection = __webpack_require__(110);
-	var ReactInstanceHandles = __webpack_require__(111);
-	var ReactMount = __webpack_require__(112);
-	var ReactMultiChild = __webpack_require__(113);
-	var ReactPerf = __webpack_require__(114);
-	var ReactPropTypes = __webpack_require__(115);
-	var ReactServerRendering = __webpack_require__(116);
-	var ReactTextComponent = __webpack_require__(117);
+	var DOMPropertyOperations = __webpack_require__(102);
+	var EventPluginUtils = __webpack_require__(103);
+	var ReactChildren = __webpack_require__(104);
+	var ReactComponent = __webpack_require__(105);
+	var ReactCompositeComponent = __webpack_require__(106);
+	var ReactContext = __webpack_require__(107);
+	var ReactCurrentOwner = __webpack_require__(108);
+	var ReactDescriptor = __webpack_require__(109);
+	var ReactDOM = __webpack_require__(110);
+	var ReactDOMComponent = __webpack_require__(111);
+	var ReactDefaultInjection = __webpack_require__(112);
+	var ReactInstanceHandles = __webpack_require__(113);
+	var ReactMount = __webpack_require__(114);
+	var ReactMultiChild = __webpack_require__(115);
+	var ReactPerf = __webpack_require__(116);
+	var ReactPropTypes = __webpack_require__(117);
+	var ReactServerRendering = __webpack_require__(118);
+	var ReactTextComponent = __webpack_require__(119);
 
-	var onlyChild = __webpack_require__(118);
-	var warning = __webpack_require__(119);
+	var onlyChild = __webpack_require__(120);
+	var warning = __webpack_require__(121);
 
 	ReactDefaultInjection.inject();
 
@@ -33006,7 +33006,7 @@
 	};
 
 	if ("production" !== process.env.NODE_ENV) {
-	  var ExecutionEnvironment = __webpack_require__(120);
+	  var ExecutionEnvironment = __webpack_require__(122);
 	  if (ExecutionEnvironment.canUseDOM &&
 	      window.top === window.self &&
 	      navigator.userAgent.indexOf('Chrome') > -1) {
@@ -33141,7 +33141,7 @@
 	var React = __webpack_require__(74);
 
 	var ReactTransitionGroup = __webpack_require__(77);
-	var ReactCSSTransitionGroupChild = __webpack_require__(124);
+	var ReactCSSTransitionGroupChild = __webpack_require__(132);
 
 	var ReactCSSTransitionGroup = React.createClass({
 	  displayName: 'ReactCSSTransitionGroup',
@@ -33211,11 +33211,11 @@
 	"use strict";
 
 	var React = __webpack_require__(74);
-	var ReactTransitionChildMapping = __webpack_require__(125);
+	var ReactTransitionChildMapping = __webpack_require__(124);
 
 	var cloneWithProps = __webpack_require__(79);
-	var emptyFunction = __webpack_require__(126);
-	var merge = __webpack_require__(127);
+	var emptyFunction = __webpack_require__(125);
+	var merge = __webpack_require__(126);
 
 	var ReactTransitionGroup = React.createClass({
 	  displayName: 'ReactTransitionGroup',
@@ -33457,10 +33457,10 @@
 
 	"use strict";
 
-	var ReactPropTransferer = __webpack_require__(128);
+	var ReactPropTransferer = __webpack_require__(131);
 
-	var keyOf = __webpack_require__(129);
-	var warning = __webpack_require__(119);
+	var keyOf = __webpack_require__(127);
+	var warning = __webpack_require__(121);
 
 	var CHILDREN_PROP = keyOf({children: null});
 
@@ -33524,9 +33524,9 @@
 
 	"use strict";
 
-	var copyProperties = __webpack_require__(50);
-	var keyOf = __webpack_require__(129);
-	var invariant = __webpack_require__(83);
+	var copyProperties = __webpack_require__(49);
+	var keyOf = __webpack_require__(127);
+	var invariant = __webpack_require__(84);
 
 	function shallowCopy(x) {
 	  if (Array.isArray(x)) {
@@ -33703,12 +33703,12 @@
 
 	"use strict";
 
-	var DOMProperty = __webpack_require__(133);
-	var ReactDefaultPerfAnalysis = __webpack_require__(134);
-	var ReactMount = __webpack_require__(112);
-	var ReactPerf = __webpack_require__(114);
+	var DOMProperty = __webpack_require__(128);
+	var ReactDefaultPerfAnalysis = __webpack_require__(129);
+	var ReactMount = __webpack_require__(114);
+	var ReactPerf = __webpack_require__(116);
 
-	var performanceNow = __webpack_require__(135);
+	var performanceNow = __webpack_require__(130);
 
 	function roundFloat(val) {
 	  return Math.floor(val * 100) / 100;
@@ -33969,20 +33969,20 @@
 
 	"use strict";
 
-	var EventConstants = __webpack_require__(136);
-	var EventPluginHub = __webpack_require__(137);
-	var EventPropagators = __webpack_require__(138);
+	var EventConstants = __webpack_require__(133);
+	var EventPluginHub = __webpack_require__(134);
+	var EventPropagators = __webpack_require__(135);
 	var React = __webpack_require__(74);
-	var ReactDescriptor = __webpack_require__(107);
-	var ReactDOM = __webpack_require__(108);
-	var ReactBrowserEventEmitter = __webpack_require__(139);
-	var ReactMount = __webpack_require__(112);
-	var ReactTextComponent = __webpack_require__(117);
-	var ReactUpdates = __webpack_require__(140);
-	var SyntheticEvent = __webpack_require__(141);
+	var ReactDescriptor = __webpack_require__(109);
+	var ReactDOM = __webpack_require__(110);
+	var ReactBrowserEventEmitter = __webpack_require__(136);
+	var ReactMount = __webpack_require__(114);
+	var ReactTextComponent = __webpack_require__(119);
+	var ReactUpdates = __webpack_require__(137);
+	var SyntheticEvent = __webpack_require__(138);
 
-	var mergeInto = __webpack_require__(142);
-	var copyProperties = __webpack_require__(50);
+	var mergeInto = __webpack_require__(139);
+	var copyProperties = __webpack_require__(49);
 
 	var topLevelTypes = EventConstants.topLevelTypes;
 
@@ -34367,73 +34367,6 @@
 /* 83 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(process) {/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule invariant
-	 */
-
-	"use strict";
-
-	/**
-	 * Use invariant() to assert state which your program assumes to be true.
-	 *
-	 * Provide sprintf-style format (only %s is supported) and arguments
-	 * to provide information about what broke and what you were
-	 * expecting.
-	 *
-	 * The invariant message will be stripped in production, but the invariant
-	 * will remain to ensure logic does not differ in production.
-	 */
-
-	var invariant = function(condition, format, a, b, c, d, e, f) {
-	  if ("production" !== process.env.NODE_ENV) {
-	    if (format === undefined) {
-	      throw new Error('invariant requires an error message argument');
-	    }
-	  }
-
-	  if (!condition) {
-	    var error;
-	    if (format === undefined) {
-	      error = new Error(
-	        'Minified exception occurred; use the non-minified dev environment ' +
-	        'for the full error message and additional helpful warnings.'
-	      );
-	    } else {
-	      var args = [a, b, c, d, e, f];
-	      var argIndex = 0;
-	      error = new Error(
-	        'Invariant Violation: ' +
-	        format.replace(/%s/g, function() { return args[argIndex++]; })
-	      );
-	    }
-
-	    error.framesToPop = 1; // we don't care about invariant's own frame
-	    throw error;
-	  }
-	};
-
-	module.exports = invariant;
-	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
-
-/***/ },
-/* 84 */
-/***/ function(module, exports, __webpack_require__) {
-
 	/*
 	 * Copyright (c) 2014, Facebook, Inc.
 	 * All rights reserved.
@@ -34687,13 +34620,80 @@
 
 
 /***/ },
+/* 84 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule invariant
+	 */
+
+	"use strict";
+
+	/**
+	 * Use invariant() to assert state which your program assumes to be true.
+	 *
+	 * Provide sprintf-style format (only %s is supported) and arguments
+	 * to provide information about what broke and what you were
+	 * expecting.
+	 *
+	 * The invariant message will be stripped in production, but the invariant
+	 * will remain to ensure logic does not differ in production.
+	 */
+
+	var invariant = function(condition, format, a, b, c, d, e, f) {
+	  if ("production" !== process.env.NODE_ENV) {
+	    if (format === undefined) {
+	      throw new Error('invariant requires an error message argument');
+	    }
+	  }
+
+	  if (!condition) {
+	    var error;
+	    if (format === undefined) {
+	      error = new Error(
+	        'Minified exception occurred; use the non-minified dev environment ' +
+	        'for the full error message and additional helpful warnings.'
+	      );
+	    } else {
+	      var args = [a, b, c, d, e, f];
+	      var argIndex = 0;
+	      error = new Error(
+	        'Invariant Violation: ' +
+	        format.replace(/%s/g, function() { return args[argIndex++]; })
+	      );
+	    }
+
+	    error.framesToPop = 1; // we don't care about invariant's own frame
+	    throw error;
+	  }
+	};
+
+	module.exports = invariant;
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
+
+/***/ },
 /* 85 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/** @jsx React.DOM */
 
 	var _ = __webpack_require__(46);
-	var React = __webpack_require__(11);
+	var React = __webpack_require__(10);
 
 	var TreeActions = __webpack_require__(5);
 
@@ -34870,7 +34870,7 @@
 	(function(define) { 'use strict';
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require) {
 
-		var timer = __webpack_require__(150);
+		var timer = __webpack_require__(146);
 		var TimeoutError = __webpack_require__(88);
 
 		function setTimeout(f, ms, x, y) {
@@ -35599,7 +35599,7 @@
 	(function(define) { 'use strict';
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require) {
 
-		var timer = __webpack_require__(150);
+		var timer = __webpack_require__(146);
 
 		return function unhandledRejection(Promise) {
 			var logError = noop;
@@ -35716,6 +35716,207 @@
 /* 100 */
 /***/ function(module, exports, __webpack_require__) {
 
+	/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule ReactLink
+	 * @typechecks static-only
+	 */
+
+	"use strict";
+
+	/**
+	 * ReactLink encapsulates a common pattern in which a component wants to modify
+	 * a prop received from its parent. ReactLink allows the parent to pass down a
+	 * value coupled with a callback that, when invoked, expresses an intent to
+	 * modify that value. For example:
+	 *
+	 * React.createClass({
+	 *   getInitialState: function() {
+	 *     return {value: ''};
+	 *   },
+	 *   render: function() {
+	 *     var valueLink = new ReactLink(this.state.value, this._handleValueChange);
+	 *     return <input valueLink={valueLink} />;
+	 *   },
+	 *   this._handleValueChange: function(newValue) {
+	 *     this.setState({value: newValue});
+	 *   }
+	 * });
+	 *
+	 * We have provided some sugary mixins to make the creation and
+	 * consumption of ReactLink easier; see LinkedValueUtils and LinkedStateMixin.
+	 */
+
+	var React = __webpack_require__(74);
+
+	/**
+	 * @param {*} value current value of the link
+	 * @param {function} requestChange callback to request a change
+	 */
+	function ReactLink(value, requestChange) {
+	  this.value = value;
+	  this.requestChange = requestChange;
+	}
+
+	/**
+	 * Creates a PropType that enforces the ReactLink API and optionally checks the
+	 * type of the value being passed inside the link. Example:
+	 *
+	 * MyComponent.propTypes = {
+	 *   tabIndexLink: ReactLink.PropTypes.link(React.PropTypes.number)
+	 * }
+	 */
+	function createLinkTypeChecker(linkType) {
+	  var shapes = {
+	    value: typeof linkType === 'undefined' ?
+	      React.PropTypes.any.isRequired :
+	      linkType.isRequired,
+	    requestChange: React.PropTypes.func.isRequired
+	  };
+	  return React.PropTypes.shape(shapes);
+	}
+
+	ReactLink.PropTypes = {
+	  link: createLinkTypeChecker
+	};
+
+	module.exports = ReactLink;
+
+
+/***/ },
+/* 101 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule ReactStateSetters
+	 */
+
+	"use strict";
+
+	var ReactStateSetters = {
+	  /**
+	   * Returns a function that calls the provided function, and uses the result
+	   * of that to set the component's state.
+	   *
+	   * @param {ReactCompositeComponent} component
+	   * @param {function} funcReturningState Returned callback uses this to
+	   *                                      determine how to update state.
+	   * @return {function} callback that when invoked uses funcReturningState to
+	   *                    determined the object literal to setState.
+	   */
+	  createStateSetter: function(component, funcReturningState) {
+	    return function(a, b, c, d, e, f) {
+	      var partialState = funcReturningState.call(component, a, b, c, d, e, f);
+	      if (partialState) {
+	        component.setState(partialState);
+	      }
+	    };
+	  },
+
+	  /**
+	   * Returns a single-argument callback that can be used to update a single
+	   * key in the component's state.
+	   *
+	   * Note: this is memoized function, which makes it inexpensive to call.
+	   *
+	   * @param {ReactCompositeComponent} component
+	   * @param {string} key The key in the state that you should update.
+	   * @return {function} callback of 1 argument which calls setState() with
+	   *                    the provided keyName and callback argument.
+	   */
+	  createStateKeySetter: function(component, key) {
+	    // Memoize the setters.
+	    var cache = component.__keySetters || (component.__keySetters = {});
+	    return cache[key] || (cache[key] = createStateKeySetter(component, key));
+	  }
+	};
+
+	function createStateKeySetter(component, key) {
+	  // Partial state is allocated outside of the function closure so it can be
+	  // reused with every call, avoiding memory allocation when this function
+	  // is called.
+	  var partialState = {};
+	  return function stateKeySetter(value) {
+	    partialState[key] = value;
+	    component.setState(partialState);
+	  };
+	}
+
+	ReactStateSetters.Mixin = {
+	  /**
+	   * Returns a function that calls the provided function, and uses the result
+	   * of that to set the component's state.
+	   *
+	   * For example, these statements are equivalent:
+	   *
+	   *   this.setState({x: 1});
+	   *   this.createStateSetter(function(xValue) {
+	   *     return {x: xValue};
+	   *   })(1);
+	   *
+	   * @param {function} funcReturningState Returned callback uses this to
+	   *                                      determine how to update state.
+	   * @return {function} callback that when invoked uses funcReturningState to
+	   *                    determined the object literal to setState.
+	   */
+	  createStateSetter: function(funcReturningState) {
+	    return ReactStateSetters.createStateSetter(this, funcReturningState);
+	  },
+
+	  /**
+	   * Returns a single-argument callback that can be used to update a single
+	   * key in the component's state.
+	   *
+	   * For example, these statements are equivalent:
+	   *
+	   *   this.setState({x: 1});
+	   *   this.createStateKeySetter('x')(1);
+	   *
+	   * Note: this is memoized function, which makes it inexpensive to call.
+	   *
+	   * @param {string} key The key in the state that you should update.
+	   * @return {function} callback of 1 argument which calls setState() with
+	   *                    the provided keyName and callback argument.
+	   */
+	  createStateKeySetter: function(key) {
+	    return ReactStateSetters.createStateKeySetter(this, key);
+	  }
+	};
+
+	module.exports = ReactStateSetters;
+
+
+/***/ },
+/* 102 */
+/***/ function(module, exports, __webpack_require__) {
+
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2014 Facebook, Inc.
 	 *
@@ -35737,11 +35938,11 @@
 
 	"use strict";
 
-	var DOMProperty = __webpack_require__(133);
+	var DOMProperty = __webpack_require__(128);
 
-	var escapeTextForBrowser = __webpack_require__(151);
-	var memoizeStringOnly = __webpack_require__(152);
-	var warning = __webpack_require__(119);
+	var escapeTextForBrowser = __webpack_require__(153);
+	var memoizeStringOnly = __webpack_require__(154);
+	var warning = __webpack_require__(121);
 
 	function shouldIgnoreValue(name, value) {
 	  return value == null ||
@@ -35913,7 +36114,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
-/* 101 */
+/* 103 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -35936,9 +36137,9 @@
 
 	"use strict";
 
-	var EventConstants = __webpack_require__(136);
+	var EventConstants = __webpack_require__(133);
 
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	/**
 	 * Injected dependencies:
@@ -36144,7 +36345,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
-/* 102 */
+/* 104 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -36167,10 +36368,10 @@
 
 	"use strict";
 
-	var PooledClass = __webpack_require__(153);
+	var PooledClass = __webpack_require__(151);
 
-	var traverseAllChildren = __webpack_require__(154);
-	var warning = __webpack_require__(119);
+	var traverseAllChildren = __webpack_require__(152);
+	var warning = __webpack_require__(121);
 
 	var twoArgumentPooler = PooledClass.twoArgumentPooler;
 	var threeArgumentPooler = PooledClass.threeArgumentPooler;
@@ -36304,7 +36505,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
-/* 103 */
+/* 105 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -36327,13 +36528,13 @@
 
 	"use strict";
 
-	var ReactDescriptor = __webpack_require__(107);
+	var ReactDescriptor = __webpack_require__(109);
 	var ReactOwner = __webpack_require__(155);
-	var ReactUpdates = __webpack_require__(140);
+	var ReactUpdates = __webpack_require__(137);
 
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 	var keyMirror = __webpack_require__(52);
-	var merge = __webpack_require__(127);
+	var merge = __webpack_require__(126);
 
 	/**
 	 * Every React component is in one of these life cycles.
@@ -36757,7 +36958,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
-/* 104 */
+/* 106 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -36780,29 +36981,29 @@
 
 	"use strict";
 
-	var ReactComponent = __webpack_require__(103);
-	var ReactContext = __webpack_require__(105);
-	var ReactCurrentOwner = __webpack_require__(106);
-	var ReactDescriptor = __webpack_require__(107);
+	var ReactComponent = __webpack_require__(105);
+	var ReactContext = __webpack_require__(107);
+	var ReactCurrentOwner = __webpack_require__(108);
+	var ReactDescriptor = __webpack_require__(109);
 	var ReactDescriptorValidator = __webpack_require__(156);
 	var ReactEmptyComponent = __webpack_require__(157);
 	var ReactErrorUtils = __webpack_require__(158);
 	var ReactOwner = __webpack_require__(155);
-	var ReactPerf = __webpack_require__(114);
-	var ReactPropTransferer = __webpack_require__(128);
+	var ReactPerf = __webpack_require__(116);
+	var ReactPropTransferer = __webpack_require__(131);
 	var ReactPropTypeLocations = __webpack_require__(159);
 	var ReactPropTypeLocationNames = __webpack_require__(160);
-	var ReactUpdates = __webpack_require__(140);
+	var ReactUpdates = __webpack_require__(137);
 
 	var instantiateReactComponent = __webpack_require__(161);
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 	var keyMirror = __webpack_require__(52);
-	var merge = __webpack_require__(127);
+	var merge = __webpack_require__(126);
 	var mixInto = __webpack_require__(162);
 	var monitorCodeUse = __webpack_require__(163);
 	var mapObject = __webpack_require__(164);
 	var shouldUpdateReactComponent = __webpack_require__(165);
-	var warning = __webpack_require__(119);
+	var warning = __webpack_require__(121);
 
 	/**
 	 * Policies that describe methods in `ReactCompositeComponentInterface`.
@@ -38189,7 +38390,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
-/* 105 */
+/* 107 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -38212,7 +38413,7 @@
 
 	"use strict";
 
-	var merge = __webpack_require__(127);
+	var merge = __webpack_require__(126);
 
 	/**
 	 * Keeps track of the current context.
@@ -38262,7 +38463,7 @@
 
 
 /***/ },
-/* 106 */
+/* 108 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -38307,7 +38508,7 @@
 
 
 /***/ },
-/* 107 */
+/* 109 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -38330,11 +38531,11 @@
 
 	"use strict";
 
-	var ReactContext = __webpack_require__(105);
-	var ReactCurrentOwner = __webpack_require__(106);
+	var ReactContext = __webpack_require__(107);
+	var ReactCurrentOwner = __webpack_require__(108);
 
-	var merge = __webpack_require__(127);
-	var warning = __webpack_require__(119);
+	var merge = __webpack_require__(126);
+	var warning = __webpack_require__(121);
 
 	/**
 	 * Warn for mutations.
@@ -38565,7 +38766,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
-/* 108 */
+/* 110 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -38589,11 +38790,11 @@
 
 	"use strict";
 
-	var ReactDescriptor = __webpack_require__(107);
+	var ReactDescriptor = __webpack_require__(109);
 	var ReactDescriptorValidator = __webpack_require__(156);
-	var ReactDOMComponent = __webpack_require__(109);
+	var ReactDOMComponent = __webpack_require__(111);
 
-	var mergeInto = __webpack_require__(142);
+	var mergeInto = __webpack_require__(139);
 	var mapObject = __webpack_require__(164);
 
 	/**
@@ -38783,7 +38984,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
-/* 109 */
+/* 111 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -38807,20 +39008,20 @@
 
 	"use strict";
 
-	var CSSPropertyOperations = __webpack_require__(192);
-	var DOMProperty = __webpack_require__(133);
-	var DOMPropertyOperations = __webpack_require__(100);
+	var CSSPropertyOperations = __webpack_require__(191);
+	var DOMProperty = __webpack_require__(128);
+	var DOMPropertyOperations = __webpack_require__(102);
 	var ReactBrowserComponentMixin = __webpack_require__(174);
-	var ReactComponent = __webpack_require__(103);
-	var ReactBrowserEventEmitter = __webpack_require__(139);
-	var ReactMount = __webpack_require__(112);
-	var ReactMultiChild = __webpack_require__(113);
-	var ReactPerf = __webpack_require__(114);
+	var ReactComponent = __webpack_require__(105);
+	var ReactBrowserEventEmitter = __webpack_require__(136);
+	var ReactMount = __webpack_require__(114);
+	var ReactMultiChild = __webpack_require__(115);
+	var ReactPerf = __webpack_require__(116);
 
-	var escapeTextForBrowser = __webpack_require__(151);
-	var invariant = __webpack_require__(83);
-	var keyOf = __webpack_require__(129);
-	var merge = __webpack_require__(127);
+	var escapeTextForBrowser = __webpack_require__(153);
+	var invariant = __webpack_require__(84);
+	var keyOf = __webpack_require__(127);
+	var merge = __webpack_require__(126);
 	var mixInto = __webpack_require__(162);
 
 	var deleteListener = ReactBrowserEventEmitter.deleteListener;
@@ -39208,7 +39409,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
-/* 110 */
+/* 112 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -39237,14 +39438,14 @@
 	var CompositionEventPlugin = __webpack_require__(169);
 	var DefaultEventPluginOrder = __webpack_require__(170);
 	var EnterLeaveEventPlugin = __webpack_require__(171);
-	var ExecutionEnvironment = __webpack_require__(120);
+	var ExecutionEnvironment = __webpack_require__(122);
 	var HTMLDOMPropertyConfig = __webpack_require__(172);
 	var MobileSafariClickEventPlugin = __webpack_require__(173);
 	var ReactBrowserComponentMixin = __webpack_require__(174);
 	var ReactComponentBrowserEnvironment =
 	  __webpack_require__(175);
 	var ReactDefaultBatchingStrategy = __webpack_require__(176);
-	var ReactDOM = __webpack_require__(108);
+	var ReactDOM = __webpack_require__(110);
 	var ReactDOMButton = __webpack_require__(177);
 	var ReactDOMForm = __webpack_require__(178);
 	var ReactDOMImg = __webpack_require__(179);
@@ -39254,8 +39455,8 @@
 	var ReactDOMTextarea = __webpack_require__(183);
 	var ReactEventListener = __webpack_require__(184);
 	var ReactInjection = __webpack_require__(185);
-	var ReactInstanceHandles = __webpack_require__(111);
-	var ReactMount = __webpack_require__(112);
+	var ReactInstanceHandles = __webpack_require__(113);
+	var ReactMount = __webpack_require__(114);
 	var SelectEventPlugin = __webpack_require__(186);
 	var ServerReactRootIndex = __webpack_require__(187);
 	var SimpleEventPlugin = __webpack_require__(188);
@@ -39343,7 +39544,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
-/* 111 */
+/* 113 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -39367,9 +39568,9 @@
 
 	"use strict";
 
-	var ReactRootIndex = __webpack_require__(191);
+	var ReactRootIndex = __webpack_require__(192);
 
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	var SEPARATOR = '.';
 	var SEPARATOR_LENGTH = SEPARATOR.length;
@@ -39688,7 +39889,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
-/* 112 */
+/* 114 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -39711,19 +39912,19 @@
 
 	"use strict";
 
-	var DOMProperty = __webpack_require__(133);
-	var ReactBrowserEventEmitter = __webpack_require__(139);
-	var ReactCurrentOwner = __webpack_require__(106);
-	var ReactDescriptor = __webpack_require__(107);
-	var ReactInstanceHandles = __webpack_require__(111);
-	var ReactPerf = __webpack_require__(114);
+	var DOMProperty = __webpack_require__(128);
+	var ReactBrowserEventEmitter = __webpack_require__(136);
+	var ReactCurrentOwner = __webpack_require__(108);
+	var ReactDescriptor = __webpack_require__(109);
+	var ReactInstanceHandles = __webpack_require__(113);
+	var ReactPerf = __webpack_require__(116);
 
-	var containsNode = __webpack_require__(195);
-	var getReactRootElementInContainer = __webpack_require__(196);
+	var containsNode = __webpack_require__(193);
+	var getReactRootElementInContainer = __webpack_require__(194);
 	var instantiateReactComponent = __webpack_require__(161);
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 	var shouldUpdateReactComponent = __webpack_require__(165);
-	var warning = __webpack_require__(119);
+	var warning = __webpack_require__(121);
 
 	var SEPARATOR = ReactInstanceHandles.SEPARATOR;
 
@@ -40376,7 +40577,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
-/* 113 */
+/* 115 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -40400,10 +40601,10 @@
 
 	"use strict";
 
-	var ReactComponent = __webpack_require__(103);
-	var ReactMultiChildUpdateTypes = __webpack_require__(193);
+	var ReactComponent = __webpack_require__(105);
+	var ReactMultiChildUpdateTypes = __webpack_require__(195);
 
-	var flattenChildren = __webpack_require__(194);
+	var flattenChildren = __webpack_require__(196);
 	var instantiateReactComponent = __webpack_require__(161);
 	var shouldUpdateReactComponent = __webpack_require__(165);
 
@@ -40812,7 +41013,7 @@
 
 
 /***/ },
-/* 114 */
+/* 116 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -40904,7 +41105,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
-/* 115 */
+/* 117 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -40927,10 +41128,10 @@
 
 	"use strict";
 
-	var ReactDescriptor = __webpack_require__(107);
+	var ReactDescriptor = __webpack_require__(109);
 	var ReactPropTypeLocationNames = __webpack_require__(160);
 
-	var emptyFunction = __webpack_require__(126);
+	var emptyFunction = __webpack_require__(125);
 
 	/**
 	 * Collection of methods that allow declaration and validation of props that are
@@ -41253,7 +41454,7 @@
 
 
 /***/ },
-/* 116 */
+/* 118 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -41276,14 +41477,14 @@
 	 */
 	"use strict";
 
-	var ReactDescriptor = __webpack_require__(107);
-	var ReactInstanceHandles = __webpack_require__(111);
+	var ReactDescriptor = __webpack_require__(109);
+	var ReactInstanceHandles = __webpack_require__(113);
 	var ReactMarkupChecksum = __webpack_require__(197);
 	var ReactServerRenderingTransaction =
 	  __webpack_require__(198);
 
 	var instantiateReactComponent = __webpack_require__(161);
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	/**
 	 * @param {ReactComponent} component
@@ -41349,7 +41550,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
-/* 117 */
+/* 119 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -41373,12 +41574,12 @@
 
 	"use strict";
 
-	var DOMPropertyOperations = __webpack_require__(100);
+	var DOMPropertyOperations = __webpack_require__(102);
 	var ReactBrowserComponentMixin = __webpack_require__(174);
-	var ReactComponent = __webpack_require__(103);
-	var ReactDescriptor = __webpack_require__(107);
+	var ReactComponent = __webpack_require__(105);
+	var ReactDescriptor = __webpack_require__(109);
 
-	var escapeTextForBrowser = __webpack_require__(151);
+	var escapeTextForBrowser = __webpack_require__(153);
 	var mixInto = __webpack_require__(162);
 
 	/**
@@ -41462,7 +41663,7 @@
 
 
 /***/ },
-/* 118 */
+/* 120 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -41484,9 +41685,9 @@
 	 */
 	"use strict";
 
-	var ReactDescriptor = __webpack_require__(107);
+	var ReactDescriptor = __webpack_require__(109);
 
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	/**
 	 * Returns the first child in a collection of children and verifies that there
@@ -41512,7 +41713,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
-/* 119 */
+/* 121 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -41535,7 +41736,7 @@
 
 	"use strict";
 
-	var emptyFunction = __webpack_require__(126);
+	var emptyFunction = __webpack_require__(125);
 
 	/**
 	 * Similar to invariant but only logs a warning if the condition is not met.
@@ -41567,7 +41768,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
-/* 120 */
+/* 122 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -41620,207 +41821,6 @@
 	};
 
 	module.exports = ExecutionEnvironment;
-
-
-/***/ },
-/* 121 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule ReactLink
-	 * @typechecks static-only
-	 */
-
-	"use strict";
-
-	/**
-	 * ReactLink encapsulates a common pattern in which a component wants to modify
-	 * a prop received from its parent. ReactLink allows the parent to pass down a
-	 * value coupled with a callback that, when invoked, expresses an intent to
-	 * modify that value. For example:
-	 *
-	 * React.createClass({
-	 *   getInitialState: function() {
-	 *     return {value: ''};
-	 *   },
-	 *   render: function() {
-	 *     var valueLink = new ReactLink(this.state.value, this._handleValueChange);
-	 *     return <input valueLink={valueLink} />;
-	 *   },
-	 *   this._handleValueChange: function(newValue) {
-	 *     this.setState({value: newValue});
-	 *   }
-	 * });
-	 *
-	 * We have provided some sugary mixins to make the creation and
-	 * consumption of ReactLink easier; see LinkedValueUtils and LinkedStateMixin.
-	 */
-
-	var React = __webpack_require__(74);
-
-	/**
-	 * @param {*} value current value of the link
-	 * @param {function} requestChange callback to request a change
-	 */
-	function ReactLink(value, requestChange) {
-	  this.value = value;
-	  this.requestChange = requestChange;
-	}
-
-	/**
-	 * Creates a PropType that enforces the ReactLink API and optionally checks the
-	 * type of the value being passed inside the link. Example:
-	 *
-	 * MyComponent.propTypes = {
-	 *   tabIndexLink: ReactLink.PropTypes.link(React.PropTypes.number)
-	 * }
-	 */
-	function createLinkTypeChecker(linkType) {
-	  var shapes = {
-	    value: typeof linkType === 'undefined' ?
-	      React.PropTypes.any.isRequired :
-	      linkType.isRequired,
-	    requestChange: React.PropTypes.func.isRequired
-	  };
-	  return React.PropTypes.shape(shapes);
-	}
-
-	ReactLink.PropTypes = {
-	  link: createLinkTypeChecker
-	};
-
-	module.exports = ReactLink;
-
-
-/***/ },
-/* 122 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule ReactStateSetters
-	 */
-
-	"use strict";
-
-	var ReactStateSetters = {
-	  /**
-	   * Returns a function that calls the provided function, and uses the result
-	   * of that to set the component's state.
-	   *
-	   * @param {ReactCompositeComponent} component
-	   * @param {function} funcReturningState Returned callback uses this to
-	   *                                      determine how to update state.
-	   * @return {function} callback that when invoked uses funcReturningState to
-	   *                    determined the object literal to setState.
-	   */
-	  createStateSetter: function(component, funcReturningState) {
-	    return function(a, b, c, d, e, f) {
-	      var partialState = funcReturningState.call(component, a, b, c, d, e, f);
-	      if (partialState) {
-	        component.setState(partialState);
-	      }
-	    };
-	  },
-
-	  /**
-	   * Returns a single-argument callback that can be used to update a single
-	   * key in the component's state.
-	   *
-	   * Note: this is memoized function, which makes it inexpensive to call.
-	   *
-	   * @param {ReactCompositeComponent} component
-	   * @param {string} key The key in the state that you should update.
-	   * @return {function} callback of 1 argument which calls setState() with
-	   *                    the provided keyName and callback argument.
-	   */
-	  createStateKeySetter: function(component, key) {
-	    // Memoize the setters.
-	    var cache = component.__keySetters || (component.__keySetters = {});
-	    return cache[key] || (cache[key] = createStateKeySetter(component, key));
-	  }
-	};
-
-	function createStateKeySetter(component, key) {
-	  // Partial state is allocated outside of the function closure so it can be
-	  // reused with every call, avoiding memory allocation when this function
-	  // is called.
-	  var partialState = {};
-	  return function stateKeySetter(value) {
-	    partialState[key] = value;
-	    component.setState(partialState);
-	  };
-	}
-
-	ReactStateSetters.Mixin = {
-	  /**
-	   * Returns a function that calls the provided function, and uses the result
-	   * of that to set the component's state.
-	   *
-	   * For example, these statements are equivalent:
-	   *
-	   *   this.setState({x: 1});
-	   *   this.createStateSetter(function(xValue) {
-	   *     return {x: xValue};
-	   *   })(1);
-	   *
-	   * @param {function} funcReturningState Returned callback uses this to
-	   *                                      determine how to update state.
-	   * @return {function} callback that when invoked uses funcReturningState to
-	   *                    determined the object literal to setState.
-	   */
-	  createStateSetter: function(funcReturningState) {
-	    return ReactStateSetters.createStateSetter(this, funcReturningState);
-	  },
-
-	  /**
-	   * Returns a single-argument callback that can be used to update a single
-	   * key in the component's state.
-	   *
-	   * For example, these statements are equivalent:
-	   *
-	   *   this.setState({x: 1});
-	   *   this.createStateKeySetter('x')(1);
-	   *
-	   * Note: this is memoized function, which makes it inexpensive to call.
-	   *
-	   * @param {string} key The key in the state that you should update.
-	   * @return {function} callback of 1 argument which calls setState() with
-	   *                    the provided keyName and callback argument.
-	   */
-	  createStateKeySetter: function(key) {
-	    return ReactStateSetters.createStateKeySetter(this, key);
-	  }
-	};
-
-	module.exports = ReactStateSetters;
 
 
 /***/ },
@@ -41882,148 +41882,6 @@
 /* 124 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(process) {/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @typechecks
-	 * @providesModule ReactCSSTransitionGroupChild
-	 */
-
-	"use strict";
-
-	var React = __webpack_require__(74);
-
-	var CSSCore = __webpack_require__(199);
-	var ReactTransitionEvents = __webpack_require__(200);
-
-	var onlyChild = __webpack_require__(118);
-
-	// We don't remove the element from the DOM until we receive an animationend or
-	// transitionend event. If the user screws up and forgets to add an animation
-	// their node will be stuck in the DOM forever, so we detect if an animation
-	// does not start and if it doesn't, we just call the end listener immediately.
-	var TICK = 17;
-	var NO_EVENT_TIMEOUT = 5000;
-
-	var noEventListener = null;
-
-
-	if ("production" !== process.env.NODE_ENV) {
-	  noEventListener = function() {
-	    console.warn(
-	      'transition(): tried to perform an animation without ' +
-	      'an animationend or transitionend event after timeout (' +
-	      NO_EVENT_TIMEOUT + 'ms). You should either disable this ' +
-	      'transition in JS or add a CSS animation/transition.'
-	    );
-	  };
-	}
-
-	var ReactCSSTransitionGroupChild = React.createClass({
-	  displayName: 'ReactCSSTransitionGroupChild',
-
-	  transition: function(animationType, finishCallback) {
-	    var node = this.getDOMNode();
-	    var className = this.props.name + '-' + animationType;
-	    var activeClassName = className + '-active';
-	    var noEventTimeout = null;
-
-	    var endListener = function() {
-	      if ("production" !== process.env.NODE_ENV) {
-	        clearTimeout(noEventTimeout);
-	      }
-
-	      CSSCore.removeClass(node, className);
-	      CSSCore.removeClass(node, activeClassName);
-
-	      ReactTransitionEvents.removeEndEventListener(node, endListener);
-
-	      // Usually this optional callback is used for informing an owner of
-	      // a leave animation and telling it to remove the child.
-	      finishCallback && finishCallback();
-	    };
-
-	    ReactTransitionEvents.addEndEventListener(node, endListener);
-
-	    CSSCore.addClass(node, className);
-
-	    // Need to do this to actually trigger a transition.
-	    this.queueClass(activeClassName);
-
-	    if ("production" !== process.env.NODE_ENV) {
-	      noEventTimeout = setTimeout(noEventListener, NO_EVENT_TIMEOUT);
-	    }
-	  },
-
-	  queueClass: function(className) {
-	    this.classNameQueue.push(className);
-
-	    if (!this.timeout) {
-	      this.timeout = setTimeout(this.flushClassNameQueue, TICK);
-	    }
-	  },
-
-	  flushClassNameQueue: function() {
-	    if (this.isMounted()) {
-	      this.classNameQueue.forEach(
-	        CSSCore.addClass.bind(CSSCore, this.getDOMNode())
-	      );
-	    }
-	    this.classNameQueue.length = 0;
-	    this.timeout = null;
-	  },
-
-	  componentWillMount: function() {
-	    this.classNameQueue = [];
-	  },
-
-	  componentWillUnmount: function() {
-	    if (this.timeout) {
-	      clearTimeout(this.timeout);
-	    }
-	  },
-
-	  componentWillEnter: function(done) {
-	    if (this.props.enter) {
-	      this.transition('enter', done);
-	    } else {
-	      done();
-	    }
-	  },
-
-	  componentWillLeave: function(done) {
-	    if (this.props.leave) {
-	      this.transition('leave', done);
-	    } else {
-	      done();
-	    }
-	  },
-
-	  render: function() {
-	    return onlyChild(this.props.children);
-	  }
-	});
-
-	module.exports = ReactCSSTransitionGroupChild;
-	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
-
-/***/ },
-/* 125 */
-/***/ function(module, exports, __webpack_require__) {
-
 	/**
 	 * Copyright 2013-2014 Facebook, Inc.
 	 *
@@ -42045,7 +41903,7 @@
 
 	"use strict";
 
-	var ReactChildren = __webpack_require__(102);
+	var ReactChildren = __webpack_require__(104);
 
 	var ReactTransitionChildMapping = {
 	  /**
@@ -42133,7 +41991,7 @@
 
 
 /***/ },
-/* 126 */
+/* 125 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -42154,7 +42012,7 @@
 	 * @providesModule emptyFunction
 	 */
 
-	var copyProperties = __webpack_require__(50);
+	var copyProperties = __webpack_require__(49);
 
 	function makeEmptyFunction(arg) {
 	  return function() {
@@ -42182,7 +42040,7 @@
 
 
 /***/ },
-/* 127 */
+/* 126 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -42205,7 +42063,7 @@
 
 	"use strict";
 
-	var mergeInto = __webpack_require__(142);
+	var mergeInto = __webpack_require__(139);
 
 	/**
 	 * Shallow merges two structures into a return value, without mutating either.
@@ -42225,7 +42083,607 @@
 
 
 /***/ },
+/* 127 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule keyOf
+	 */
+
+	/**
+	 * Allows extraction of a minified key. Let's the build system minify keys
+	 * without loosing the ability to dynamically use key strings as values
+	 * themselves. Pass in an object with a single key/val pair and it will return
+	 * you the string key of that single record. Suppose you want to grab the
+	 * value for a key 'className' inside of an object. Key/val minification may
+	 * have aliased that key to be 'xa12'. keyOf({className: null}) will return
+	 * 'xa12' in that case. Resolve keys you want to use once at startup time, then
+	 * reuse those resolutions.
+	 */
+	var keyOf = function(oneKeyObj) {
+	  var key;
+	  for (key in oneKeyObj) {
+	    if (!oneKeyObj.hasOwnProperty(key)) {
+	      continue;
+	    }
+	    return key;
+	  }
+	  return null;
+	};
+
+
+	module.exports = keyOf;
+
+
+/***/ },
 /* 128 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule DOMProperty
+	 * @typechecks static-only
+	 */
+
+	/*jslint bitwise: true */
+
+	"use strict";
+
+	var invariant = __webpack_require__(84);
+
+	var DOMPropertyInjection = {
+	  /**
+	   * Mapping from normalized, camelcased property names to a configuration that
+	   * specifies how the associated DOM property should be accessed or rendered.
+	   */
+	  MUST_USE_ATTRIBUTE: 0x1,
+	  MUST_USE_PROPERTY: 0x2,
+	  HAS_SIDE_EFFECTS: 0x4,
+	  HAS_BOOLEAN_VALUE: 0x8,
+	  HAS_NUMERIC_VALUE: 0x10,
+	  HAS_POSITIVE_NUMERIC_VALUE: 0x20 | 0x10,
+	  HAS_OVERLOADED_BOOLEAN_VALUE: 0x40,
+
+	  /**
+	   * Inject some specialized knowledge about the DOM. This takes a config object
+	   * with the following properties:
+	   *
+	   * isCustomAttribute: function that given an attribute name will return true
+	   * if it can be inserted into the DOM verbatim. Useful for data-* or aria-*
+	   * attributes where it's impossible to enumerate all of the possible
+	   * attribute names,
+	   *
+	   * Properties: object mapping DOM property name to one of the
+	   * DOMPropertyInjection constants or null. If your attribute isn't in here,
+	   * it won't get written to the DOM.
+	   *
+	   * DOMAttributeNames: object mapping React attribute name to the DOM
+	   * attribute name. Attribute names not specified use the **lowercase**
+	   * normalized name.
+	   *
+	   * DOMPropertyNames: similar to DOMAttributeNames but for DOM properties.
+	   * Property names not specified use the normalized name.
+	   *
+	   * DOMMutationMethods: Properties that require special mutation methods. If
+	   * `value` is undefined, the mutation method should unset the property.
+	   *
+	   * @param {object} domPropertyConfig the config as described above.
+	   */
+	  injectDOMPropertyConfig: function(domPropertyConfig) {
+	    var Properties = domPropertyConfig.Properties || {};
+	    var DOMAttributeNames = domPropertyConfig.DOMAttributeNames || {};
+	    var DOMPropertyNames = domPropertyConfig.DOMPropertyNames || {};
+	    var DOMMutationMethods = domPropertyConfig.DOMMutationMethods || {};
+
+	    if (domPropertyConfig.isCustomAttribute) {
+	      DOMProperty._isCustomAttributeFunctions.push(
+	        domPropertyConfig.isCustomAttribute
+	      );
+	    }
+
+	    for (var propName in Properties) {
+	      ("production" !== process.env.NODE_ENV ? invariant(
+	        !DOMProperty.isStandardName.hasOwnProperty(propName),
+	        'injectDOMPropertyConfig(...): You\'re trying to inject DOM property ' +
+	        '\'%s\' which has already been injected. You may be accidentally ' +
+	        'injecting the same DOM property config twice, or you may be ' +
+	        'injecting two configs that have conflicting property names.',
+	        propName
+	      ) : invariant(!DOMProperty.isStandardName.hasOwnProperty(propName)));
+
+	      DOMProperty.isStandardName[propName] = true;
+
+	      var lowerCased = propName.toLowerCase();
+	      DOMProperty.getPossibleStandardName[lowerCased] = propName;
+
+	      if (DOMAttributeNames.hasOwnProperty(propName)) {
+	        var attributeName = DOMAttributeNames[propName];
+	        DOMProperty.getPossibleStandardName[attributeName] = propName;
+	        DOMProperty.getAttributeName[propName] = attributeName;
+	      } else {
+	        DOMProperty.getAttributeName[propName] = lowerCased;
+	      }
+
+	      DOMProperty.getPropertyName[propName] =
+	        DOMPropertyNames.hasOwnProperty(propName) ?
+	          DOMPropertyNames[propName] :
+	          propName;
+
+	      if (DOMMutationMethods.hasOwnProperty(propName)) {
+	        DOMProperty.getMutationMethod[propName] = DOMMutationMethods[propName];
+	      } else {
+	        DOMProperty.getMutationMethod[propName] = null;
+	      }
+
+	      var propConfig = Properties[propName];
+	      DOMProperty.mustUseAttribute[propName] =
+	        propConfig & DOMPropertyInjection.MUST_USE_ATTRIBUTE;
+	      DOMProperty.mustUseProperty[propName] =
+	        propConfig & DOMPropertyInjection.MUST_USE_PROPERTY;
+	      DOMProperty.hasSideEffects[propName] =
+	        propConfig & DOMPropertyInjection.HAS_SIDE_EFFECTS;
+	      DOMProperty.hasBooleanValue[propName] =
+	        propConfig & DOMPropertyInjection.HAS_BOOLEAN_VALUE;
+	      DOMProperty.hasNumericValue[propName] =
+	        propConfig & DOMPropertyInjection.HAS_NUMERIC_VALUE;
+	      DOMProperty.hasPositiveNumericValue[propName] =
+	        propConfig & DOMPropertyInjection.HAS_POSITIVE_NUMERIC_VALUE;
+	      DOMProperty.hasOverloadedBooleanValue[propName] =
+	        propConfig & DOMPropertyInjection.HAS_OVERLOADED_BOOLEAN_VALUE;
+
+	      ("production" !== process.env.NODE_ENV ? invariant(
+	        !DOMProperty.mustUseAttribute[propName] ||
+	          !DOMProperty.mustUseProperty[propName],
+	        'DOMProperty: Cannot require using both attribute and property: %s',
+	        propName
+	      ) : invariant(!DOMProperty.mustUseAttribute[propName] ||
+	        !DOMProperty.mustUseProperty[propName]));
+	      ("production" !== process.env.NODE_ENV ? invariant(
+	        DOMProperty.mustUseProperty[propName] ||
+	          !DOMProperty.hasSideEffects[propName],
+	        'DOMProperty: Properties that have side effects must use property: %s',
+	        propName
+	      ) : invariant(DOMProperty.mustUseProperty[propName] ||
+	        !DOMProperty.hasSideEffects[propName]));
+	      ("production" !== process.env.NODE_ENV ? invariant(
+	        !!DOMProperty.hasBooleanValue[propName] +
+	          !!DOMProperty.hasNumericValue[propName] +
+	          !!DOMProperty.hasOverloadedBooleanValue[propName] <= 1,
+	        'DOMProperty: Value can be one of boolean, overloaded boolean, or ' +
+	        'numeric value, but not a combination: %s',
+	        propName
+	      ) : invariant(!!DOMProperty.hasBooleanValue[propName] +
+	        !!DOMProperty.hasNumericValue[propName] +
+	        !!DOMProperty.hasOverloadedBooleanValue[propName] <= 1));
+	    }
+	  }
+	};
+	var defaultValueCache = {};
+
+	/**
+	 * DOMProperty exports lookup objects that can be used like functions:
+	 *
+	 *   > DOMProperty.isValid['id']
+	 *   true
+	 *   > DOMProperty.isValid['foobar']
+	 *   undefined
+	 *
+	 * Although this may be confusing, it performs better in general.
+	 *
+	 * @see http://jsperf.com/key-exists
+	 * @see http://jsperf.com/key-missing
+	 */
+	var DOMProperty = {
+
+	  ID_ATTRIBUTE_NAME: 'data-reactid',
+
+	  /**
+	   * Checks whether a property name is a standard property.
+	   * @type {Object}
+	   */
+	  isStandardName: {},
+
+	  /**
+	   * Mapping from lowercase property names to the properly cased version, used
+	   * to warn in the case of missing properties.
+	   * @type {Object}
+	   */
+	  getPossibleStandardName: {},
+
+	  /**
+	   * Mapping from normalized names to attribute names that differ. Attribute
+	   * names are used when rendering markup or with `*Attribute()`.
+	   * @type {Object}
+	   */
+	  getAttributeName: {},
+
+	  /**
+	   * Mapping from normalized names to properties on DOM node instances.
+	   * (This includes properties that mutate due to external factors.)
+	   * @type {Object}
+	   */
+	  getPropertyName: {},
+
+	  /**
+	   * Mapping from normalized names to mutation methods. This will only exist if
+	   * mutation cannot be set simply by the property or `setAttribute()`.
+	   * @type {Object}
+	   */
+	  getMutationMethod: {},
+
+	  /**
+	   * Whether the property must be accessed and mutated as an object property.
+	   * @type {Object}
+	   */
+	  mustUseAttribute: {},
+
+	  /**
+	   * Whether the property must be accessed and mutated using `*Attribute()`.
+	   * (This includes anything that fails `<propName> in <element>`.)
+	   * @type {Object}
+	   */
+	  mustUseProperty: {},
+
+	  /**
+	   * Whether or not setting a value causes side effects such as triggering
+	   * resources to be loaded or text selection changes. We must ensure that
+	   * the value is only set if it has changed.
+	   * @type {Object}
+	   */
+	  hasSideEffects: {},
+
+	  /**
+	   * Whether the property should be removed when set to a falsey value.
+	   * @type {Object}
+	   */
+	  hasBooleanValue: {},
+
+	  /**
+	   * Whether the property must be numeric or parse as a
+	   * numeric and should be removed when set to a falsey value.
+	   * @type {Object}
+	   */
+	  hasNumericValue: {},
+
+	  /**
+	   * Whether the property must be positive numeric or parse as a positive
+	   * numeric and should be removed when set to a falsey value.
+	   * @type {Object}
+	   */
+	  hasPositiveNumericValue: {},
+
+	  /**
+	   * Whether the property can be used as a flag as well as with a value. Removed
+	   * when strictly equal to false; present without a value when strictly equal
+	   * to true; present with a value otherwise.
+	   * @type {Object}
+	   */
+	  hasOverloadedBooleanValue: {},
+
+	  /**
+	   * All of the isCustomAttribute() functions that have been injected.
+	   */
+	  _isCustomAttributeFunctions: [],
+
+	  /**
+	   * Checks whether a property name is a custom attribute.
+	   * @method
+	   */
+	  isCustomAttribute: function(attributeName) {
+	    for (var i = 0; i < DOMProperty._isCustomAttributeFunctions.length; i++) {
+	      var isCustomAttributeFn = DOMProperty._isCustomAttributeFunctions[i];
+	      if (isCustomAttributeFn(attributeName)) {
+	        return true;
+	      }
+	    }
+	    return false;
+	  },
+
+	  /**
+	   * Returns the default property value for a DOM property (i.e., not an
+	   * attribute). Most default values are '' or false, but not all. Worse yet,
+	   * some (in particular, `type`) vary depending on the type of element.
+	   *
+	   * TODO: Is it better to grab all the possible properties when creating an
+	   * element to avoid having to create the same element twice?
+	   */
+	  getDefaultValueForProperty: function(nodeName, prop) {
+	    var nodeDefaults = defaultValueCache[nodeName];
+	    var testElement;
+	    if (!nodeDefaults) {
+	      defaultValueCache[nodeName] = nodeDefaults = {};
+	    }
+	    if (!(prop in nodeDefaults)) {
+	      testElement = document.createElement(nodeName);
+	      nodeDefaults[prop] = testElement[prop];
+	    }
+	    return nodeDefaults[prop];
+	  },
+
+	  injection: DOMPropertyInjection
+	};
+
+	module.exports = DOMProperty;
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
+
+/***/ },
+/* 129 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule ReactDefaultPerfAnalysis
+	 */
+
+	var merge = __webpack_require__(126);
+
+	// Don't try to save users less than 1.2ms (a number I made up)
+	var DONT_CARE_THRESHOLD = 1.2;
+	var DOM_OPERATION_TYPES = {
+	  'mountImageIntoNode': 'set innerHTML',
+	  INSERT_MARKUP: 'set innerHTML',
+	  MOVE_EXISTING: 'move',
+	  REMOVE_NODE: 'remove',
+	  TEXT_CONTENT: 'set textContent',
+	  'updatePropertyByID': 'update attribute',
+	  'deletePropertyByID': 'delete attribute',
+	  'updateStylesByID': 'update styles',
+	  'updateInnerHTMLByID': 'set innerHTML',
+	  'dangerouslyReplaceNodeWithMarkupByID': 'replace'
+	};
+
+	function getTotalTime(measurements) {
+	  // TODO: return number of DOM ops? could be misleading.
+	  // TODO: measure dropped frames after reconcile?
+	  // TODO: log total time of each reconcile and the top-level component
+	  // class that triggered it.
+	  var totalTime = 0;
+	  for (var i = 0; i < measurements.length; i++) {
+	    var measurement = measurements[i];
+	    totalTime += measurement.totalTime;
+	  }
+	  return totalTime;
+	}
+
+	function getDOMSummary(measurements) {
+	  var items = [];
+	  for (var i = 0; i < measurements.length; i++) {
+	    var measurement = measurements[i];
+	    var id;
+
+	    for (id in measurement.writes) {
+	      measurement.writes[id].forEach(function(write) {
+	        items.push({
+	          id: id,
+	          type: DOM_OPERATION_TYPES[write.type] || write.type,
+	          args: write.args
+	        });
+	      });
+	    }
+	  }
+	  return items;
+	}
+
+	function getExclusiveSummary(measurements) {
+	  var candidates = {};
+	  var displayName;
+
+	  for (var i = 0; i < measurements.length; i++) {
+	    var measurement = measurements[i];
+	    var allIDs = merge(measurement.exclusive, measurement.inclusive);
+
+	    for (var id in allIDs) {
+	      displayName = measurement.displayNames[id].current;
+
+	      candidates[displayName] = candidates[displayName] || {
+	        componentName: displayName,
+	        inclusive: 0,
+	        exclusive: 0,
+	        render: 0,
+	        count: 0
+	      };
+	      if (measurement.render[id]) {
+	        candidates[displayName].render += measurement.render[id];
+	      }
+	      if (measurement.exclusive[id]) {
+	        candidates[displayName].exclusive += measurement.exclusive[id];
+	      }
+	      if (measurement.inclusive[id]) {
+	        candidates[displayName].inclusive += measurement.inclusive[id];
+	      }
+	      if (measurement.counts[id]) {
+	        candidates[displayName].count += measurement.counts[id];
+	      }
+	    }
+	  }
+
+	  // Now make a sorted array with the results.
+	  var arr = [];
+	  for (displayName in candidates) {
+	    if (candidates[displayName].exclusive >= DONT_CARE_THRESHOLD) {
+	      arr.push(candidates[displayName]);
+	    }
+	  }
+
+	  arr.sort(function(a, b) {
+	    return b.exclusive - a.exclusive;
+	  });
+
+	  return arr;
+	}
+
+	function getInclusiveSummary(measurements, onlyClean) {
+	  var candidates = {};
+	  var inclusiveKey;
+
+	  for (var i = 0; i < measurements.length; i++) {
+	    var measurement = measurements[i];
+	    var allIDs = merge(measurement.exclusive, measurement.inclusive);
+	    var cleanComponents;
+
+	    if (onlyClean) {
+	      cleanComponents = getUnchangedComponents(measurement);
+	    }
+
+	    for (var id in allIDs) {
+	      if (onlyClean && !cleanComponents[id]) {
+	        continue;
+	      }
+
+	      var displayName = measurement.displayNames[id];
+
+	      // Inclusive time is not useful for many components without knowing where
+	      // they are instantiated. So we aggregate inclusive time with both the
+	      // owner and current displayName as the key.
+	      inclusiveKey = displayName.owner + ' > ' + displayName.current;
+
+	      candidates[inclusiveKey] = candidates[inclusiveKey] || {
+	        componentName: inclusiveKey,
+	        time: 0,
+	        count: 0
+	      };
+
+	      if (measurement.inclusive[id]) {
+	        candidates[inclusiveKey].time += measurement.inclusive[id];
+	      }
+	      if (measurement.counts[id]) {
+	        candidates[inclusiveKey].count += measurement.counts[id];
+	      }
+	    }
+	  }
+
+	  // Now make a sorted array with the results.
+	  var arr = [];
+	  for (inclusiveKey in candidates) {
+	    if (candidates[inclusiveKey].time >= DONT_CARE_THRESHOLD) {
+	      arr.push(candidates[inclusiveKey]);
+	    }
+	  }
+
+	  arr.sort(function(a, b) {
+	    return b.time - a.time;
+	  });
+
+	  return arr;
+	}
+
+	function getUnchangedComponents(measurement) {
+	  // For a given reconcile, look at which components did not actually
+	  // render anything to the DOM and return a mapping of their ID to
+	  // the amount of time it took to render the entire subtree.
+	  var cleanComponents = {};
+	  var dirtyLeafIDs = Object.keys(measurement.writes);
+	  var allIDs = merge(measurement.exclusive, measurement.inclusive);
+
+	  for (var id in allIDs) {
+	    var isDirty = false;
+	    // For each component that rendered, see if a component that triggerd
+	    // a DOM op is in its subtree.
+	    for (var i = 0; i < dirtyLeafIDs.length; i++) {
+	      if (dirtyLeafIDs[i].indexOf(id) === 0) {
+	        isDirty = true;
+	        break;
+	      }
+	    }
+	    if (!isDirty && measurement.counts[id] > 0) {
+	      cleanComponents[id] = true;
+	    }
+	  }
+	  return cleanComponents;
+	}
+
+	var ReactDefaultPerfAnalysis = {
+	  getExclusiveSummary: getExclusiveSummary,
+	  getInclusiveSummary: getInclusiveSummary,
+	  getDOMSummary: getDOMSummary,
+	  getTotalTime: getTotalTime
+	};
+
+	module.exports = ReactDefaultPerfAnalysis;
+
+
+/***/ },
+/* 130 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule performanceNow
+	 * @typechecks
+	 */
+
+	var performance = __webpack_require__(199);
+
+	/**
+	 * Detect if we can use `window.performance.now()` and gracefully fallback to
+	 * `Date.now()` if it doesn't exist. We need to support Firefox < 15 for now
+	 * because of Facebook's testing infrastructure.
+	 */
+	if (!performance || !performance.now) {
+	  performance = Date;
+	}
+
+	var performanceNow = performance.now.bind(performance);
+
+	module.exports = performanceNow;
+
+
+/***/ },
+/* 131 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -42248,10 +42706,10 @@
 
 	"use strict";
 
-	var emptyFunction = __webpack_require__(126);
-	var invariant = __webpack_require__(83);
-	var joinClasses = __webpack_require__(201);
-	var merge = __webpack_require__(127);
+	var emptyFunction = __webpack_require__(125);
+	var invariant = __webpack_require__(84);
+	var joinClasses = __webpack_require__(200);
+	var merge = __webpack_require__(126);
 
 	/**
 	 * Creates a transfer strategy that will merge prop values using the supplied
@@ -42394,7 +42852,149 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
-/* 129 */
+/* 132 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @typechecks
+	 * @providesModule ReactCSSTransitionGroupChild
+	 */
+
+	"use strict";
+
+	var React = __webpack_require__(74);
+
+	var CSSCore = __webpack_require__(201);
+	var ReactTransitionEvents = __webpack_require__(202);
+
+	var onlyChild = __webpack_require__(120);
+
+	// We don't remove the element from the DOM until we receive an animationend or
+	// transitionend event. If the user screws up and forgets to add an animation
+	// their node will be stuck in the DOM forever, so we detect if an animation
+	// does not start and if it doesn't, we just call the end listener immediately.
+	var TICK = 17;
+	var NO_EVENT_TIMEOUT = 5000;
+
+	var noEventListener = null;
+
+
+	if ("production" !== process.env.NODE_ENV) {
+	  noEventListener = function() {
+	    console.warn(
+	      'transition(): tried to perform an animation without ' +
+	      'an animationend or transitionend event after timeout (' +
+	      NO_EVENT_TIMEOUT + 'ms). You should either disable this ' +
+	      'transition in JS or add a CSS animation/transition.'
+	    );
+	  };
+	}
+
+	var ReactCSSTransitionGroupChild = React.createClass({
+	  displayName: 'ReactCSSTransitionGroupChild',
+
+	  transition: function(animationType, finishCallback) {
+	    var node = this.getDOMNode();
+	    var className = this.props.name + '-' + animationType;
+	    var activeClassName = className + '-active';
+	    var noEventTimeout = null;
+
+	    var endListener = function() {
+	      if ("production" !== process.env.NODE_ENV) {
+	        clearTimeout(noEventTimeout);
+	      }
+
+	      CSSCore.removeClass(node, className);
+	      CSSCore.removeClass(node, activeClassName);
+
+	      ReactTransitionEvents.removeEndEventListener(node, endListener);
+
+	      // Usually this optional callback is used for informing an owner of
+	      // a leave animation and telling it to remove the child.
+	      finishCallback && finishCallback();
+	    };
+
+	    ReactTransitionEvents.addEndEventListener(node, endListener);
+
+	    CSSCore.addClass(node, className);
+
+	    // Need to do this to actually trigger a transition.
+	    this.queueClass(activeClassName);
+
+	    if ("production" !== process.env.NODE_ENV) {
+	      noEventTimeout = setTimeout(noEventListener, NO_EVENT_TIMEOUT);
+	    }
+	  },
+
+	  queueClass: function(className) {
+	    this.classNameQueue.push(className);
+
+	    if (!this.timeout) {
+	      this.timeout = setTimeout(this.flushClassNameQueue, TICK);
+	    }
+	  },
+
+	  flushClassNameQueue: function() {
+	    if (this.isMounted()) {
+	      this.classNameQueue.forEach(
+	        CSSCore.addClass.bind(CSSCore, this.getDOMNode())
+	      );
+	    }
+	    this.classNameQueue.length = 0;
+	    this.timeout = null;
+	  },
+
+	  componentWillMount: function() {
+	    this.classNameQueue = [];
+	  },
+
+	  componentWillUnmount: function() {
+	    if (this.timeout) {
+	      clearTimeout(this.timeout);
+	    }
+	  },
+
+	  componentWillEnter: function(done) {
+	    if (this.props.enter) {
+	      this.transition('enter', done);
+	    } else {
+	      done();
+	    }
+	  },
+
+	  componentWillLeave: function(done) {
+	    if (this.props.leave) {
+	      this.transition('leave', done);
+	    } else {
+	      done();
+	    }
+	  },
+
+	  render: function() {
+	    return onlyChild(this.props.children);
+	  }
+	});
+
+	module.exports = ReactCSSTransitionGroupChild;
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
+
+/***/ },
+/* 133 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -42412,36 +43012,1379 @@
 	 * See the License for the specific language governing permissions and
 	 * limitations under the License.
 	 *
-	 * @providesModule keyOf
+	 * @providesModule EventConstants
 	 */
+
+	"use strict";
+
+	var keyMirror = __webpack_require__(52);
+
+	var PropagationPhases = keyMirror({bubbled: null, captured: null});
 
 	/**
-	 * Allows extraction of a minified key. Let's the build system minify keys
-	 * without loosing the ability to dynamically use key strings as values
-	 * themselves. Pass in an object with a single key/val pair and it will return
-	 * you the string key of that single record. Suppose you want to grab the
-	 * value for a key 'className' inside of an object. Key/val minification may
-	 * have aliased that key to be 'xa12'. keyOf({className: null}) will return
-	 * 'xa12' in that case. Resolve keys you want to use once at startup time, then
-	 * reuse those resolutions.
+	 * Types of raw signals from the browser caught at the top level.
 	 */
-	var keyOf = function(oneKeyObj) {
-	  var key;
-	  for (key in oneKeyObj) {
-	    if (!oneKeyObj.hasOwnProperty(key)) {
-	      continue;
-	    }
-	    return key;
-	  }
-	  return null;
+	var topLevelTypes = keyMirror({
+	  topBlur: null,
+	  topChange: null,
+	  topClick: null,
+	  topCompositionEnd: null,
+	  topCompositionStart: null,
+	  topCompositionUpdate: null,
+	  topContextMenu: null,
+	  topCopy: null,
+	  topCut: null,
+	  topDoubleClick: null,
+	  topDrag: null,
+	  topDragEnd: null,
+	  topDragEnter: null,
+	  topDragExit: null,
+	  topDragLeave: null,
+	  topDragOver: null,
+	  topDragStart: null,
+	  topDrop: null,
+	  topError: null,
+	  topFocus: null,
+	  topInput: null,
+	  topKeyDown: null,
+	  topKeyPress: null,
+	  topKeyUp: null,
+	  topLoad: null,
+	  topMouseDown: null,
+	  topMouseMove: null,
+	  topMouseOut: null,
+	  topMouseOver: null,
+	  topMouseUp: null,
+	  topPaste: null,
+	  topReset: null,
+	  topScroll: null,
+	  topSelectionChange: null,
+	  topSubmit: null,
+	  topTextInput: null,
+	  topTouchCancel: null,
+	  topTouchEnd: null,
+	  topTouchMove: null,
+	  topTouchStart: null,
+	  topWheel: null
+	});
+
+	var EventConstants = {
+	  topLevelTypes: topLevelTypes,
+	  PropagationPhases: PropagationPhases
 	};
 
-
-	module.exports = keyOf;
+	module.exports = EventConstants;
 
 
 /***/ },
-/* 130 */
+/* 134 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule EventPluginHub
+	 */
+
+	"use strict";
+
+	var EventPluginRegistry = __webpack_require__(207);
+	var EventPluginUtils = __webpack_require__(103);
+
+	var accumulate = __webpack_require__(203);
+	var forEachAccumulated = __webpack_require__(204);
+	var invariant = __webpack_require__(84);
+	var isEventSupported = __webpack_require__(210);
+	var monitorCodeUse = __webpack_require__(163);
+
+	/**
+	 * Internal store for event listeners
+	 */
+	var listenerBank = {};
+
+	/**
+	 * Internal queue of events that have accumulated their dispatches and are
+	 * waiting to have their dispatches executed.
+	 */
+	var eventQueue = null;
+
+	/**
+	 * Dispatches an event and releases it back into the pool, unless persistent.
+	 *
+	 * @param {?object} event Synthetic event to be dispatched.
+	 * @private
+	 */
+	var executeDispatchesAndRelease = function(event) {
+	  if (event) {
+	    var executeDispatch = EventPluginUtils.executeDispatch;
+	    // Plugins can provide custom behavior when dispatching events.
+	    var PluginModule = EventPluginRegistry.getPluginModuleForEvent(event);
+	    if (PluginModule && PluginModule.executeDispatch) {
+	      executeDispatch = PluginModule.executeDispatch;
+	    }
+	    EventPluginUtils.executeDispatchesInOrder(event, executeDispatch);
+
+	    if (!event.isPersistent()) {
+	      event.constructor.release(event);
+	    }
+	  }
+	};
+
+	/**
+	 * - `InstanceHandle`: [required] Module that performs logical traversals of DOM
+	 *   hierarchy given ids of the logical DOM elements involved.
+	 */
+	var InstanceHandle = null;
+
+	function validateInstanceHandle() {
+	  var invalid = !InstanceHandle||
+	    !InstanceHandle.traverseTwoPhase ||
+	    !InstanceHandle.traverseEnterLeave;
+	  if (invalid) {
+	    throw new Error('InstanceHandle not injected before use!');
+	  }
+	}
+
+	/**
+	 * This is a unified interface for event plugins to be installed and configured.
+	 *
+	 * Event plugins can implement the following properties:
+	 *
+	 *   `extractEvents` {function(string, DOMEventTarget, string, object): *}
+	 *     Required. When a top-level event is fired, this method is expected to
+	 *     extract synthetic events that will in turn be queued and dispatched.
+	 *
+	 *   `eventTypes` {object}
+	 *     Optional, plugins that fire events must publish a mapping of registration
+	 *     names that are used to register listeners. Values of this mapping must
+	 *     be objects that contain `registrationName` or `phasedRegistrationNames`.
+	 *
+	 *   `executeDispatch` {function(object, function, string)}
+	 *     Optional, allows plugins to override how an event gets dispatched. By
+	 *     default, the listener is simply invoked.
+	 *
+	 * Each plugin that is injected into `EventsPluginHub` is immediately operable.
+	 *
+	 * @public
+	 */
+	var EventPluginHub = {
+
+	  /**
+	   * Methods for injecting dependencies.
+	   */
+	  injection: {
+
+	    /**
+	     * @param {object} InjectedMount
+	     * @public
+	     */
+	    injectMount: EventPluginUtils.injection.injectMount,
+
+	    /**
+	     * @param {object} InjectedInstanceHandle
+	     * @public
+	     */
+	    injectInstanceHandle: function(InjectedInstanceHandle) {
+	      InstanceHandle = InjectedInstanceHandle;
+	      if ("production" !== process.env.NODE_ENV) {
+	        validateInstanceHandle();
+	      }
+	    },
+
+	    getInstanceHandle: function() {
+	      if ("production" !== process.env.NODE_ENV) {
+	        validateInstanceHandle();
+	      }
+	      return InstanceHandle;
+	    },
+
+	    /**
+	     * @param {array} InjectedEventPluginOrder
+	     * @public
+	     */
+	    injectEventPluginOrder: EventPluginRegistry.injectEventPluginOrder,
+
+	    /**
+	     * @param {object} injectedNamesToPlugins Map from names to plugin modules.
+	     */
+	    injectEventPluginsByName: EventPluginRegistry.injectEventPluginsByName
+
+	  },
+
+	  eventNameDispatchConfigs: EventPluginRegistry.eventNameDispatchConfigs,
+
+	  registrationNameModules: EventPluginRegistry.registrationNameModules,
+
+	  /**
+	   * Stores `listener` at `listenerBank[registrationName][id]`. Is idempotent.
+	   *
+	   * @param {string} id ID of the DOM element.
+	   * @param {string} registrationName Name of listener (e.g. `onClick`).
+	   * @param {?function} listener The callback to store.
+	   */
+	  putListener: function(id, registrationName, listener) {
+	    ("production" !== process.env.NODE_ENV ? invariant(
+	      !listener || typeof listener === 'function',
+	      'Expected %s listener to be a function, instead got type %s',
+	      registrationName, typeof listener
+	    ) : invariant(!listener || typeof listener === 'function'));
+
+	    if ("production" !== process.env.NODE_ENV) {
+	      // IE8 has no API for event capturing and the `onScroll` event doesn't
+	      // bubble.
+	      if (registrationName === 'onScroll' &&
+	          !isEventSupported('scroll', true)) {
+	        monitorCodeUse('react_no_scroll_event');
+	        console.warn('This browser doesn\'t support the `onScroll` event');
+	      }
+	    }
+	    var bankForRegistrationName =
+	      listenerBank[registrationName] || (listenerBank[registrationName] = {});
+	    bankForRegistrationName[id] = listener;
+	  },
+
+	  /**
+	   * @param {string} id ID of the DOM element.
+	   * @param {string} registrationName Name of listener (e.g. `onClick`).
+	   * @return {?function} The stored callback.
+	   */
+	  getListener: function(id, registrationName) {
+	    var bankForRegistrationName = listenerBank[registrationName];
+	    return bankForRegistrationName && bankForRegistrationName[id];
+	  },
+
+	  /**
+	   * Deletes a listener from the registration bank.
+	   *
+	   * @param {string} id ID of the DOM element.
+	   * @param {string} registrationName Name of listener (e.g. `onClick`).
+	   */
+	  deleteListener: function(id, registrationName) {
+	    var bankForRegistrationName = listenerBank[registrationName];
+	    if (bankForRegistrationName) {
+	      delete bankForRegistrationName[id];
+	    }
+	  },
+
+	  /**
+	   * Deletes all listeners for the DOM element with the supplied ID.
+	   *
+	   * @param {string} id ID of the DOM element.
+	   */
+	  deleteAllListeners: function(id) {
+	    for (var registrationName in listenerBank) {
+	      delete listenerBank[registrationName][id];
+	    }
+	  },
+
+	  /**
+	   * Allows registered plugins an opportunity to extract events from top-level
+	   * native browser events.
+	   *
+	   * @param {string} topLevelType Record from `EventConstants`.
+	   * @param {DOMEventTarget} topLevelTarget The listening component root node.
+	   * @param {string} topLevelTargetID ID of `topLevelTarget`.
+	   * @param {object} nativeEvent Native browser event.
+	   * @return {*} An accumulation of synthetic events.
+	   * @internal
+	   */
+	  extractEvents: function(
+	      topLevelType,
+	      topLevelTarget,
+	      topLevelTargetID,
+	      nativeEvent) {
+	    var events;
+	    var plugins = EventPluginRegistry.plugins;
+	    for (var i = 0, l = plugins.length; i < l; i++) {
+	      // Not every plugin in the ordering may be loaded at runtime.
+	      var possiblePlugin = plugins[i];
+	      if (possiblePlugin) {
+	        var extractedEvents = possiblePlugin.extractEvents(
+	          topLevelType,
+	          topLevelTarget,
+	          topLevelTargetID,
+	          nativeEvent
+	        );
+	        if (extractedEvents) {
+	          events = accumulate(events, extractedEvents);
+	        }
+	      }
+	    }
+	    return events;
+	  },
+
+	  /**
+	   * Enqueues a synthetic event that should be dispatched when
+	   * `processEventQueue` is invoked.
+	   *
+	   * @param {*} events An accumulation of synthetic events.
+	   * @internal
+	   */
+	  enqueueEvents: function(events) {
+	    if (events) {
+	      eventQueue = accumulate(eventQueue, events);
+	    }
+	  },
+
+	  /**
+	   * Dispatches all synthetic events on the event queue.
+	   *
+	   * @internal
+	   */
+	  processEventQueue: function() {
+	    // Set `eventQueue` to null before processing it so that we can tell if more
+	    // events get enqueued while processing.
+	    var processingEventQueue = eventQueue;
+	    eventQueue = null;
+	    forEachAccumulated(processingEventQueue, executeDispatchesAndRelease);
+	    ("production" !== process.env.NODE_ENV ? invariant(
+	      !eventQueue,
+	      'processEventQueue(): Additional events were enqueued while processing ' +
+	      'an event queue. Support for this has not yet been implemented.'
+	    ) : invariant(!eventQueue));
+	  },
+
+	  /**
+	   * These are needed for tests only. Do not use!
+	   */
+	  __purge: function() {
+	    listenerBank = {};
+	  },
+
+	  __getListenerBank: function() {
+	    return listenerBank;
+	  }
+
+	};
+
+	module.exports = EventPluginHub;
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
+
+/***/ },
+/* 135 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule EventPropagators
+	 */
+
+	"use strict";
+
+	var EventConstants = __webpack_require__(133);
+	var EventPluginHub = __webpack_require__(134);
+
+	var accumulate = __webpack_require__(203);
+	var forEachAccumulated = __webpack_require__(204);
+
+	var PropagationPhases = EventConstants.PropagationPhases;
+	var getListener = EventPluginHub.getListener;
+
+	/**
+	 * Some event types have a notion of different registration names for different
+	 * "phases" of propagation. This finds listeners by a given phase.
+	 */
+	function listenerAtPhase(id, event, propagationPhase) {
+	  var registrationName =
+	    event.dispatchConfig.phasedRegistrationNames[propagationPhase];
+	  return getListener(id, registrationName);
+	}
+
+	/**
+	 * Tags a `SyntheticEvent` with dispatched listeners. Creating this function
+	 * here, allows us to not have to bind or create functions for each event.
+	 * Mutating the event's members allows us to not have to create a wrapping
+	 * "dispatch" object that pairs the event with the listener.
+	 */
+	function accumulateDirectionalDispatches(domID, upwards, event) {
+	  if ("production" !== process.env.NODE_ENV) {
+	    if (!domID) {
+	      throw new Error('Dispatching id must not be null');
+	    }
+	  }
+	  var phase = upwards ? PropagationPhases.bubbled : PropagationPhases.captured;
+	  var listener = listenerAtPhase(domID, event, phase);
+	  if (listener) {
+	    event._dispatchListeners = accumulate(event._dispatchListeners, listener);
+	    event._dispatchIDs = accumulate(event._dispatchIDs, domID);
+	  }
+	}
+
+	/**
+	 * Collect dispatches (must be entirely collected before dispatching - see unit
+	 * tests). Lazily allocate the array to conserve memory.  We must loop through
+	 * each event and perform the traversal for each one. We can not perform a
+	 * single traversal for the entire collection of events because each event may
+	 * have a different target.
+	 */
+	function accumulateTwoPhaseDispatchesSingle(event) {
+	  if (event && event.dispatchConfig.phasedRegistrationNames) {
+	    EventPluginHub.injection.getInstanceHandle().traverseTwoPhase(
+	      event.dispatchMarker,
+	      accumulateDirectionalDispatches,
+	      event
+	    );
+	  }
+	}
+
+
+	/**
+	 * Accumulates without regard to direction, does not look for phased
+	 * registration names. Same as `accumulateDirectDispatchesSingle` but without
+	 * requiring that the `dispatchMarker` be the same as the dispatched ID.
+	 */
+	function accumulateDispatches(id, ignoredDirection, event) {
+	  if (event && event.dispatchConfig.registrationName) {
+	    var registrationName = event.dispatchConfig.registrationName;
+	    var listener = getListener(id, registrationName);
+	    if (listener) {
+	      event._dispatchListeners = accumulate(event._dispatchListeners, listener);
+	      event._dispatchIDs = accumulate(event._dispatchIDs, id);
+	    }
+	  }
+	}
+
+	/**
+	 * Accumulates dispatches on an `SyntheticEvent`, but only for the
+	 * `dispatchMarker`.
+	 * @param {SyntheticEvent} event
+	 */
+	function accumulateDirectDispatchesSingle(event) {
+	  if (event && event.dispatchConfig.registrationName) {
+	    accumulateDispatches(event.dispatchMarker, null, event);
+	  }
+	}
+
+	function accumulateTwoPhaseDispatches(events) {
+	  forEachAccumulated(events, accumulateTwoPhaseDispatchesSingle);
+	}
+
+	function accumulateEnterLeaveDispatches(leave, enter, fromID, toID) {
+	  EventPluginHub.injection.getInstanceHandle().traverseEnterLeave(
+	    fromID,
+	    toID,
+	    accumulateDispatches,
+	    leave,
+	    enter
+	  );
+	}
+
+
+	function accumulateDirectDispatches(events) {
+	  forEachAccumulated(events, accumulateDirectDispatchesSingle);
+	}
+
+
+
+	/**
+	 * A small set of propagation patterns, each of which will accept a small amount
+	 * of information, and generate a set of "dispatch ready event objects" - which
+	 * are sets of events that have already been annotated with a set of dispatched
+	 * listener functions/ids. The API is designed this way to discourage these
+	 * propagation strategies from actually executing the dispatches, since we
+	 * always want to collect the entire set of dispatches before executing event a
+	 * single one.
+	 *
+	 * @constructor EventPropagators
+	 */
+	var EventPropagators = {
+	  accumulateTwoPhaseDispatches: accumulateTwoPhaseDispatches,
+	  accumulateDirectDispatches: accumulateDirectDispatches,
+	  accumulateEnterLeaveDispatches: accumulateEnterLeaveDispatches
+	};
+
+	module.exports = EventPropagators;
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
+
+/***/ },
+/* 136 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule ReactBrowserEventEmitter
+	 * @typechecks static-only
+	 */
+
+	"use strict";
+
+	var EventConstants = __webpack_require__(133);
+	var EventPluginHub = __webpack_require__(134);
+	var EventPluginRegistry = __webpack_require__(207);
+	var ReactEventEmitterMixin = __webpack_require__(208);
+	var ViewportMetrics = __webpack_require__(209);
+
+	var isEventSupported = __webpack_require__(210);
+	var merge = __webpack_require__(126);
+
+	/**
+	 * Summary of `ReactBrowserEventEmitter` event handling:
+	 *
+	 *  - Top-level delegation is used to trap most native browser events. This
+	 *    may only occur in the main thread and is the responsibility of
+	 *    ReactEventListener, which is injected and can therefore support pluggable
+	 *    event sources. This is the only work that occurs in the main thread.
+	 *
+	 *  - We normalize and de-duplicate events to account for browser quirks. This
+	 *    may be done in the worker thread.
+	 *
+	 *  - Forward these native events (with the associated top-level type used to
+	 *    trap it) to `EventPluginHub`, which in turn will ask plugins if they want
+	 *    to extract any synthetic events.
+	 *
+	 *  - The `EventPluginHub` will then process each event by annotating them with
+	 *    "dispatches", a sequence of listeners and IDs that care about that event.
+	 *
+	 *  - The `EventPluginHub` then dispatches the events.
+	 *
+	 * Overview of React and the event system:
+	 *
+	 * +------------+    .
+	 * |    DOM     |    .
+	 * +------------+    .
+	 *       |           .
+	 *       v           .
+	 * +------------+    .
+	 * | ReactEvent |    .
+	 * |  Listener  |    .
+	 * +------------+    .                         +-----------+
+	 *       |           .               +--------+|SimpleEvent|
+	 *       |           .               |         |Plugin     |
+	 * +-----|------+    .               v         +-----------+
+	 * |     |      |    .    +--------------+                    +------------+
+	 * |     +-----------.--->|EventPluginHub|                    |    Event   |
+	 * |            |    .    |              |     +-----------+  | Propagators|
+	 * | ReactEvent |    .    |              |     |TapEvent   |  |------------|
+	 * |  Emitter   |    .    |              |<---+|Plugin     |  |other plugin|
+	 * |            |    .    |              |     +-----------+  |  utilities |
+	 * |     +-----------.--->|              |                    +------------+
+	 * |     |      |    .    +--------------+
+	 * +-----|------+    .                ^        +-----------+
+	 *       |           .                |        |Enter/Leave|
+	 *       +           .                +-------+|Plugin     |
+	 * +-------------+   .                         +-----------+
+	 * | application |   .
+	 * |-------------|   .
+	 * |             |   .
+	 * |             |   .
+	 * +-------------+   .
+	 *                   .
+	 *    React Core     .  General Purpose Event Plugin System
+	 */
+
+	var alreadyListeningTo = {};
+	var isMonitoringScrollValue = false;
+	var reactTopListenersCounter = 0;
+
+	// For events like 'submit' which don't consistently bubble (which we trap at a
+	// lower node than `document`), binding at `document` would cause duplicate
+	// events so we don't include them here
+	var topEventMapping = {
+	  topBlur: 'blur',
+	  topChange: 'change',
+	  topClick: 'click',
+	  topCompositionEnd: 'compositionend',
+	  topCompositionStart: 'compositionstart',
+	  topCompositionUpdate: 'compositionupdate',
+	  topContextMenu: 'contextmenu',
+	  topCopy: 'copy',
+	  topCut: 'cut',
+	  topDoubleClick: 'dblclick',
+	  topDrag: 'drag',
+	  topDragEnd: 'dragend',
+	  topDragEnter: 'dragenter',
+	  topDragExit: 'dragexit',
+	  topDragLeave: 'dragleave',
+	  topDragOver: 'dragover',
+	  topDragStart: 'dragstart',
+	  topDrop: 'drop',
+	  topFocus: 'focus',
+	  topInput: 'input',
+	  topKeyDown: 'keydown',
+	  topKeyPress: 'keypress',
+	  topKeyUp: 'keyup',
+	  topMouseDown: 'mousedown',
+	  topMouseMove: 'mousemove',
+	  topMouseOut: 'mouseout',
+	  topMouseOver: 'mouseover',
+	  topMouseUp: 'mouseup',
+	  topPaste: 'paste',
+	  topScroll: 'scroll',
+	  topSelectionChange: 'selectionchange',
+	  topTextInput: 'textInput',
+	  topTouchCancel: 'touchcancel',
+	  topTouchEnd: 'touchend',
+	  topTouchMove: 'touchmove',
+	  topTouchStart: 'touchstart',
+	  topWheel: 'wheel'
+	};
+
+	/**
+	 * To ensure no conflicts with other potential React instances on the page
+	 */
+	var topListenersIDKey = "_reactListenersID" + String(Math.random()).slice(2);
+
+	function getListeningForDocument(mountAt) {
+	  // In IE8, `mountAt` is a host object and doesn't have `hasOwnProperty`
+	  // directly.
+	  if (!Object.prototype.hasOwnProperty.call(mountAt, topListenersIDKey)) {
+	    mountAt[topListenersIDKey] = reactTopListenersCounter++;
+	    alreadyListeningTo[mountAt[topListenersIDKey]] = {};
+	  }
+	  return alreadyListeningTo[mountAt[topListenersIDKey]];
+	}
+
+	/**
+	 * `ReactBrowserEventEmitter` is used to attach top-level event listeners. For
+	 * example:
+	 *
+	 *   ReactBrowserEventEmitter.putListener('myID', 'onClick', myFunction);
+	 *
+	 * This would allocate a "registration" of `('onClick', myFunction)` on 'myID'.
+	 *
+	 * @internal
+	 */
+	var ReactBrowserEventEmitter = merge(ReactEventEmitterMixin, {
+
+	  /**
+	   * Injectable event backend
+	   */
+	  ReactEventListener: null,
+
+	  injection: {
+	    /**
+	     * @param {object} ReactEventListener
+	     */
+	    injectReactEventListener: function(ReactEventListener) {
+	      ReactEventListener.setHandleTopLevel(
+	        ReactBrowserEventEmitter.handleTopLevel
+	      );
+	      ReactBrowserEventEmitter.ReactEventListener = ReactEventListener;
+	    }
+	  },
+
+	  /**
+	   * Sets whether or not any created callbacks should be enabled.
+	   *
+	   * @param {boolean} enabled True if callbacks should be enabled.
+	   */
+	  setEnabled: function(enabled) {
+	    if (ReactBrowserEventEmitter.ReactEventListener) {
+	      ReactBrowserEventEmitter.ReactEventListener.setEnabled(enabled);
+	    }
+	  },
+
+	  /**
+	   * @return {boolean} True if callbacks are enabled.
+	   */
+	  isEnabled: function() {
+	    return !!(
+	      ReactBrowserEventEmitter.ReactEventListener &&
+	      ReactBrowserEventEmitter.ReactEventListener.isEnabled()
+	    );
+	  },
+
+	  /**
+	   * We listen for bubbled touch events on the document object.
+	   *
+	   * Firefox v8.01 (and possibly others) exhibited strange behavior when
+	   * mounting `onmousemove` events at some node that was not the document
+	   * element. The symptoms were that if your mouse is not moving over something
+	   * contained within that mount point (for example on the background) the
+	   * top-level listeners for `onmousemove` won't be called. However, if you
+	   * register the `mousemove` on the document object, then it will of course
+	   * catch all `mousemove`s. This along with iOS quirks, justifies restricting
+	   * top-level listeners to the document object only, at least for these
+	   * movement types of events and possibly all events.
+	   *
+	   * @see http://www.quirksmode.org/blog/archives/2010/09/click_event_del.html
+	   *
+	   * Also, `keyup`/`keypress`/`keydown` do not bubble to the window on IE, but
+	   * they bubble to document.
+	   *
+	   * @param {string} registrationName Name of listener (e.g. `onClick`).
+	   * @param {object} contentDocumentHandle Document which owns the container
+	   */
+	  listenTo: function(registrationName, contentDocumentHandle) {
+	    var mountAt = contentDocumentHandle;
+	    var isListening = getListeningForDocument(mountAt);
+	    var dependencies = EventPluginRegistry.
+	      registrationNameDependencies[registrationName];
+
+	    var topLevelTypes = EventConstants.topLevelTypes;
+	    for (var i = 0, l = dependencies.length; i < l; i++) {
+	      var dependency = dependencies[i];
+	      if (!(
+	            isListening.hasOwnProperty(dependency) &&
+	            isListening[dependency]
+	          )) {
+	        if (dependency === topLevelTypes.topWheel) {
+	          if (isEventSupported('wheel')) {
+	            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent(
+	              topLevelTypes.topWheel,
+	              'wheel',
+	              mountAt
+	            );
+	          } else if (isEventSupported('mousewheel')) {
+	            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent(
+	              topLevelTypes.topWheel,
+	              'mousewheel',
+	              mountAt
+	            );
+	          } else {
+	            // Firefox needs to capture a different mouse scroll event.
+	            // @see http://www.quirksmode.org/dom/events/tests/scroll.html
+	            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent(
+	              topLevelTypes.topWheel,
+	              'DOMMouseScroll',
+	              mountAt
+	            );
+	          }
+	        } else if (dependency === topLevelTypes.topScroll) {
+
+	          if (isEventSupported('scroll', true)) {
+	            ReactBrowserEventEmitter.ReactEventListener.trapCapturedEvent(
+	              topLevelTypes.topScroll,
+	              'scroll',
+	              mountAt
+	            );
+	          } else {
+	            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent(
+	              topLevelTypes.topScroll,
+	              'scroll',
+	              ReactBrowserEventEmitter.ReactEventListener.WINDOW_HANDLE
+	            );
+	          }
+	        } else if (dependency === topLevelTypes.topFocus ||
+	            dependency === topLevelTypes.topBlur) {
+
+	          if (isEventSupported('focus', true)) {
+	            ReactBrowserEventEmitter.ReactEventListener.trapCapturedEvent(
+	              topLevelTypes.topFocus,
+	              'focus',
+	              mountAt
+	            );
+	            ReactBrowserEventEmitter.ReactEventListener.trapCapturedEvent(
+	              topLevelTypes.topBlur,
+	              'blur',
+	              mountAt
+	            );
+	          } else if (isEventSupported('focusin')) {
+	            // IE has `focusin` and `focusout` events which bubble.
+	            // @see http://www.quirksmode.org/blog/archives/2008/04/delegating_the.html
+	            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent(
+	              topLevelTypes.topFocus,
+	              'focusin',
+	              mountAt
+	            );
+	            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent(
+	              topLevelTypes.topBlur,
+	              'focusout',
+	              mountAt
+	            );
+	          }
+
+	          // to make sure blur and focus event listeners are only attached once
+	          isListening[topLevelTypes.topBlur] = true;
+	          isListening[topLevelTypes.topFocus] = true;
+	        } else if (topEventMapping.hasOwnProperty(dependency)) {
+	          ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent(
+	            dependency,
+	            topEventMapping[dependency],
+	            mountAt
+	          );
+	        }
+
+	        isListening[dependency] = true;
+	      }
+	    }
+	  },
+
+	  trapBubbledEvent: function(topLevelType, handlerBaseName, handle) {
+	    return ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent(
+	      topLevelType,
+	      handlerBaseName,
+	      handle
+	    );
+	  },
+
+	  trapCapturedEvent: function(topLevelType, handlerBaseName, handle) {
+	    return ReactBrowserEventEmitter.ReactEventListener.trapCapturedEvent(
+	      topLevelType,
+	      handlerBaseName,
+	      handle
+	    );
+	  },
+
+	  /**
+	   * Listens to window scroll and resize events. We cache scroll values so that
+	   * application code can access them without triggering reflows.
+	   *
+	   * NOTE: Scroll events do not bubble.
+	   *
+	   * @see http://www.quirksmode.org/dom/events/scroll.html
+	   */
+	  ensureScrollValueMonitoring: function(){
+	    if (!isMonitoringScrollValue) {
+	      var refresh = ViewportMetrics.refreshScrollValues;
+	      ReactBrowserEventEmitter.ReactEventListener.monitorScrollValue(refresh);
+	      isMonitoringScrollValue = true;
+	    }
+	  },
+
+	  eventNameDispatchConfigs: EventPluginHub.eventNameDispatchConfigs,
+
+	  registrationNameModules: EventPluginHub.registrationNameModules,
+
+	  putListener: EventPluginHub.putListener,
+
+	  getListener: EventPluginHub.getListener,
+
+	  deleteListener: EventPluginHub.deleteListener,
+
+	  deleteAllListeners: EventPluginHub.deleteAllListeners
+
+	});
+
+	module.exports = ReactBrowserEventEmitter;
+
+
+/***/ },
+/* 137 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule ReactUpdates
+	 */
+
+	"use strict";
+
+	var CallbackQueue = __webpack_require__(205);
+	var PooledClass = __webpack_require__(151);
+	var ReactCurrentOwner = __webpack_require__(108);
+	var ReactPerf = __webpack_require__(116);
+	var Transaction = __webpack_require__(206);
+
+	var invariant = __webpack_require__(84);
+	var mixInto = __webpack_require__(162);
+	var warning = __webpack_require__(121);
+
+	var dirtyComponents = [];
+
+	var batchingStrategy = null;
+
+	function ensureInjected() {
+	  ("production" !== process.env.NODE_ENV ? invariant(
+	    ReactUpdates.ReactReconcileTransaction && batchingStrategy,
+	    'ReactUpdates: must inject a reconcile transaction class and batching ' +
+	    'strategy'
+	  ) : invariant(ReactUpdates.ReactReconcileTransaction && batchingStrategy));
+	}
+
+	var NESTED_UPDATES = {
+	  initialize: function() {
+	    this.dirtyComponentsLength = dirtyComponents.length;
+	  },
+	  close: function() {
+	    if (this.dirtyComponentsLength !== dirtyComponents.length) {
+	      // Additional updates were enqueued by componentDidUpdate handlers or
+	      // similar; before our own UPDATE_QUEUEING wrapper closes, we want to run
+	      // these new updates so that if A's componentDidUpdate calls setState on
+	      // B, B will update before the callback A's updater provided when calling
+	      // setState.
+	      dirtyComponents.splice(0, this.dirtyComponentsLength);
+	      flushBatchedUpdates();
+	    } else {
+	      dirtyComponents.length = 0;
+	    }
+	  }
+	};
+
+	var UPDATE_QUEUEING = {
+	  initialize: function() {
+	    this.callbackQueue.reset();
+	  },
+	  close: function() {
+	    this.callbackQueue.notifyAll();
+	  }
+	};
+
+	var TRANSACTION_WRAPPERS = [NESTED_UPDATES, UPDATE_QUEUEING];
+
+	function ReactUpdatesFlushTransaction() {
+	  this.reinitializeTransaction();
+	  this.dirtyComponentsLength = null;
+	  this.callbackQueue = CallbackQueue.getPooled(null);
+	  this.reconcileTransaction =
+	    ReactUpdates.ReactReconcileTransaction.getPooled();
+	}
+
+	mixInto(ReactUpdatesFlushTransaction, Transaction.Mixin);
+	mixInto(ReactUpdatesFlushTransaction, {
+	  getTransactionWrappers: function() {
+	    return TRANSACTION_WRAPPERS;
+	  },
+
+	  destructor: function() {
+	    this.dirtyComponentsLength = null;
+	    CallbackQueue.release(this.callbackQueue);
+	    this.callbackQueue = null;
+	    ReactUpdates.ReactReconcileTransaction.release(this.reconcileTransaction);
+	    this.reconcileTransaction = null;
+	  },
+
+	  perform: function(method, scope, a) {
+	    // Essentially calls `this.reconcileTransaction.perform(method, scope, a)`
+	    // with this transaction's wrappers around it.
+	    return Transaction.Mixin.perform.call(
+	      this,
+	      this.reconcileTransaction.perform,
+	      this.reconcileTransaction,
+	      method,
+	      scope,
+	      a
+	    );
+	  }
+	});
+
+	PooledClass.addPoolingTo(ReactUpdatesFlushTransaction);
+
+	function batchedUpdates(callback, a, b) {
+	  ensureInjected();
+	  batchingStrategy.batchedUpdates(callback, a, b);
+	}
+
+	/**
+	 * Array comparator for ReactComponents by owner depth
+	 *
+	 * @param {ReactComponent} c1 first component you're comparing
+	 * @param {ReactComponent} c2 second component you're comparing
+	 * @return {number} Return value usable by Array.prototype.sort().
+	 */
+	function mountDepthComparator(c1, c2) {
+	  return c1._mountDepth - c2._mountDepth;
+	}
+
+	function runBatchedUpdates(transaction) {
+	  var len = transaction.dirtyComponentsLength;
+	  ("production" !== process.env.NODE_ENV ? invariant(
+	    len === dirtyComponents.length,
+	    'Expected flush transaction\'s stored dirty-components length (%s) to ' +
+	    'match dirty-components array length (%s).',
+	    len,
+	    dirtyComponents.length
+	  ) : invariant(len === dirtyComponents.length));
+
+	  // Since reconciling a component higher in the owner hierarchy usually (not
+	  // always -- see shouldComponentUpdate()) will reconcile children, reconcile
+	  // them before their children by sorting the array.
+	  dirtyComponents.sort(mountDepthComparator);
+
+	  for (var i = 0; i < len; i++) {
+	    // If a component is unmounted before pending changes apply, ignore them
+	    // TODO: Queue unmounts in the same list to avoid this happening at all
+	    var component = dirtyComponents[i];
+	    if (component.isMounted()) {
+	      // If performUpdateIfNecessary happens to enqueue any new updates, we
+	      // shouldn't execute the callbacks until the next render happens, so
+	      // stash the callbacks first
+	      var callbacks = component._pendingCallbacks;
+	      component._pendingCallbacks = null;
+	      component.performUpdateIfNecessary(transaction.reconcileTransaction);
+
+	      if (callbacks) {
+	        for (var j = 0; j < callbacks.length; j++) {
+	          transaction.callbackQueue.enqueue(
+	            callbacks[j],
+	            component
+	          );
+	        }
+	      }
+	    }
+	  }
+	}
+
+	var flushBatchedUpdates = ReactPerf.measure(
+	  'ReactUpdates',
+	  'flushBatchedUpdates',
+	  function() {
+	    // ReactUpdatesFlushTransaction's wrappers will clear the dirtyComponents
+	    // array and perform any updates enqueued by mount-ready handlers (i.e.,
+	    // componentDidUpdate) but we need to check here too in order to catch
+	    // updates enqueued by setState callbacks.
+	    while (dirtyComponents.length) {
+	      var transaction = ReactUpdatesFlushTransaction.getPooled();
+	      transaction.perform(runBatchedUpdates, null, transaction);
+	      ReactUpdatesFlushTransaction.release(transaction);
+	    }
+	  }
+	);
+
+	/**
+	 * Mark a component as needing a rerender, adding an optional callback to a
+	 * list of functions which will be executed once the rerender occurs.
+	 */
+	function enqueueUpdate(component, callback) {
+	  ("production" !== process.env.NODE_ENV ? invariant(
+	    !callback || typeof callback === "function",
+	    'enqueueUpdate(...): You called `setProps`, `replaceProps`, ' +
+	    '`setState`, `replaceState`, or `forceUpdate` with a callback that ' +
+	    'isn\'t callable.'
+	  ) : invariant(!callback || typeof callback === "function"));
+	  ensureInjected();
+
+	  // Various parts of our code (such as ReactCompositeComponent's
+	  // _renderValidatedComponent) assume that calls to render aren't nested;
+	  // verify that that's the case. (This is called by each top-level update
+	  // function, like setProps, setState, forceUpdate, etc.; creation and
+	  // destruction of top-level components is guarded in ReactMount.)
+	  ("production" !== process.env.NODE_ENV ? warning(
+	    ReactCurrentOwner.current == null,
+	    'enqueueUpdate(): Render methods should be a pure function of props ' +
+	    'and state; triggering nested component updates from render is not ' +
+	    'allowed. If necessary, trigger nested updates in ' +
+	    'componentDidUpdate.'
+	  ) : null);
+
+	  if (!batchingStrategy.isBatchingUpdates) {
+	    batchingStrategy.batchedUpdates(enqueueUpdate, component, callback);
+	    return;
+	  }
+
+	  dirtyComponents.push(component);
+
+	  if (callback) {
+	    if (component._pendingCallbacks) {
+	      component._pendingCallbacks.push(callback);
+	    } else {
+	      component._pendingCallbacks = [callback];
+	    }
+	  }
+	}
+
+	var ReactUpdatesInjection = {
+	  injectReconcileTransaction: function(ReconcileTransaction) {
+	    ("production" !== process.env.NODE_ENV ? invariant(
+	      ReconcileTransaction,
+	      'ReactUpdates: must provide a reconcile transaction class'
+	    ) : invariant(ReconcileTransaction));
+	    ReactUpdates.ReactReconcileTransaction = ReconcileTransaction;
+	  },
+
+	  injectBatchingStrategy: function(_batchingStrategy) {
+	    ("production" !== process.env.NODE_ENV ? invariant(
+	      _batchingStrategy,
+	      'ReactUpdates: must provide a batching strategy'
+	    ) : invariant(_batchingStrategy));
+	    ("production" !== process.env.NODE_ENV ? invariant(
+	      typeof _batchingStrategy.batchedUpdates === 'function',
+	      'ReactUpdates: must provide a batchedUpdates() function'
+	    ) : invariant(typeof _batchingStrategy.batchedUpdates === 'function'));
+	    ("production" !== process.env.NODE_ENV ? invariant(
+	      typeof _batchingStrategy.isBatchingUpdates === 'boolean',
+	      'ReactUpdates: must provide an isBatchingUpdates boolean attribute'
+	    ) : invariant(typeof _batchingStrategy.isBatchingUpdates === 'boolean'));
+	    batchingStrategy = _batchingStrategy;
+	  }
+	};
+
+	var ReactUpdates = {
+	  /**
+	   * React references `ReactReconcileTransaction` using this property in order
+	   * to allow dependency injection.
+	   *
+	   * @internal
+	   */
+	  ReactReconcileTransaction: null,
+
+	  batchedUpdates: batchedUpdates,
+	  enqueueUpdate: enqueueUpdate,
+	  flushBatchedUpdates: flushBatchedUpdates,
+	  injection: ReactUpdatesInjection
+	};
+
+	module.exports = ReactUpdates;
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
+
+/***/ },
+/* 138 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule SyntheticEvent
+	 * @typechecks static-only
+	 */
+
+	"use strict";
+
+	var PooledClass = __webpack_require__(151);
+
+	var emptyFunction = __webpack_require__(125);
+	var getEventTarget = __webpack_require__(211);
+	var merge = __webpack_require__(126);
+	var mergeInto = __webpack_require__(139);
+
+	/**
+	 * @interface Event
+	 * @see http://www.w3.org/TR/DOM-Level-3-Events/
+	 */
+	var EventInterface = {
+	  type: null,
+	  target: getEventTarget,
+	  // currentTarget is set when dispatching; no use in copying it here
+	  currentTarget: emptyFunction.thatReturnsNull,
+	  eventPhase: null,
+	  bubbles: null,
+	  cancelable: null,
+	  timeStamp: function(event) {
+	    return event.timeStamp || Date.now();
+	  },
+	  defaultPrevented: null,
+	  isTrusted: null
+	};
+
+	/**
+	 * Synthetic events are dispatched by event plugins, typically in response to a
+	 * top-level event delegation handler.
+	 *
+	 * These systems should generally use pooling to reduce the frequency of garbage
+	 * collection. The system should check `isPersistent` to determine whether the
+	 * event should be released into the pool after being dispatched. Users that
+	 * need a persisted event should invoke `persist`.
+	 *
+	 * Synthetic events (and subclasses) implement the DOM Level 3 Events API by
+	 * normalizing browser quirks. Subclasses do not necessarily have to implement a
+	 * DOM interface; custom application-specific events can also subclass this.
+	 *
+	 * @param {object} dispatchConfig Configuration used to dispatch this event.
+	 * @param {string} dispatchMarker Marker identifying the event target.
+	 * @param {object} nativeEvent Native browser event.
+	 */
+	function SyntheticEvent(dispatchConfig, dispatchMarker, nativeEvent) {
+	  this.dispatchConfig = dispatchConfig;
+	  this.dispatchMarker = dispatchMarker;
+	  this.nativeEvent = nativeEvent;
+
+	  var Interface = this.constructor.Interface;
+	  for (var propName in Interface) {
+	    if (!Interface.hasOwnProperty(propName)) {
+	      continue;
+	    }
+	    var normalize = Interface[propName];
+	    if (normalize) {
+	      this[propName] = normalize(nativeEvent);
+	    } else {
+	      this[propName] = nativeEvent[propName];
+	    }
+	  }
+
+	  var defaultPrevented = nativeEvent.defaultPrevented != null ?
+	    nativeEvent.defaultPrevented :
+	    nativeEvent.returnValue === false;
+	  if (defaultPrevented) {
+	    this.isDefaultPrevented = emptyFunction.thatReturnsTrue;
+	  } else {
+	    this.isDefaultPrevented = emptyFunction.thatReturnsFalse;
+	  }
+	  this.isPropagationStopped = emptyFunction.thatReturnsFalse;
+	}
+
+	mergeInto(SyntheticEvent.prototype, {
+
+	  preventDefault: function() {
+	    this.defaultPrevented = true;
+	    var event = this.nativeEvent;
+	    event.preventDefault ? event.preventDefault() : event.returnValue = false;
+	    this.isDefaultPrevented = emptyFunction.thatReturnsTrue;
+	  },
+
+	  stopPropagation: function() {
+	    var event = this.nativeEvent;
+	    event.stopPropagation ? event.stopPropagation() : event.cancelBubble = true;
+	    this.isPropagationStopped = emptyFunction.thatReturnsTrue;
+	  },
+
+	  /**
+	   * We release all dispatched `SyntheticEvent`s after each event loop, adding
+	   * them back into the pool. This allows a way to hold onto a reference that
+	   * won't be added back into the pool.
+	   */
+	  persist: function() {
+	    this.isPersistent = emptyFunction.thatReturnsTrue;
+	  },
+
+	  /**
+	   * Checks if this event should be released back into the pool.
+	   *
+	   * @return {boolean} True if this should not be released, false otherwise.
+	   */
+	  isPersistent: emptyFunction.thatReturnsFalse,
+
+	  /**
+	   * `PooledClass` looks for `destructor` on each instance it releases.
+	   */
+	  destructor: function() {
+	    var Interface = this.constructor.Interface;
+	    for (var propName in Interface) {
+	      this[propName] = null;
+	    }
+	    this.dispatchConfig = null;
+	    this.dispatchMarker = null;
+	    this.nativeEvent = null;
+	  }
+
+	});
+
+	SyntheticEvent.Interface = EventInterface;
+
+	/**
+	 * Helper to reduce boilerplate when creating subclasses.
+	 *
+	 * @param {function} Class
+	 * @param {?object} Interface
+	 */
+	SyntheticEvent.augmentClass = function(Class, Interface) {
+	  var Super = this;
+
+	  var prototype = Object.create(Super.prototype);
+	  mergeInto(prototype, Class.prototype);
+	  Class.prototype = prototype;
+	  Class.prototype.constructor = Class;
+
+	  Class.Interface = merge(Super.Interface, Interface);
+	  Class.augmentClass = Super.augmentClass;
+
+	  PooledClass.addPoolingTo(Class, PooledClass.threeArgumentPooler);
+	};
+
+	PooledClass.addPoolingTo(SyntheticEvent, PooledClass.threeArgumentPooler);
+
+	module.exports = SyntheticEvent;
+
+
+/***/ },
+/* 139 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule mergeInto
+	 * @typechecks static-only
+	 */
+
+	"use strict";
+
+	var mergeHelpers = __webpack_require__(213);
+
+	var checkMergeObjectArg = mergeHelpers.checkMergeObjectArg;
+	var checkMergeIntoObjectArg = mergeHelpers.checkMergeIntoObjectArg;
+
+	/**
+	 * Shallow merges two structures by mutating the first parameter.
+	 *
+	 * @param {object|function} one Object to be merged into.
+	 * @param {?object} two Optional object with properties to merge from.
+	 */
+	function mergeInto(one, two) {
+	  checkMergeIntoObjectArg(one);
+	  if (two != null) {
+	    checkMergeObjectArg(two);
+	    for (var key in two) {
+	      if (!two.hasOwnProperty(key)) {
+	        continue;
+	      }
+	      one[key] = two[key];
+	    }
+	  }
+	}
+
+	module.exports = mergeInto;
+
+
+/***/ },
+/* 140 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -42449,8 +44392,8 @@
 	 * Module dependencies.
 	 */
 
-	var parseuri = __webpack_require__(217);
-	var debug = __webpack_require__(146)('socket.io-client:url');
+	var parseuri = __webpack_require__(218);
+	var debug = __webpack_require__(150)('socket.io-client:url');
 
 	/**
 	 * Module exports.
@@ -42519,7 +44462,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 131 */
+/* 141 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -42527,15 +44470,15 @@
 	 * Module dependencies.
 	 */
 
-	var url = __webpack_require__(130);
-	var eio = __webpack_require__(218);
-	var Socket = __webpack_require__(132);
-	var Emitter = __webpack_require__(219);
+	var url = __webpack_require__(140);
+	var eio = __webpack_require__(221);
+	var Socket = __webpack_require__(142);
+	var Emitter = __webpack_require__(220);
 	var parser = __webpack_require__(145);
-	var on = __webpack_require__(204);
-	var bind = __webpack_require__(220);
-	var object = __webpack_require__(221);
-	var debug = __webpack_require__(146)('socket.io-client:manager');
+	var on = __webpack_require__(212);
+	var bind = __webpack_require__(219);
+	var object = __webpack_require__(222);
+	var debug = __webpack_require__(150)('socket.io-client:manager');
 
 	/**
 	 * Module exports
@@ -42983,7 +44926,7 @@
 
 
 /***/ },
-/* 132 */
+/* 142 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -42992,13 +44935,13 @@
 	 */
 
 	var parser = __webpack_require__(145);
-	var Emitter = __webpack_require__(219);
+	var Emitter = __webpack_require__(220);
 	var toArray = __webpack_require__(224);
-	var on = __webpack_require__(204);
-	var bind = __webpack_require__(220);
-	var debug = __webpack_require__(146)('socket.io-client:socket');
+	var on = __webpack_require__(212);
+	var bind = __webpack_require__(219);
+	var debug = __webpack_require__(150)('socket.io-client:socket');
 	var hasBin = __webpack_require__(223);
-	var indexOf = __webpack_require__(222);
+	var indexOf = __webpack_require__(225);
 
 	/**
 	 * Module exports.
@@ -43364,1949 +45307,6 @@
 	  this.onclose('io client disconnect');
 	  return this;
 	};
-
-
-/***/ },
-/* 133 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/* WEBPACK VAR INJECTION */(function(process) {/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule DOMProperty
-	 * @typechecks static-only
-	 */
-
-	/*jslint bitwise: true */
-
-	"use strict";
-
-	var invariant = __webpack_require__(83);
-
-	var DOMPropertyInjection = {
-	  /**
-	   * Mapping from normalized, camelcased property names to a configuration that
-	   * specifies how the associated DOM property should be accessed or rendered.
-	   */
-	  MUST_USE_ATTRIBUTE: 0x1,
-	  MUST_USE_PROPERTY: 0x2,
-	  HAS_SIDE_EFFECTS: 0x4,
-	  HAS_BOOLEAN_VALUE: 0x8,
-	  HAS_NUMERIC_VALUE: 0x10,
-	  HAS_POSITIVE_NUMERIC_VALUE: 0x20 | 0x10,
-	  HAS_OVERLOADED_BOOLEAN_VALUE: 0x40,
-
-	  /**
-	   * Inject some specialized knowledge about the DOM. This takes a config object
-	   * with the following properties:
-	   *
-	   * isCustomAttribute: function that given an attribute name will return true
-	   * if it can be inserted into the DOM verbatim. Useful for data-* or aria-*
-	   * attributes where it's impossible to enumerate all of the possible
-	   * attribute names,
-	   *
-	   * Properties: object mapping DOM property name to one of the
-	   * DOMPropertyInjection constants or null. If your attribute isn't in here,
-	   * it won't get written to the DOM.
-	   *
-	   * DOMAttributeNames: object mapping React attribute name to the DOM
-	   * attribute name. Attribute names not specified use the **lowercase**
-	   * normalized name.
-	   *
-	   * DOMPropertyNames: similar to DOMAttributeNames but for DOM properties.
-	   * Property names not specified use the normalized name.
-	   *
-	   * DOMMutationMethods: Properties that require special mutation methods. If
-	   * `value` is undefined, the mutation method should unset the property.
-	   *
-	   * @param {object} domPropertyConfig the config as described above.
-	   */
-	  injectDOMPropertyConfig: function(domPropertyConfig) {
-	    var Properties = domPropertyConfig.Properties || {};
-	    var DOMAttributeNames = domPropertyConfig.DOMAttributeNames || {};
-	    var DOMPropertyNames = domPropertyConfig.DOMPropertyNames || {};
-	    var DOMMutationMethods = domPropertyConfig.DOMMutationMethods || {};
-
-	    if (domPropertyConfig.isCustomAttribute) {
-	      DOMProperty._isCustomAttributeFunctions.push(
-	        domPropertyConfig.isCustomAttribute
-	      );
-	    }
-
-	    for (var propName in Properties) {
-	      ("production" !== process.env.NODE_ENV ? invariant(
-	        !DOMProperty.isStandardName.hasOwnProperty(propName),
-	        'injectDOMPropertyConfig(...): You\'re trying to inject DOM property ' +
-	        '\'%s\' which has already been injected. You may be accidentally ' +
-	        'injecting the same DOM property config twice, or you may be ' +
-	        'injecting two configs that have conflicting property names.',
-	        propName
-	      ) : invariant(!DOMProperty.isStandardName.hasOwnProperty(propName)));
-
-	      DOMProperty.isStandardName[propName] = true;
-
-	      var lowerCased = propName.toLowerCase();
-	      DOMProperty.getPossibleStandardName[lowerCased] = propName;
-
-	      if (DOMAttributeNames.hasOwnProperty(propName)) {
-	        var attributeName = DOMAttributeNames[propName];
-	        DOMProperty.getPossibleStandardName[attributeName] = propName;
-	        DOMProperty.getAttributeName[propName] = attributeName;
-	      } else {
-	        DOMProperty.getAttributeName[propName] = lowerCased;
-	      }
-
-	      DOMProperty.getPropertyName[propName] =
-	        DOMPropertyNames.hasOwnProperty(propName) ?
-	          DOMPropertyNames[propName] :
-	          propName;
-
-	      if (DOMMutationMethods.hasOwnProperty(propName)) {
-	        DOMProperty.getMutationMethod[propName] = DOMMutationMethods[propName];
-	      } else {
-	        DOMProperty.getMutationMethod[propName] = null;
-	      }
-
-	      var propConfig = Properties[propName];
-	      DOMProperty.mustUseAttribute[propName] =
-	        propConfig & DOMPropertyInjection.MUST_USE_ATTRIBUTE;
-	      DOMProperty.mustUseProperty[propName] =
-	        propConfig & DOMPropertyInjection.MUST_USE_PROPERTY;
-	      DOMProperty.hasSideEffects[propName] =
-	        propConfig & DOMPropertyInjection.HAS_SIDE_EFFECTS;
-	      DOMProperty.hasBooleanValue[propName] =
-	        propConfig & DOMPropertyInjection.HAS_BOOLEAN_VALUE;
-	      DOMProperty.hasNumericValue[propName] =
-	        propConfig & DOMPropertyInjection.HAS_NUMERIC_VALUE;
-	      DOMProperty.hasPositiveNumericValue[propName] =
-	        propConfig & DOMPropertyInjection.HAS_POSITIVE_NUMERIC_VALUE;
-	      DOMProperty.hasOverloadedBooleanValue[propName] =
-	        propConfig & DOMPropertyInjection.HAS_OVERLOADED_BOOLEAN_VALUE;
-
-	      ("production" !== process.env.NODE_ENV ? invariant(
-	        !DOMProperty.mustUseAttribute[propName] ||
-	          !DOMProperty.mustUseProperty[propName],
-	        'DOMProperty: Cannot require using both attribute and property: %s',
-	        propName
-	      ) : invariant(!DOMProperty.mustUseAttribute[propName] ||
-	        !DOMProperty.mustUseProperty[propName]));
-	      ("production" !== process.env.NODE_ENV ? invariant(
-	        DOMProperty.mustUseProperty[propName] ||
-	          !DOMProperty.hasSideEffects[propName],
-	        'DOMProperty: Properties that have side effects must use property: %s',
-	        propName
-	      ) : invariant(DOMProperty.mustUseProperty[propName] ||
-	        !DOMProperty.hasSideEffects[propName]));
-	      ("production" !== process.env.NODE_ENV ? invariant(
-	        !!DOMProperty.hasBooleanValue[propName] +
-	          !!DOMProperty.hasNumericValue[propName] +
-	          !!DOMProperty.hasOverloadedBooleanValue[propName] <= 1,
-	        'DOMProperty: Value can be one of boolean, overloaded boolean, or ' +
-	        'numeric value, but not a combination: %s',
-	        propName
-	      ) : invariant(!!DOMProperty.hasBooleanValue[propName] +
-	        !!DOMProperty.hasNumericValue[propName] +
-	        !!DOMProperty.hasOverloadedBooleanValue[propName] <= 1));
-	    }
-	  }
-	};
-	var defaultValueCache = {};
-
-	/**
-	 * DOMProperty exports lookup objects that can be used like functions:
-	 *
-	 *   > DOMProperty.isValid['id']
-	 *   true
-	 *   > DOMProperty.isValid['foobar']
-	 *   undefined
-	 *
-	 * Although this may be confusing, it performs better in general.
-	 *
-	 * @see http://jsperf.com/key-exists
-	 * @see http://jsperf.com/key-missing
-	 */
-	var DOMProperty = {
-
-	  ID_ATTRIBUTE_NAME: 'data-reactid',
-
-	  /**
-	   * Checks whether a property name is a standard property.
-	   * @type {Object}
-	   */
-	  isStandardName: {},
-
-	  /**
-	   * Mapping from lowercase property names to the properly cased version, used
-	   * to warn in the case of missing properties.
-	   * @type {Object}
-	   */
-	  getPossibleStandardName: {},
-
-	  /**
-	   * Mapping from normalized names to attribute names that differ. Attribute
-	   * names are used when rendering markup or with `*Attribute()`.
-	   * @type {Object}
-	   */
-	  getAttributeName: {},
-
-	  /**
-	   * Mapping from normalized names to properties on DOM node instances.
-	   * (This includes properties that mutate due to external factors.)
-	   * @type {Object}
-	   */
-	  getPropertyName: {},
-
-	  /**
-	   * Mapping from normalized names to mutation methods. This will only exist if
-	   * mutation cannot be set simply by the property or `setAttribute()`.
-	   * @type {Object}
-	   */
-	  getMutationMethod: {},
-
-	  /**
-	   * Whether the property must be accessed and mutated as an object property.
-	   * @type {Object}
-	   */
-	  mustUseAttribute: {},
-
-	  /**
-	   * Whether the property must be accessed and mutated using `*Attribute()`.
-	   * (This includes anything that fails `<propName> in <element>`.)
-	   * @type {Object}
-	   */
-	  mustUseProperty: {},
-
-	  /**
-	   * Whether or not setting a value causes side effects such as triggering
-	   * resources to be loaded or text selection changes. We must ensure that
-	   * the value is only set if it has changed.
-	   * @type {Object}
-	   */
-	  hasSideEffects: {},
-
-	  /**
-	   * Whether the property should be removed when set to a falsey value.
-	   * @type {Object}
-	   */
-	  hasBooleanValue: {},
-
-	  /**
-	   * Whether the property must be numeric or parse as a
-	   * numeric and should be removed when set to a falsey value.
-	   * @type {Object}
-	   */
-	  hasNumericValue: {},
-
-	  /**
-	   * Whether the property must be positive numeric or parse as a positive
-	   * numeric and should be removed when set to a falsey value.
-	   * @type {Object}
-	   */
-	  hasPositiveNumericValue: {},
-
-	  /**
-	   * Whether the property can be used as a flag as well as with a value. Removed
-	   * when strictly equal to false; present without a value when strictly equal
-	   * to true; present with a value otherwise.
-	   * @type {Object}
-	   */
-	  hasOverloadedBooleanValue: {},
-
-	  /**
-	   * All of the isCustomAttribute() functions that have been injected.
-	   */
-	  _isCustomAttributeFunctions: [],
-
-	  /**
-	   * Checks whether a property name is a custom attribute.
-	   * @method
-	   */
-	  isCustomAttribute: function(attributeName) {
-	    for (var i = 0; i < DOMProperty._isCustomAttributeFunctions.length; i++) {
-	      var isCustomAttributeFn = DOMProperty._isCustomAttributeFunctions[i];
-	      if (isCustomAttributeFn(attributeName)) {
-	        return true;
-	      }
-	    }
-	    return false;
-	  },
-
-	  /**
-	   * Returns the default property value for a DOM property (i.e., not an
-	   * attribute). Most default values are '' or false, but not all. Worse yet,
-	   * some (in particular, `type`) vary depending on the type of element.
-	   *
-	   * TODO: Is it better to grab all the possible properties when creating an
-	   * element to avoid having to create the same element twice?
-	   */
-	  getDefaultValueForProperty: function(nodeName, prop) {
-	    var nodeDefaults = defaultValueCache[nodeName];
-	    var testElement;
-	    if (!nodeDefaults) {
-	      defaultValueCache[nodeName] = nodeDefaults = {};
-	    }
-	    if (!(prop in nodeDefaults)) {
-	      testElement = document.createElement(nodeName);
-	      nodeDefaults[prop] = testElement[prop];
-	    }
-	    return nodeDefaults[prop];
-	  },
-
-	  injection: DOMPropertyInjection
-	};
-
-	module.exports = DOMProperty;
-	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
-
-/***/ },
-/* 134 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule ReactDefaultPerfAnalysis
-	 */
-
-	var merge = __webpack_require__(127);
-
-	// Don't try to save users less than 1.2ms (a number I made up)
-	var DONT_CARE_THRESHOLD = 1.2;
-	var DOM_OPERATION_TYPES = {
-	  'mountImageIntoNode': 'set innerHTML',
-	  INSERT_MARKUP: 'set innerHTML',
-	  MOVE_EXISTING: 'move',
-	  REMOVE_NODE: 'remove',
-	  TEXT_CONTENT: 'set textContent',
-	  'updatePropertyByID': 'update attribute',
-	  'deletePropertyByID': 'delete attribute',
-	  'updateStylesByID': 'update styles',
-	  'updateInnerHTMLByID': 'set innerHTML',
-	  'dangerouslyReplaceNodeWithMarkupByID': 'replace'
-	};
-
-	function getTotalTime(measurements) {
-	  // TODO: return number of DOM ops? could be misleading.
-	  // TODO: measure dropped frames after reconcile?
-	  // TODO: log total time of each reconcile and the top-level component
-	  // class that triggered it.
-	  var totalTime = 0;
-	  for (var i = 0; i < measurements.length; i++) {
-	    var measurement = measurements[i];
-	    totalTime += measurement.totalTime;
-	  }
-	  return totalTime;
-	}
-
-	function getDOMSummary(measurements) {
-	  var items = [];
-	  for (var i = 0; i < measurements.length; i++) {
-	    var measurement = measurements[i];
-	    var id;
-
-	    for (id in measurement.writes) {
-	      measurement.writes[id].forEach(function(write) {
-	        items.push({
-	          id: id,
-	          type: DOM_OPERATION_TYPES[write.type] || write.type,
-	          args: write.args
-	        });
-	      });
-	    }
-	  }
-	  return items;
-	}
-
-	function getExclusiveSummary(measurements) {
-	  var candidates = {};
-	  var displayName;
-
-	  for (var i = 0; i < measurements.length; i++) {
-	    var measurement = measurements[i];
-	    var allIDs = merge(measurement.exclusive, measurement.inclusive);
-
-	    for (var id in allIDs) {
-	      displayName = measurement.displayNames[id].current;
-
-	      candidates[displayName] = candidates[displayName] || {
-	        componentName: displayName,
-	        inclusive: 0,
-	        exclusive: 0,
-	        render: 0,
-	        count: 0
-	      };
-	      if (measurement.render[id]) {
-	        candidates[displayName].render += measurement.render[id];
-	      }
-	      if (measurement.exclusive[id]) {
-	        candidates[displayName].exclusive += measurement.exclusive[id];
-	      }
-	      if (measurement.inclusive[id]) {
-	        candidates[displayName].inclusive += measurement.inclusive[id];
-	      }
-	      if (measurement.counts[id]) {
-	        candidates[displayName].count += measurement.counts[id];
-	      }
-	    }
-	  }
-
-	  // Now make a sorted array with the results.
-	  var arr = [];
-	  for (displayName in candidates) {
-	    if (candidates[displayName].exclusive >= DONT_CARE_THRESHOLD) {
-	      arr.push(candidates[displayName]);
-	    }
-	  }
-
-	  arr.sort(function(a, b) {
-	    return b.exclusive - a.exclusive;
-	  });
-
-	  return arr;
-	}
-
-	function getInclusiveSummary(measurements, onlyClean) {
-	  var candidates = {};
-	  var inclusiveKey;
-
-	  for (var i = 0; i < measurements.length; i++) {
-	    var measurement = measurements[i];
-	    var allIDs = merge(measurement.exclusive, measurement.inclusive);
-	    var cleanComponents;
-
-	    if (onlyClean) {
-	      cleanComponents = getUnchangedComponents(measurement);
-	    }
-
-	    for (var id in allIDs) {
-	      if (onlyClean && !cleanComponents[id]) {
-	        continue;
-	      }
-
-	      var displayName = measurement.displayNames[id];
-
-	      // Inclusive time is not useful for many components without knowing where
-	      // they are instantiated. So we aggregate inclusive time with both the
-	      // owner and current displayName as the key.
-	      inclusiveKey = displayName.owner + ' > ' + displayName.current;
-
-	      candidates[inclusiveKey] = candidates[inclusiveKey] || {
-	        componentName: inclusiveKey,
-	        time: 0,
-	        count: 0
-	      };
-
-	      if (measurement.inclusive[id]) {
-	        candidates[inclusiveKey].time += measurement.inclusive[id];
-	      }
-	      if (measurement.counts[id]) {
-	        candidates[inclusiveKey].count += measurement.counts[id];
-	      }
-	    }
-	  }
-
-	  // Now make a sorted array with the results.
-	  var arr = [];
-	  for (inclusiveKey in candidates) {
-	    if (candidates[inclusiveKey].time >= DONT_CARE_THRESHOLD) {
-	      arr.push(candidates[inclusiveKey]);
-	    }
-	  }
-
-	  arr.sort(function(a, b) {
-	    return b.time - a.time;
-	  });
-
-	  return arr;
-	}
-
-	function getUnchangedComponents(measurement) {
-	  // For a given reconcile, look at which components did not actually
-	  // render anything to the DOM and return a mapping of their ID to
-	  // the amount of time it took to render the entire subtree.
-	  var cleanComponents = {};
-	  var dirtyLeafIDs = Object.keys(measurement.writes);
-	  var allIDs = merge(measurement.exclusive, measurement.inclusive);
-
-	  for (var id in allIDs) {
-	    var isDirty = false;
-	    // For each component that rendered, see if a component that triggerd
-	    // a DOM op is in its subtree.
-	    for (var i = 0; i < dirtyLeafIDs.length; i++) {
-	      if (dirtyLeafIDs[i].indexOf(id) === 0) {
-	        isDirty = true;
-	        break;
-	      }
-	    }
-	    if (!isDirty && measurement.counts[id] > 0) {
-	      cleanComponents[id] = true;
-	    }
-	  }
-	  return cleanComponents;
-	}
-
-	var ReactDefaultPerfAnalysis = {
-	  getExclusiveSummary: getExclusiveSummary,
-	  getInclusiveSummary: getInclusiveSummary,
-	  getDOMSummary: getDOMSummary,
-	  getTotalTime: getTotalTime
-	};
-
-	module.exports = ReactDefaultPerfAnalysis;
-
-
-/***/ },
-/* 135 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule performanceNow
-	 * @typechecks
-	 */
-
-	var performance = __webpack_require__(209);
-
-	/**
-	 * Detect if we can use `window.performance.now()` and gracefully fallback to
-	 * `Date.now()` if it doesn't exist. We need to support Firefox < 15 for now
-	 * because of Facebook's testing infrastructure.
-	 */
-	if (!performance || !performance.now) {
-	  performance = Date;
-	}
-
-	var performanceNow = performance.now.bind(performance);
-
-	module.exports = performanceNow;
-
-
-/***/ },
-/* 136 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule EventConstants
-	 */
-
-	"use strict";
-
-	var keyMirror = __webpack_require__(52);
-
-	var PropagationPhases = keyMirror({bubbled: null, captured: null});
-
-	/**
-	 * Types of raw signals from the browser caught at the top level.
-	 */
-	var topLevelTypes = keyMirror({
-	  topBlur: null,
-	  topChange: null,
-	  topClick: null,
-	  topCompositionEnd: null,
-	  topCompositionStart: null,
-	  topCompositionUpdate: null,
-	  topContextMenu: null,
-	  topCopy: null,
-	  topCut: null,
-	  topDoubleClick: null,
-	  topDrag: null,
-	  topDragEnd: null,
-	  topDragEnter: null,
-	  topDragExit: null,
-	  topDragLeave: null,
-	  topDragOver: null,
-	  topDragStart: null,
-	  topDrop: null,
-	  topError: null,
-	  topFocus: null,
-	  topInput: null,
-	  topKeyDown: null,
-	  topKeyPress: null,
-	  topKeyUp: null,
-	  topLoad: null,
-	  topMouseDown: null,
-	  topMouseMove: null,
-	  topMouseOut: null,
-	  topMouseOver: null,
-	  topMouseUp: null,
-	  topPaste: null,
-	  topReset: null,
-	  topScroll: null,
-	  topSelectionChange: null,
-	  topSubmit: null,
-	  topTextInput: null,
-	  topTouchCancel: null,
-	  topTouchEnd: null,
-	  topTouchMove: null,
-	  topTouchStart: null,
-	  topWheel: null
-	});
-
-	var EventConstants = {
-	  topLevelTypes: topLevelTypes,
-	  PropagationPhases: PropagationPhases
-	};
-
-	module.exports = EventConstants;
-
-
-/***/ },
-/* 137 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/* WEBPACK VAR INJECTION */(function(process) {/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule EventPluginHub
-	 */
-
-	"use strict";
-
-	var EventPluginRegistry = __webpack_require__(205);
-	var EventPluginUtils = __webpack_require__(101);
-
-	var accumulate = __webpack_require__(206);
-	var forEachAccumulated = __webpack_require__(207);
-	var invariant = __webpack_require__(83);
-	var isEventSupported = __webpack_require__(208);
-	var monitorCodeUse = __webpack_require__(163);
-
-	/**
-	 * Internal store for event listeners
-	 */
-	var listenerBank = {};
-
-	/**
-	 * Internal queue of events that have accumulated their dispatches and are
-	 * waiting to have their dispatches executed.
-	 */
-	var eventQueue = null;
-
-	/**
-	 * Dispatches an event and releases it back into the pool, unless persistent.
-	 *
-	 * @param {?object} event Synthetic event to be dispatched.
-	 * @private
-	 */
-	var executeDispatchesAndRelease = function(event) {
-	  if (event) {
-	    var executeDispatch = EventPluginUtils.executeDispatch;
-	    // Plugins can provide custom behavior when dispatching events.
-	    var PluginModule = EventPluginRegistry.getPluginModuleForEvent(event);
-	    if (PluginModule && PluginModule.executeDispatch) {
-	      executeDispatch = PluginModule.executeDispatch;
-	    }
-	    EventPluginUtils.executeDispatchesInOrder(event, executeDispatch);
-
-	    if (!event.isPersistent()) {
-	      event.constructor.release(event);
-	    }
-	  }
-	};
-
-	/**
-	 * - `InstanceHandle`: [required] Module that performs logical traversals of DOM
-	 *   hierarchy given ids of the logical DOM elements involved.
-	 */
-	var InstanceHandle = null;
-
-	function validateInstanceHandle() {
-	  var invalid = !InstanceHandle||
-	    !InstanceHandle.traverseTwoPhase ||
-	    !InstanceHandle.traverseEnterLeave;
-	  if (invalid) {
-	    throw new Error('InstanceHandle not injected before use!');
-	  }
-	}
-
-	/**
-	 * This is a unified interface for event plugins to be installed and configured.
-	 *
-	 * Event plugins can implement the following properties:
-	 *
-	 *   `extractEvents` {function(string, DOMEventTarget, string, object): *}
-	 *     Required. When a top-level event is fired, this method is expected to
-	 *     extract synthetic events that will in turn be queued and dispatched.
-	 *
-	 *   `eventTypes` {object}
-	 *     Optional, plugins that fire events must publish a mapping of registration
-	 *     names that are used to register listeners. Values of this mapping must
-	 *     be objects that contain `registrationName` or `phasedRegistrationNames`.
-	 *
-	 *   `executeDispatch` {function(object, function, string)}
-	 *     Optional, allows plugins to override how an event gets dispatched. By
-	 *     default, the listener is simply invoked.
-	 *
-	 * Each plugin that is injected into `EventsPluginHub` is immediately operable.
-	 *
-	 * @public
-	 */
-	var EventPluginHub = {
-
-	  /**
-	   * Methods for injecting dependencies.
-	   */
-	  injection: {
-
-	    /**
-	     * @param {object} InjectedMount
-	     * @public
-	     */
-	    injectMount: EventPluginUtils.injection.injectMount,
-
-	    /**
-	     * @param {object} InjectedInstanceHandle
-	     * @public
-	     */
-	    injectInstanceHandle: function(InjectedInstanceHandle) {
-	      InstanceHandle = InjectedInstanceHandle;
-	      if ("production" !== process.env.NODE_ENV) {
-	        validateInstanceHandle();
-	      }
-	    },
-
-	    getInstanceHandle: function() {
-	      if ("production" !== process.env.NODE_ENV) {
-	        validateInstanceHandle();
-	      }
-	      return InstanceHandle;
-	    },
-
-	    /**
-	     * @param {array} InjectedEventPluginOrder
-	     * @public
-	     */
-	    injectEventPluginOrder: EventPluginRegistry.injectEventPluginOrder,
-
-	    /**
-	     * @param {object} injectedNamesToPlugins Map from names to plugin modules.
-	     */
-	    injectEventPluginsByName: EventPluginRegistry.injectEventPluginsByName
-
-	  },
-
-	  eventNameDispatchConfigs: EventPluginRegistry.eventNameDispatchConfigs,
-
-	  registrationNameModules: EventPluginRegistry.registrationNameModules,
-
-	  /**
-	   * Stores `listener` at `listenerBank[registrationName][id]`. Is idempotent.
-	   *
-	   * @param {string} id ID of the DOM element.
-	   * @param {string} registrationName Name of listener (e.g. `onClick`).
-	   * @param {?function} listener The callback to store.
-	   */
-	  putListener: function(id, registrationName, listener) {
-	    ("production" !== process.env.NODE_ENV ? invariant(
-	      !listener || typeof listener === 'function',
-	      'Expected %s listener to be a function, instead got type %s',
-	      registrationName, typeof listener
-	    ) : invariant(!listener || typeof listener === 'function'));
-
-	    if ("production" !== process.env.NODE_ENV) {
-	      // IE8 has no API for event capturing and the `onScroll` event doesn't
-	      // bubble.
-	      if (registrationName === 'onScroll' &&
-	          !isEventSupported('scroll', true)) {
-	        monitorCodeUse('react_no_scroll_event');
-	        console.warn('This browser doesn\'t support the `onScroll` event');
-	      }
-	    }
-	    var bankForRegistrationName =
-	      listenerBank[registrationName] || (listenerBank[registrationName] = {});
-	    bankForRegistrationName[id] = listener;
-	  },
-
-	  /**
-	   * @param {string} id ID of the DOM element.
-	   * @param {string} registrationName Name of listener (e.g. `onClick`).
-	   * @return {?function} The stored callback.
-	   */
-	  getListener: function(id, registrationName) {
-	    var bankForRegistrationName = listenerBank[registrationName];
-	    return bankForRegistrationName && bankForRegistrationName[id];
-	  },
-
-	  /**
-	   * Deletes a listener from the registration bank.
-	   *
-	   * @param {string} id ID of the DOM element.
-	   * @param {string} registrationName Name of listener (e.g. `onClick`).
-	   */
-	  deleteListener: function(id, registrationName) {
-	    var bankForRegistrationName = listenerBank[registrationName];
-	    if (bankForRegistrationName) {
-	      delete bankForRegistrationName[id];
-	    }
-	  },
-
-	  /**
-	   * Deletes all listeners for the DOM element with the supplied ID.
-	   *
-	   * @param {string} id ID of the DOM element.
-	   */
-	  deleteAllListeners: function(id) {
-	    for (var registrationName in listenerBank) {
-	      delete listenerBank[registrationName][id];
-	    }
-	  },
-
-	  /**
-	   * Allows registered plugins an opportunity to extract events from top-level
-	   * native browser events.
-	   *
-	   * @param {string} topLevelType Record from `EventConstants`.
-	   * @param {DOMEventTarget} topLevelTarget The listening component root node.
-	   * @param {string} topLevelTargetID ID of `topLevelTarget`.
-	   * @param {object} nativeEvent Native browser event.
-	   * @return {*} An accumulation of synthetic events.
-	   * @internal
-	   */
-	  extractEvents: function(
-	      topLevelType,
-	      topLevelTarget,
-	      topLevelTargetID,
-	      nativeEvent) {
-	    var events;
-	    var plugins = EventPluginRegistry.plugins;
-	    for (var i = 0, l = plugins.length; i < l; i++) {
-	      // Not every plugin in the ordering may be loaded at runtime.
-	      var possiblePlugin = plugins[i];
-	      if (possiblePlugin) {
-	        var extractedEvents = possiblePlugin.extractEvents(
-	          topLevelType,
-	          topLevelTarget,
-	          topLevelTargetID,
-	          nativeEvent
-	        );
-	        if (extractedEvents) {
-	          events = accumulate(events, extractedEvents);
-	        }
-	      }
-	    }
-	    return events;
-	  },
-
-	  /**
-	   * Enqueues a synthetic event that should be dispatched when
-	   * `processEventQueue` is invoked.
-	   *
-	   * @param {*} events An accumulation of synthetic events.
-	   * @internal
-	   */
-	  enqueueEvents: function(events) {
-	    if (events) {
-	      eventQueue = accumulate(eventQueue, events);
-	    }
-	  },
-
-	  /**
-	   * Dispatches all synthetic events on the event queue.
-	   *
-	   * @internal
-	   */
-	  processEventQueue: function() {
-	    // Set `eventQueue` to null before processing it so that we can tell if more
-	    // events get enqueued while processing.
-	    var processingEventQueue = eventQueue;
-	    eventQueue = null;
-	    forEachAccumulated(processingEventQueue, executeDispatchesAndRelease);
-	    ("production" !== process.env.NODE_ENV ? invariant(
-	      !eventQueue,
-	      'processEventQueue(): Additional events were enqueued while processing ' +
-	      'an event queue. Support for this has not yet been implemented.'
-	    ) : invariant(!eventQueue));
-	  },
-
-	  /**
-	   * These are needed for tests only. Do not use!
-	   */
-	  __purge: function() {
-	    listenerBank = {};
-	  },
-
-	  __getListenerBank: function() {
-	    return listenerBank;
-	  }
-
-	};
-
-	module.exports = EventPluginHub;
-	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
-
-/***/ },
-/* 138 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/* WEBPACK VAR INJECTION */(function(process) {/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule EventPropagators
-	 */
-
-	"use strict";
-
-	var EventConstants = __webpack_require__(136);
-	var EventPluginHub = __webpack_require__(137);
-
-	var accumulate = __webpack_require__(206);
-	var forEachAccumulated = __webpack_require__(207);
-
-	var PropagationPhases = EventConstants.PropagationPhases;
-	var getListener = EventPluginHub.getListener;
-
-	/**
-	 * Some event types have a notion of different registration names for different
-	 * "phases" of propagation. This finds listeners by a given phase.
-	 */
-	function listenerAtPhase(id, event, propagationPhase) {
-	  var registrationName =
-	    event.dispatchConfig.phasedRegistrationNames[propagationPhase];
-	  return getListener(id, registrationName);
-	}
-
-	/**
-	 * Tags a `SyntheticEvent` with dispatched listeners. Creating this function
-	 * here, allows us to not have to bind or create functions for each event.
-	 * Mutating the event's members allows us to not have to create a wrapping
-	 * "dispatch" object that pairs the event with the listener.
-	 */
-	function accumulateDirectionalDispatches(domID, upwards, event) {
-	  if ("production" !== process.env.NODE_ENV) {
-	    if (!domID) {
-	      throw new Error('Dispatching id must not be null');
-	    }
-	  }
-	  var phase = upwards ? PropagationPhases.bubbled : PropagationPhases.captured;
-	  var listener = listenerAtPhase(domID, event, phase);
-	  if (listener) {
-	    event._dispatchListeners = accumulate(event._dispatchListeners, listener);
-	    event._dispatchIDs = accumulate(event._dispatchIDs, domID);
-	  }
-	}
-
-	/**
-	 * Collect dispatches (must be entirely collected before dispatching - see unit
-	 * tests). Lazily allocate the array to conserve memory.  We must loop through
-	 * each event and perform the traversal for each one. We can not perform a
-	 * single traversal for the entire collection of events because each event may
-	 * have a different target.
-	 */
-	function accumulateTwoPhaseDispatchesSingle(event) {
-	  if (event && event.dispatchConfig.phasedRegistrationNames) {
-	    EventPluginHub.injection.getInstanceHandle().traverseTwoPhase(
-	      event.dispatchMarker,
-	      accumulateDirectionalDispatches,
-	      event
-	    );
-	  }
-	}
-
-
-	/**
-	 * Accumulates without regard to direction, does not look for phased
-	 * registration names. Same as `accumulateDirectDispatchesSingle` but without
-	 * requiring that the `dispatchMarker` be the same as the dispatched ID.
-	 */
-	function accumulateDispatches(id, ignoredDirection, event) {
-	  if (event && event.dispatchConfig.registrationName) {
-	    var registrationName = event.dispatchConfig.registrationName;
-	    var listener = getListener(id, registrationName);
-	    if (listener) {
-	      event._dispatchListeners = accumulate(event._dispatchListeners, listener);
-	      event._dispatchIDs = accumulate(event._dispatchIDs, id);
-	    }
-	  }
-	}
-
-	/**
-	 * Accumulates dispatches on an `SyntheticEvent`, but only for the
-	 * `dispatchMarker`.
-	 * @param {SyntheticEvent} event
-	 */
-	function accumulateDirectDispatchesSingle(event) {
-	  if (event && event.dispatchConfig.registrationName) {
-	    accumulateDispatches(event.dispatchMarker, null, event);
-	  }
-	}
-
-	function accumulateTwoPhaseDispatches(events) {
-	  forEachAccumulated(events, accumulateTwoPhaseDispatchesSingle);
-	}
-
-	function accumulateEnterLeaveDispatches(leave, enter, fromID, toID) {
-	  EventPluginHub.injection.getInstanceHandle().traverseEnterLeave(
-	    fromID,
-	    toID,
-	    accumulateDispatches,
-	    leave,
-	    enter
-	  );
-	}
-
-
-	function accumulateDirectDispatches(events) {
-	  forEachAccumulated(events, accumulateDirectDispatchesSingle);
-	}
-
-
-
-	/**
-	 * A small set of propagation patterns, each of which will accept a small amount
-	 * of information, and generate a set of "dispatch ready event objects" - which
-	 * are sets of events that have already been annotated with a set of dispatched
-	 * listener functions/ids. The API is designed this way to discourage these
-	 * propagation strategies from actually executing the dispatches, since we
-	 * always want to collect the entire set of dispatches before executing event a
-	 * single one.
-	 *
-	 * @constructor EventPropagators
-	 */
-	var EventPropagators = {
-	  accumulateTwoPhaseDispatches: accumulateTwoPhaseDispatches,
-	  accumulateDirectDispatches: accumulateDirectDispatches,
-	  accumulateEnterLeaveDispatches: accumulateEnterLeaveDispatches
-	};
-
-	module.exports = EventPropagators;
-	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
-
-/***/ },
-/* 139 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule ReactBrowserEventEmitter
-	 * @typechecks static-only
-	 */
-
-	"use strict";
-
-	var EventConstants = __webpack_require__(136);
-	var EventPluginHub = __webpack_require__(137);
-	var EventPluginRegistry = __webpack_require__(205);
-	var ReactEventEmitterMixin = __webpack_require__(210);
-	var ViewportMetrics = __webpack_require__(211);
-
-	var isEventSupported = __webpack_require__(208);
-	var merge = __webpack_require__(127);
-
-	/**
-	 * Summary of `ReactBrowserEventEmitter` event handling:
-	 *
-	 *  - Top-level delegation is used to trap most native browser events. This
-	 *    may only occur in the main thread and is the responsibility of
-	 *    ReactEventListener, which is injected and can therefore support pluggable
-	 *    event sources. This is the only work that occurs in the main thread.
-	 *
-	 *  - We normalize and de-duplicate events to account for browser quirks. This
-	 *    may be done in the worker thread.
-	 *
-	 *  - Forward these native events (with the associated top-level type used to
-	 *    trap it) to `EventPluginHub`, which in turn will ask plugins if they want
-	 *    to extract any synthetic events.
-	 *
-	 *  - The `EventPluginHub` will then process each event by annotating them with
-	 *    "dispatches", a sequence of listeners and IDs that care about that event.
-	 *
-	 *  - The `EventPluginHub` then dispatches the events.
-	 *
-	 * Overview of React and the event system:
-	 *
-	 * +------------+    .
-	 * |    DOM     |    .
-	 * +------------+    .
-	 *       |           .
-	 *       v           .
-	 * +------------+    .
-	 * | ReactEvent |    .
-	 * |  Listener  |    .
-	 * +------------+    .                         +-----------+
-	 *       |           .               +--------+|SimpleEvent|
-	 *       |           .               |         |Plugin     |
-	 * +-----|------+    .               v         +-----------+
-	 * |     |      |    .    +--------------+                    +------------+
-	 * |     +-----------.--->|EventPluginHub|                    |    Event   |
-	 * |            |    .    |              |     +-----------+  | Propagators|
-	 * | ReactEvent |    .    |              |     |TapEvent   |  |------------|
-	 * |  Emitter   |    .    |              |<---+|Plugin     |  |other plugin|
-	 * |            |    .    |              |     +-----------+  |  utilities |
-	 * |     +-----------.--->|              |                    +------------+
-	 * |     |      |    .    +--------------+
-	 * +-----|------+    .                ^        +-----------+
-	 *       |           .                |        |Enter/Leave|
-	 *       +           .                +-------+|Plugin     |
-	 * +-------------+   .                         +-----------+
-	 * | application |   .
-	 * |-------------|   .
-	 * |             |   .
-	 * |             |   .
-	 * +-------------+   .
-	 *                   .
-	 *    React Core     .  General Purpose Event Plugin System
-	 */
-
-	var alreadyListeningTo = {};
-	var isMonitoringScrollValue = false;
-	var reactTopListenersCounter = 0;
-
-	// For events like 'submit' which don't consistently bubble (which we trap at a
-	// lower node than `document`), binding at `document` would cause duplicate
-	// events so we don't include them here
-	var topEventMapping = {
-	  topBlur: 'blur',
-	  topChange: 'change',
-	  topClick: 'click',
-	  topCompositionEnd: 'compositionend',
-	  topCompositionStart: 'compositionstart',
-	  topCompositionUpdate: 'compositionupdate',
-	  topContextMenu: 'contextmenu',
-	  topCopy: 'copy',
-	  topCut: 'cut',
-	  topDoubleClick: 'dblclick',
-	  topDrag: 'drag',
-	  topDragEnd: 'dragend',
-	  topDragEnter: 'dragenter',
-	  topDragExit: 'dragexit',
-	  topDragLeave: 'dragleave',
-	  topDragOver: 'dragover',
-	  topDragStart: 'dragstart',
-	  topDrop: 'drop',
-	  topFocus: 'focus',
-	  topInput: 'input',
-	  topKeyDown: 'keydown',
-	  topKeyPress: 'keypress',
-	  topKeyUp: 'keyup',
-	  topMouseDown: 'mousedown',
-	  topMouseMove: 'mousemove',
-	  topMouseOut: 'mouseout',
-	  topMouseOver: 'mouseover',
-	  topMouseUp: 'mouseup',
-	  topPaste: 'paste',
-	  topScroll: 'scroll',
-	  topSelectionChange: 'selectionchange',
-	  topTextInput: 'textInput',
-	  topTouchCancel: 'touchcancel',
-	  topTouchEnd: 'touchend',
-	  topTouchMove: 'touchmove',
-	  topTouchStart: 'touchstart',
-	  topWheel: 'wheel'
-	};
-
-	/**
-	 * To ensure no conflicts with other potential React instances on the page
-	 */
-	var topListenersIDKey = "_reactListenersID" + String(Math.random()).slice(2);
-
-	function getListeningForDocument(mountAt) {
-	  // In IE8, `mountAt` is a host object and doesn't have `hasOwnProperty`
-	  // directly.
-	  if (!Object.prototype.hasOwnProperty.call(mountAt, topListenersIDKey)) {
-	    mountAt[topListenersIDKey] = reactTopListenersCounter++;
-	    alreadyListeningTo[mountAt[topListenersIDKey]] = {};
-	  }
-	  return alreadyListeningTo[mountAt[topListenersIDKey]];
-	}
-
-	/**
-	 * `ReactBrowserEventEmitter` is used to attach top-level event listeners. For
-	 * example:
-	 *
-	 *   ReactBrowserEventEmitter.putListener('myID', 'onClick', myFunction);
-	 *
-	 * This would allocate a "registration" of `('onClick', myFunction)` on 'myID'.
-	 *
-	 * @internal
-	 */
-	var ReactBrowserEventEmitter = merge(ReactEventEmitterMixin, {
-
-	  /**
-	   * Injectable event backend
-	   */
-	  ReactEventListener: null,
-
-	  injection: {
-	    /**
-	     * @param {object} ReactEventListener
-	     */
-	    injectReactEventListener: function(ReactEventListener) {
-	      ReactEventListener.setHandleTopLevel(
-	        ReactBrowserEventEmitter.handleTopLevel
-	      );
-	      ReactBrowserEventEmitter.ReactEventListener = ReactEventListener;
-	    }
-	  },
-
-	  /**
-	   * Sets whether or not any created callbacks should be enabled.
-	   *
-	   * @param {boolean} enabled True if callbacks should be enabled.
-	   */
-	  setEnabled: function(enabled) {
-	    if (ReactBrowserEventEmitter.ReactEventListener) {
-	      ReactBrowserEventEmitter.ReactEventListener.setEnabled(enabled);
-	    }
-	  },
-
-	  /**
-	   * @return {boolean} True if callbacks are enabled.
-	   */
-	  isEnabled: function() {
-	    return !!(
-	      ReactBrowserEventEmitter.ReactEventListener &&
-	      ReactBrowserEventEmitter.ReactEventListener.isEnabled()
-	    );
-	  },
-
-	  /**
-	   * We listen for bubbled touch events on the document object.
-	   *
-	   * Firefox v8.01 (and possibly others) exhibited strange behavior when
-	   * mounting `onmousemove` events at some node that was not the document
-	   * element. The symptoms were that if your mouse is not moving over something
-	   * contained within that mount point (for example on the background) the
-	   * top-level listeners for `onmousemove` won't be called. However, if you
-	   * register the `mousemove` on the document object, then it will of course
-	   * catch all `mousemove`s. This along with iOS quirks, justifies restricting
-	   * top-level listeners to the document object only, at least for these
-	   * movement types of events and possibly all events.
-	   *
-	   * @see http://www.quirksmode.org/blog/archives/2010/09/click_event_del.html
-	   *
-	   * Also, `keyup`/`keypress`/`keydown` do not bubble to the window on IE, but
-	   * they bubble to document.
-	   *
-	   * @param {string} registrationName Name of listener (e.g. `onClick`).
-	   * @param {object} contentDocumentHandle Document which owns the container
-	   */
-	  listenTo: function(registrationName, contentDocumentHandle) {
-	    var mountAt = contentDocumentHandle;
-	    var isListening = getListeningForDocument(mountAt);
-	    var dependencies = EventPluginRegistry.
-	      registrationNameDependencies[registrationName];
-
-	    var topLevelTypes = EventConstants.topLevelTypes;
-	    for (var i = 0, l = dependencies.length; i < l; i++) {
-	      var dependency = dependencies[i];
-	      if (!(
-	            isListening.hasOwnProperty(dependency) &&
-	            isListening[dependency]
-	          )) {
-	        if (dependency === topLevelTypes.topWheel) {
-	          if (isEventSupported('wheel')) {
-	            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent(
-	              topLevelTypes.topWheel,
-	              'wheel',
-	              mountAt
-	            );
-	          } else if (isEventSupported('mousewheel')) {
-	            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent(
-	              topLevelTypes.topWheel,
-	              'mousewheel',
-	              mountAt
-	            );
-	          } else {
-	            // Firefox needs to capture a different mouse scroll event.
-	            // @see http://www.quirksmode.org/dom/events/tests/scroll.html
-	            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent(
-	              topLevelTypes.topWheel,
-	              'DOMMouseScroll',
-	              mountAt
-	            );
-	          }
-	        } else if (dependency === topLevelTypes.topScroll) {
-
-	          if (isEventSupported('scroll', true)) {
-	            ReactBrowserEventEmitter.ReactEventListener.trapCapturedEvent(
-	              topLevelTypes.topScroll,
-	              'scroll',
-	              mountAt
-	            );
-	          } else {
-	            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent(
-	              topLevelTypes.topScroll,
-	              'scroll',
-	              ReactBrowserEventEmitter.ReactEventListener.WINDOW_HANDLE
-	            );
-	          }
-	        } else if (dependency === topLevelTypes.topFocus ||
-	            dependency === topLevelTypes.topBlur) {
-
-	          if (isEventSupported('focus', true)) {
-	            ReactBrowserEventEmitter.ReactEventListener.trapCapturedEvent(
-	              topLevelTypes.topFocus,
-	              'focus',
-	              mountAt
-	            );
-	            ReactBrowserEventEmitter.ReactEventListener.trapCapturedEvent(
-	              topLevelTypes.topBlur,
-	              'blur',
-	              mountAt
-	            );
-	          } else if (isEventSupported('focusin')) {
-	            // IE has `focusin` and `focusout` events which bubble.
-	            // @see http://www.quirksmode.org/blog/archives/2008/04/delegating_the.html
-	            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent(
-	              topLevelTypes.topFocus,
-	              'focusin',
-	              mountAt
-	            );
-	            ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent(
-	              topLevelTypes.topBlur,
-	              'focusout',
-	              mountAt
-	            );
-	          }
-
-	          // to make sure blur and focus event listeners are only attached once
-	          isListening[topLevelTypes.topBlur] = true;
-	          isListening[topLevelTypes.topFocus] = true;
-	        } else if (topEventMapping.hasOwnProperty(dependency)) {
-	          ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent(
-	            dependency,
-	            topEventMapping[dependency],
-	            mountAt
-	          );
-	        }
-
-	        isListening[dependency] = true;
-	      }
-	    }
-	  },
-
-	  trapBubbledEvent: function(topLevelType, handlerBaseName, handle) {
-	    return ReactBrowserEventEmitter.ReactEventListener.trapBubbledEvent(
-	      topLevelType,
-	      handlerBaseName,
-	      handle
-	    );
-	  },
-
-	  trapCapturedEvent: function(topLevelType, handlerBaseName, handle) {
-	    return ReactBrowserEventEmitter.ReactEventListener.trapCapturedEvent(
-	      topLevelType,
-	      handlerBaseName,
-	      handle
-	    );
-	  },
-
-	  /**
-	   * Listens to window scroll and resize events. We cache scroll values so that
-	   * application code can access them without triggering reflows.
-	   *
-	   * NOTE: Scroll events do not bubble.
-	   *
-	   * @see http://www.quirksmode.org/dom/events/scroll.html
-	   */
-	  ensureScrollValueMonitoring: function(){
-	    if (!isMonitoringScrollValue) {
-	      var refresh = ViewportMetrics.refreshScrollValues;
-	      ReactBrowserEventEmitter.ReactEventListener.monitorScrollValue(refresh);
-	      isMonitoringScrollValue = true;
-	    }
-	  },
-
-	  eventNameDispatchConfigs: EventPluginHub.eventNameDispatchConfigs,
-
-	  registrationNameModules: EventPluginHub.registrationNameModules,
-
-	  putListener: EventPluginHub.putListener,
-
-	  getListener: EventPluginHub.getListener,
-
-	  deleteListener: EventPluginHub.deleteListener,
-
-	  deleteAllListeners: EventPluginHub.deleteAllListeners
-
-	});
-
-	module.exports = ReactBrowserEventEmitter;
-
-
-/***/ },
-/* 140 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/* WEBPACK VAR INJECTION */(function(process) {/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule ReactUpdates
-	 */
-
-	"use strict";
-
-	var CallbackQueue = __webpack_require__(212);
-	var PooledClass = __webpack_require__(153);
-	var ReactCurrentOwner = __webpack_require__(106);
-	var ReactPerf = __webpack_require__(114);
-	var Transaction = __webpack_require__(213);
-
-	var invariant = __webpack_require__(83);
-	var mixInto = __webpack_require__(162);
-	var warning = __webpack_require__(119);
-
-	var dirtyComponents = [];
-
-	var batchingStrategy = null;
-
-	function ensureInjected() {
-	  ("production" !== process.env.NODE_ENV ? invariant(
-	    ReactUpdates.ReactReconcileTransaction && batchingStrategy,
-	    'ReactUpdates: must inject a reconcile transaction class and batching ' +
-	    'strategy'
-	  ) : invariant(ReactUpdates.ReactReconcileTransaction && batchingStrategy));
-	}
-
-	var NESTED_UPDATES = {
-	  initialize: function() {
-	    this.dirtyComponentsLength = dirtyComponents.length;
-	  },
-	  close: function() {
-	    if (this.dirtyComponentsLength !== dirtyComponents.length) {
-	      // Additional updates were enqueued by componentDidUpdate handlers or
-	      // similar; before our own UPDATE_QUEUEING wrapper closes, we want to run
-	      // these new updates so that if A's componentDidUpdate calls setState on
-	      // B, B will update before the callback A's updater provided when calling
-	      // setState.
-	      dirtyComponents.splice(0, this.dirtyComponentsLength);
-	      flushBatchedUpdates();
-	    } else {
-	      dirtyComponents.length = 0;
-	    }
-	  }
-	};
-
-	var UPDATE_QUEUEING = {
-	  initialize: function() {
-	    this.callbackQueue.reset();
-	  },
-	  close: function() {
-	    this.callbackQueue.notifyAll();
-	  }
-	};
-
-	var TRANSACTION_WRAPPERS = [NESTED_UPDATES, UPDATE_QUEUEING];
-
-	function ReactUpdatesFlushTransaction() {
-	  this.reinitializeTransaction();
-	  this.dirtyComponentsLength = null;
-	  this.callbackQueue = CallbackQueue.getPooled(null);
-	  this.reconcileTransaction =
-	    ReactUpdates.ReactReconcileTransaction.getPooled();
-	}
-
-	mixInto(ReactUpdatesFlushTransaction, Transaction.Mixin);
-	mixInto(ReactUpdatesFlushTransaction, {
-	  getTransactionWrappers: function() {
-	    return TRANSACTION_WRAPPERS;
-	  },
-
-	  destructor: function() {
-	    this.dirtyComponentsLength = null;
-	    CallbackQueue.release(this.callbackQueue);
-	    this.callbackQueue = null;
-	    ReactUpdates.ReactReconcileTransaction.release(this.reconcileTransaction);
-	    this.reconcileTransaction = null;
-	  },
-
-	  perform: function(method, scope, a) {
-	    // Essentially calls `this.reconcileTransaction.perform(method, scope, a)`
-	    // with this transaction's wrappers around it.
-	    return Transaction.Mixin.perform.call(
-	      this,
-	      this.reconcileTransaction.perform,
-	      this.reconcileTransaction,
-	      method,
-	      scope,
-	      a
-	    );
-	  }
-	});
-
-	PooledClass.addPoolingTo(ReactUpdatesFlushTransaction);
-
-	function batchedUpdates(callback, a, b) {
-	  ensureInjected();
-	  batchingStrategy.batchedUpdates(callback, a, b);
-	}
-
-	/**
-	 * Array comparator for ReactComponents by owner depth
-	 *
-	 * @param {ReactComponent} c1 first component you're comparing
-	 * @param {ReactComponent} c2 second component you're comparing
-	 * @return {number} Return value usable by Array.prototype.sort().
-	 */
-	function mountDepthComparator(c1, c2) {
-	  return c1._mountDepth - c2._mountDepth;
-	}
-
-	function runBatchedUpdates(transaction) {
-	  var len = transaction.dirtyComponentsLength;
-	  ("production" !== process.env.NODE_ENV ? invariant(
-	    len === dirtyComponents.length,
-	    'Expected flush transaction\'s stored dirty-components length (%s) to ' +
-	    'match dirty-components array length (%s).',
-	    len,
-	    dirtyComponents.length
-	  ) : invariant(len === dirtyComponents.length));
-
-	  // Since reconciling a component higher in the owner hierarchy usually (not
-	  // always -- see shouldComponentUpdate()) will reconcile children, reconcile
-	  // them before their children by sorting the array.
-	  dirtyComponents.sort(mountDepthComparator);
-
-	  for (var i = 0; i < len; i++) {
-	    // If a component is unmounted before pending changes apply, ignore them
-	    // TODO: Queue unmounts in the same list to avoid this happening at all
-	    var component = dirtyComponents[i];
-	    if (component.isMounted()) {
-	      // If performUpdateIfNecessary happens to enqueue any new updates, we
-	      // shouldn't execute the callbacks until the next render happens, so
-	      // stash the callbacks first
-	      var callbacks = component._pendingCallbacks;
-	      component._pendingCallbacks = null;
-	      component.performUpdateIfNecessary(transaction.reconcileTransaction);
-
-	      if (callbacks) {
-	        for (var j = 0; j < callbacks.length; j++) {
-	          transaction.callbackQueue.enqueue(
-	            callbacks[j],
-	            component
-	          );
-	        }
-	      }
-	    }
-	  }
-	}
-
-	var flushBatchedUpdates = ReactPerf.measure(
-	  'ReactUpdates',
-	  'flushBatchedUpdates',
-	  function() {
-	    // ReactUpdatesFlushTransaction's wrappers will clear the dirtyComponents
-	    // array and perform any updates enqueued by mount-ready handlers (i.e.,
-	    // componentDidUpdate) but we need to check here too in order to catch
-	    // updates enqueued by setState callbacks.
-	    while (dirtyComponents.length) {
-	      var transaction = ReactUpdatesFlushTransaction.getPooled();
-	      transaction.perform(runBatchedUpdates, null, transaction);
-	      ReactUpdatesFlushTransaction.release(transaction);
-	    }
-	  }
-	);
-
-	/**
-	 * Mark a component as needing a rerender, adding an optional callback to a
-	 * list of functions which will be executed once the rerender occurs.
-	 */
-	function enqueueUpdate(component, callback) {
-	  ("production" !== process.env.NODE_ENV ? invariant(
-	    !callback || typeof callback === "function",
-	    'enqueueUpdate(...): You called `setProps`, `replaceProps`, ' +
-	    '`setState`, `replaceState`, or `forceUpdate` with a callback that ' +
-	    'isn\'t callable.'
-	  ) : invariant(!callback || typeof callback === "function"));
-	  ensureInjected();
-
-	  // Various parts of our code (such as ReactCompositeComponent's
-	  // _renderValidatedComponent) assume that calls to render aren't nested;
-	  // verify that that's the case. (This is called by each top-level update
-	  // function, like setProps, setState, forceUpdate, etc.; creation and
-	  // destruction of top-level components is guarded in ReactMount.)
-	  ("production" !== process.env.NODE_ENV ? warning(
-	    ReactCurrentOwner.current == null,
-	    'enqueueUpdate(): Render methods should be a pure function of props ' +
-	    'and state; triggering nested component updates from render is not ' +
-	    'allowed. If necessary, trigger nested updates in ' +
-	    'componentDidUpdate.'
-	  ) : null);
-
-	  if (!batchingStrategy.isBatchingUpdates) {
-	    batchingStrategy.batchedUpdates(enqueueUpdate, component, callback);
-	    return;
-	  }
-
-	  dirtyComponents.push(component);
-
-	  if (callback) {
-	    if (component._pendingCallbacks) {
-	      component._pendingCallbacks.push(callback);
-	    } else {
-	      component._pendingCallbacks = [callback];
-	    }
-	  }
-	}
-
-	var ReactUpdatesInjection = {
-	  injectReconcileTransaction: function(ReconcileTransaction) {
-	    ("production" !== process.env.NODE_ENV ? invariant(
-	      ReconcileTransaction,
-	      'ReactUpdates: must provide a reconcile transaction class'
-	    ) : invariant(ReconcileTransaction));
-	    ReactUpdates.ReactReconcileTransaction = ReconcileTransaction;
-	  },
-
-	  injectBatchingStrategy: function(_batchingStrategy) {
-	    ("production" !== process.env.NODE_ENV ? invariant(
-	      _batchingStrategy,
-	      'ReactUpdates: must provide a batching strategy'
-	    ) : invariant(_batchingStrategy));
-	    ("production" !== process.env.NODE_ENV ? invariant(
-	      typeof _batchingStrategy.batchedUpdates === 'function',
-	      'ReactUpdates: must provide a batchedUpdates() function'
-	    ) : invariant(typeof _batchingStrategy.batchedUpdates === 'function'));
-	    ("production" !== process.env.NODE_ENV ? invariant(
-	      typeof _batchingStrategy.isBatchingUpdates === 'boolean',
-	      'ReactUpdates: must provide an isBatchingUpdates boolean attribute'
-	    ) : invariant(typeof _batchingStrategy.isBatchingUpdates === 'boolean'));
-	    batchingStrategy = _batchingStrategy;
-	  }
-	};
-
-	var ReactUpdates = {
-	  /**
-	   * React references `ReactReconcileTransaction` using this property in order
-	   * to allow dependency injection.
-	   *
-	   * @internal
-	   */
-	  ReactReconcileTransaction: null,
-
-	  batchedUpdates: batchedUpdates,
-	  enqueueUpdate: enqueueUpdate,
-	  flushBatchedUpdates: flushBatchedUpdates,
-	  injection: ReactUpdatesInjection
-	};
-
-	module.exports = ReactUpdates;
-	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
-
-/***/ },
-/* 141 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule SyntheticEvent
-	 * @typechecks static-only
-	 */
-
-	"use strict";
-
-	var PooledClass = __webpack_require__(153);
-
-	var emptyFunction = __webpack_require__(126);
-	var getEventTarget = __webpack_require__(214);
-	var merge = __webpack_require__(127);
-	var mergeInto = __webpack_require__(142);
-
-	/**
-	 * @interface Event
-	 * @see http://www.w3.org/TR/DOM-Level-3-Events/
-	 */
-	var EventInterface = {
-	  type: null,
-	  target: getEventTarget,
-	  // currentTarget is set when dispatching; no use in copying it here
-	  currentTarget: emptyFunction.thatReturnsNull,
-	  eventPhase: null,
-	  bubbles: null,
-	  cancelable: null,
-	  timeStamp: function(event) {
-	    return event.timeStamp || Date.now();
-	  },
-	  defaultPrevented: null,
-	  isTrusted: null
-	};
-
-	/**
-	 * Synthetic events are dispatched by event plugins, typically in response to a
-	 * top-level event delegation handler.
-	 *
-	 * These systems should generally use pooling to reduce the frequency of garbage
-	 * collection. The system should check `isPersistent` to determine whether the
-	 * event should be released into the pool after being dispatched. Users that
-	 * need a persisted event should invoke `persist`.
-	 *
-	 * Synthetic events (and subclasses) implement the DOM Level 3 Events API by
-	 * normalizing browser quirks. Subclasses do not necessarily have to implement a
-	 * DOM interface; custom application-specific events can also subclass this.
-	 *
-	 * @param {object} dispatchConfig Configuration used to dispatch this event.
-	 * @param {string} dispatchMarker Marker identifying the event target.
-	 * @param {object} nativeEvent Native browser event.
-	 */
-	function SyntheticEvent(dispatchConfig, dispatchMarker, nativeEvent) {
-	  this.dispatchConfig = dispatchConfig;
-	  this.dispatchMarker = dispatchMarker;
-	  this.nativeEvent = nativeEvent;
-
-	  var Interface = this.constructor.Interface;
-	  for (var propName in Interface) {
-	    if (!Interface.hasOwnProperty(propName)) {
-	      continue;
-	    }
-	    var normalize = Interface[propName];
-	    if (normalize) {
-	      this[propName] = normalize(nativeEvent);
-	    } else {
-	      this[propName] = nativeEvent[propName];
-	    }
-	  }
-
-	  var defaultPrevented = nativeEvent.defaultPrevented != null ?
-	    nativeEvent.defaultPrevented :
-	    nativeEvent.returnValue === false;
-	  if (defaultPrevented) {
-	    this.isDefaultPrevented = emptyFunction.thatReturnsTrue;
-	  } else {
-	    this.isDefaultPrevented = emptyFunction.thatReturnsFalse;
-	  }
-	  this.isPropagationStopped = emptyFunction.thatReturnsFalse;
-	}
-
-	mergeInto(SyntheticEvent.prototype, {
-
-	  preventDefault: function() {
-	    this.defaultPrevented = true;
-	    var event = this.nativeEvent;
-	    event.preventDefault ? event.preventDefault() : event.returnValue = false;
-	    this.isDefaultPrevented = emptyFunction.thatReturnsTrue;
-	  },
-
-	  stopPropagation: function() {
-	    var event = this.nativeEvent;
-	    event.stopPropagation ? event.stopPropagation() : event.cancelBubble = true;
-	    this.isPropagationStopped = emptyFunction.thatReturnsTrue;
-	  },
-
-	  /**
-	   * We release all dispatched `SyntheticEvent`s after each event loop, adding
-	   * them back into the pool. This allows a way to hold onto a reference that
-	   * won't be added back into the pool.
-	   */
-	  persist: function() {
-	    this.isPersistent = emptyFunction.thatReturnsTrue;
-	  },
-
-	  /**
-	   * Checks if this event should be released back into the pool.
-	   *
-	   * @return {boolean} True if this should not be released, false otherwise.
-	   */
-	  isPersistent: emptyFunction.thatReturnsFalse,
-
-	  /**
-	   * `PooledClass` looks for `destructor` on each instance it releases.
-	   */
-	  destructor: function() {
-	    var Interface = this.constructor.Interface;
-	    for (var propName in Interface) {
-	      this[propName] = null;
-	    }
-	    this.dispatchConfig = null;
-	    this.dispatchMarker = null;
-	    this.nativeEvent = null;
-	  }
-
-	});
-
-	SyntheticEvent.Interface = EventInterface;
-
-	/**
-	 * Helper to reduce boilerplate when creating subclasses.
-	 *
-	 * @param {function} Class
-	 * @param {?object} Interface
-	 */
-	SyntheticEvent.augmentClass = function(Class, Interface) {
-	  var Super = this;
-
-	  var prototype = Object.create(Super.prototype);
-	  mergeInto(prototype, Class.prototype);
-	  Class.prototype = prototype;
-	  Class.prototype.constructor = Class;
-
-	  Class.Interface = merge(Super.Interface, Interface);
-	  Class.augmentClass = Super.augmentClass;
-
-	  PooledClass.addPoolingTo(Class, PooledClass.threeArgumentPooler);
-	};
-
-	PooledClass.addPoolingTo(SyntheticEvent, PooledClass.threeArgumentPooler);
-
-	module.exports = SyntheticEvent;
-
-
-/***/ },
-/* 142 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule mergeInto
-	 * @typechecks static-only
-	 */
-
-	"use strict";
-
-	var mergeHelpers = __webpack_require__(215);
-
-	var checkMergeObjectArg = mergeHelpers.checkMergeObjectArg;
-	var checkMergeIntoObjectArg = mergeHelpers.checkMergeIntoObjectArg;
-
-	/**
-	 * Shallow merges two structures by mutating the first parameter.
-	 *
-	 * @param {object|function} one Object to be merged into.
-	 * @param {?object} two Optional object with properties to merge from.
-	 */
-	function mergeInto(one, two) {
-	  checkMergeIntoObjectArg(one);
-	  if (two != null) {
-	    checkMergeObjectArg(two);
-	    for (var key in two) {
-	      if (!two.hasOwnProperty(key)) {
-	        continue;
-	      }
-	      one[key] = two[key];
-	    }
-	  }
-	}
-
-	module.exports = mergeInto;
 
 
 /***/ },
@@ -51140,10 +51140,10 @@
 	 * Module dependencies.
 	 */
 
-	var debug = __webpack_require__(146)('socket.io-parser');
-	var json = __webpack_require__(264);
+	var debug = __webpack_require__(150)('socket.io-parser');
+	var json = __webpack_require__(265);
 	var isArray = __webpack_require__(257);
-	var Emitter = __webpack_require__(219);
+	var Emitter = __webpack_require__(220);
 	var binary = __webpack_require__(226);
 	var isBuf = __webpack_require__(227);
 
@@ -51537,143 +51537,43 @@
 /* 146 */
 /***/ function(module, exports, __webpack_require__) {
 
-	
-	/**
-	 * Expose `debug()` as the module.
-	 */
+	var __WEBPACK_AMD_DEFINE_RESULT__;var require;/** @license MIT License (c) copyright 2010-2014 original author or authors */
+	/** @author Brian Cavalier */
+	/** @author John Hann */
 
-	module.exports = debug;
+	(function(define) { 'use strict';
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require) {
+		/*global setTimeout,clearTimeout*/
+		var cjsRequire, vertx, setTimer, clearTimer;
 
-	/**
-	 * Create a debugger with the given `name`.
-	 *
-	 * @param {String} name
-	 * @return {Type}
-	 * @api public
-	 */
+		// Check for vertx environment by attempting to load vertx module.
+		// Doing the check in two steps ensures compatibility with RaveJS,
+		// which will return an empty module when browser: { vertx: false }
+		// is set in package.json
+		cjsRequire = require;
 
-	function debug(name) {
-	  if (!debug.enabled(name)) return function(){};
+		try {
+			vertx = __webpack_require__(216);
+		} catch (ignored) {}
 
-	  return function(fmt){
-	    fmt = coerce(fmt);
+		// If vertx loaded and has the timer features we expect, try to support it
+		if (vertx && typeof vertx.setTimer === 'function') {
+			setTimer = function (f, ms) { return vertx.setTimer(ms, f); };
+			clearTimer = vertx.cancelTimer;
+		} else {
+			// NOTE: Truncate decimals to workaround node 0.10.30 bug:
+			// https://github.com/joyent/node/issues/8167
+			setTimer = function(f, ms) { return setTimeout(f, ms|0); };
+			clearTimer = function(t) { return clearTimeout(t); };
+		}
 
-	    var curr = new Date;
-	    var ms = curr - (debug[name] || curr);
-	    debug[name] = curr;
+		return {
+			set: setTimer,
+			clear: clearTimer
+		};
 
-	    fmt = name
-	      + ' '
-	      + fmt
-	      + ' +' + debug.humanize(ms);
-
-	    // This hackery is required for IE8
-	    // where `console.log` doesn't have 'apply'
-	    window.console
-	      && console.log
-	      && Function.prototype.apply.call(console.log, console, arguments);
-	  }
-	}
-
-	/**
-	 * The currently active debug mode names.
-	 */
-
-	debug.names = [];
-	debug.skips = [];
-
-	/**
-	 * Enables a debug mode by name. This can include modes
-	 * separated by a colon and wildcards.
-	 *
-	 * @param {String} name
-	 * @api public
-	 */
-
-	debug.enable = function(name) {
-	  try {
-	    localStorage.debug = name;
-	  } catch(e){}
-
-	  var split = (name || '').split(/[\s,]+/)
-	    , len = split.length;
-
-	  for (var i = 0; i < len; i++) {
-	    name = split[i].replace('*', '.*?');
-	    if (name[0] === '-') {
-	      debug.skips.push(new RegExp('^' + name.substr(1) + '$'));
-	    }
-	    else {
-	      debug.names.push(new RegExp('^' + name + '$'));
-	    }
-	  }
-	};
-
-	/**
-	 * Disable debug output.
-	 *
-	 * @api public
-	 */
-
-	debug.disable = function(){
-	  debug.enable('');
-	};
-
-	/**
-	 * Humanize the given `ms`.
-	 *
-	 * @param {Number} m
-	 * @return {String}
-	 * @api private
-	 */
-
-	debug.humanize = function(ms) {
-	  var sec = 1000
-	    , min = 60 * 1000
-	    , hour = 60 * min;
-
-	  if (ms >= hour) return (ms / hour).toFixed(1) + 'h';
-	  if (ms >= min) return (ms / min).toFixed(1) + 'm';
-	  if (ms >= sec) return (ms / sec | 0) + 's';
-	  return ms + 'ms';
-	};
-
-	/**
-	 * Returns true if the given mode name is enabled, false otherwise.
-	 *
-	 * @param {String} name
-	 * @return {Boolean}
-	 * @api public
-	 */
-
-	debug.enabled = function(name) {
-	  for (var i = 0, len = debug.skips.length; i < len; i++) {
-	    if (debug.skips[i].test(name)) {
-	      return false;
-	    }
-	  }
-	  for (var i = 0, len = debug.names.length; i < len; i++) {
-	    if (debug.names[i].test(name)) {
-	      return true;
-	    }
-	  }
-	  return false;
-	};
-
-	/**
-	 * Coerce `val`.
-	 */
-
-	function coerce(val) {
-	  if (val instanceof Error) return val.stack || val.message;
-	  return val;
-	}
-
-	// persist
-
-	try {
-	  if (window.localStorage) debug.enable(localStorage.debug);
-	} catch(e){}
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	}(__webpack_require__(87)));
 
 
 /***/ },
@@ -52505,7 +52405,7 @@
 	(function(define) { 'use strict';
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require) {
 
-		var Queue = __webpack_require__(225);
+		var Queue = __webpack_require__(217);
 
 		// Credit to Twisol (https://github.com/Twisol) for suggesting
 		// this type of extensible queue + trampoline approach for next-tick conflation.
@@ -52664,144 +52564,147 @@
 /* 150 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_RESULT__;var require;/** @license MIT License (c) copyright 2010-2014 original author or authors */
-	/** @author Brian Cavalier */
-	/** @author John Hann */
+	
+	/**
+	 * Expose `debug()` as the module.
+	 */
 
-	(function(define) { 'use strict';
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require) {
-		/*global setTimeout,clearTimeout*/
-		var cjsRequire, vertx, setTimer, clearTimer;
+	module.exports = debug;
 
-		// Check for vertx environment by attempting to load vertx module.
-		// Doing the check in two steps ensures compatibility with RaveJS,
-		// which will return an empty module when browser: { vertx: false }
-		// is set in package.json
-		cjsRequire = require;
+	/**
+	 * Create a debugger with the given `name`.
+	 *
+	 * @param {String} name
+	 * @return {Type}
+	 * @api public
+	 */
 
-		try {
-			vertx = __webpack_require__(216);
-		} catch (ignored) {}
+	function debug(name) {
+	  if (!debug.enabled(name)) return function(){};
 
-		// If vertx loaded and has the timer features we expect, try to support it
-		if (vertx && typeof vertx.setTimer === 'function') {
-			setTimer = function (f, ms) { return vertx.setTimer(ms, f); };
-			clearTimer = vertx.cancelTimer;
-		} else {
-			// NOTE: Truncate decimals to workaround node 0.10.30 bug:
-			// https://github.com/joyent/node/issues/8167
-			setTimer = function(f, ms) { return setTimeout(f, ms|0); };
-			clearTimer = function(t) { return clearTimeout(t); };
-		}
+	  return function(fmt){
+	    fmt = coerce(fmt);
 
-		return {
-			set: setTimer,
-			clear: clearTimer
-		};
+	    var curr = new Date;
+	    var ms = curr - (debug[name] || curr);
+	    debug[name] = curr;
 
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-	}(__webpack_require__(87)));
+	    fmt = name
+	      + ' '
+	      + fmt
+	      + ' +' + debug.humanize(ms);
+
+	    // This hackery is required for IE8
+	    // where `console.log` doesn't have 'apply'
+	    window.console
+	      && console.log
+	      && Function.prototype.apply.call(console.log, console, arguments);
+	  }
+	}
+
+	/**
+	 * The currently active debug mode names.
+	 */
+
+	debug.names = [];
+	debug.skips = [];
+
+	/**
+	 * Enables a debug mode by name. This can include modes
+	 * separated by a colon and wildcards.
+	 *
+	 * @param {String} name
+	 * @api public
+	 */
+
+	debug.enable = function(name) {
+	  try {
+	    localStorage.debug = name;
+	  } catch(e){}
+
+	  var split = (name || '').split(/[\s,]+/)
+	    , len = split.length;
+
+	  for (var i = 0; i < len; i++) {
+	    name = split[i].replace('*', '.*?');
+	    if (name[0] === '-') {
+	      debug.skips.push(new RegExp('^' + name.substr(1) + '$'));
+	    }
+	    else {
+	      debug.names.push(new RegExp('^' + name + '$'));
+	    }
+	  }
+	};
+
+	/**
+	 * Disable debug output.
+	 *
+	 * @api public
+	 */
+
+	debug.disable = function(){
+	  debug.enable('');
+	};
+
+	/**
+	 * Humanize the given `ms`.
+	 *
+	 * @param {Number} m
+	 * @return {String}
+	 * @api private
+	 */
+
+	debug.humanize = function(ms) {
+	  var sec = 1000
+	    , min = 60 * 1000
+	    , hour = 60 * min;
+
+	  if (ms >= hour) return (ms / hour).toFixed(1) + 'h';
+	  if (ms >= min) return (ms / min).toFixed(1) + 'm';
+	  if (ms >= sec) return (ms / sec | 0) + 's';
+	  return ms + 'ms';
+	};
+
+	/**
+	 * Returns true if the given mode name is enabled, false otherwise.
+	 *
+	 * @param {String} name
+	 * @return {Boolean}
+	 * @api public
+	 */
+
+	debug.enabled = function(name) {
+	  for (var i = 0, len = debug.skips.length; i < len; i++) {
+	    if (debug.skips[i].test(name)) {
+	      return false;
+	    }
+	  }
+	  for (var i = 0, len = debug.names.length; i < len; i++) {
+	    if (debug.names[i].test(name)) {
+	      return true;
+	    }
+	  }
+	  return false;
+	};
+
+	/**
+	 * Coerce `val`.
+	 */
+
+	function coerce(val) {
+	  if (val instanceof Error) return val.stack || val.message;
+	  return val;
+	}
+
+	// persist
+
+	try {
+	  if (window.localStorage) debug.enable(localStorage.debug);
+	} catch(e){}
 
 
 /***/ },
 /* 151 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule escapeTextForBrowser
-	 * @typechecks static-only
-	 */
-
-	"use strict";
-
-	var ESCAPE_LOOKUP = {
-	  "&": "&amp;",
-	  ">": "&gt;",
-	  "<": "&lt;",
-	  "\"": "&quot;",
-	  "'": "&#x27;"
-	};
-
-	var ESCAPE_REGEX = /[&><"']/g;
-
-	function escaper(match) {
-	  return ESCAPE_LOOKUP[match];
-	}
-
-	/**
-	 * Escapes text to prevent scripting attacks.
-	 *
-	 * @param {*} text Text value to escape.
-	 * @return {string} An escaped string.
-	 */
-	function escapeTextForBrowser(text) {
-	  return ('' + text).replace(ESCAPE_REGEX, escaper);
-	}
-
-	module.exports = escapeTextForBrowser;
-
-
-/***/ },
-/* 152 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule memoizeStringOnly
-	 * @typechecks static-only
-	 */
-
-	"use strict";
-
-	/**
-	 * Memoizes the return value of a function that accepts one string argument.
-	 *
-	 * @param {function} callback
-	 * @return {function}
-	 */
-	function memoizeStringOnly(callback) {
-	  var cache = {};
-	  return function(string) {
-	    if (cache.hasOwnProperty(string)) {
-	      return cache[string];
-	    } else {
-	      return cache[string] = callback.call(this, string);
-	    }
-	  };
-	}
-
-	module.exports = memoizeStringOnly;
-
-
-/***/ },
-/* 153 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -52824,7 +52727,7 @@
 
 	"use strict";
 
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	/**
 	 * Static poolers. Several custom versions for each potential number of
@@ -52927,7 +52830,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
-/* 154 */
+/* 152 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -52950,10 +52853,10 @@
 
 	"use strict";
 
-	var ReactInstanceHandles = __webpack_require__(111);
-	var ReactTextComponent = __webpack_require__(117);
+	var ReactInstanceHandles = __webpack_require__(113);
+	var ReactTextComponent = __webpack_require__(119);
 
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	var SEPARATOR = ReactInstanceHandles.SEPARATOR;
 	var SUBSEPARATOR = ':';
@@ -53127,6 +53030,103 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
+/* 153 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule escapeTextForBrowser
+	 * @typechecks static-only
+	 */
+
+	"use strict";
+
+	var ESCAPE_LOOKUP = {
+	  "&": "&amp;",
+	  ">": "&gt;",
+	  "<": "&lt;",
+	  "\"": "&quot;",
+	  "'": "&#x27;"
+	};
+
+	var ESCAPE_REGEX = /[&><"']/g;
+
+	function escaper(match) {
+	  return ESCAPE_LOOKUP[match];
+	}
+
+	/**
+	 * Escapes text to prevent scripting attacks.
+	 *
+	 * @param {*} text Text value to escape.
+	 * @return {string} An escaped string.
+	 */
+	function escapeTextForBrowser(text) {
+	  return ('' + text).replace(ESCAPE_REGEX, escaper);
+	}
+
+	module.exports = escapeTextForBrowser;
+
+
+/***/ },
+/* 154 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule memoizeStringOnly
+	 * @typechecks static-only
+	 */
+
+	"use strict";
+
+	/**
+	 * Memoizes the return value of a function that accepts one string argument.
+	 *
+	 * @param {function} callback
+	 * @return {function}
+	 */
+	function memoizeStringOnly(callback) {
+	  var cache = {};
+	  return function(string) {
+	    if (cache.hasOwnProperty(string)) {
+	      return cache[string];
+	    } else {
+	      return cache[string] = callback.call(this, string);
+	    }
+	  };
+	}
+
+	module.exports = memoizeStringOnly;
+
+
+/***/ },
 /* 155 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -53151,7 +53151,7 @@
 	"use strict";
 
 	var emptyObject = __webpack_require__(228);
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	/**
 	 * ReactOwners are capable of storing references to owned components.
@@ -53323,9 +53323,9 @@
 
 	"use strict";
 
-	var ReactDescriptor = __webpack_require__(107);
+	var ReactDescriptor = __webpack_require__(109);
 	var ReactPropTypeLocations = __webpack_require__(159);
-	var ReactCurrentOwner = __webpack_require__(106);
+	var ReactCurrentOwner = __webpack_require__(108);
 
 	var monitorCodeUse = __webpack_require__(163);
 
@@ -53605,7 +53605,7 @@
 
 	"use strict";
 
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	var component;
 	// This registry keeps track of the React IDs of the components that rendered to
@@ -53807,7 +53807,7 @@
 
 	"use strict";
 
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	/**
 	 * Validate a `componentDescriptor`. This should be exposed publicly in a follow
@@ -53915,7 +53915,7 @@
 
 	"use strict";
 
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	/**
 	 * Provides open-source compatible instrumentation for monitoring certain API
@@ -54068,12 +54068,12 @@
 
 	"use strict";
 
-	var EventConstants = __webpack_require__(136);
-	var EventPropagators = __webpack_require__(138);
-	var ExecutionEnvironment = __webpack_require__(120);
+	var EventConstants = __webpack_require__(133);
+	var EventPropagators = __webpack_require__(135);
+	var ExecutionEnvironment = __webpack_require__(122);
 	var SyntheticInputEvent = __webpack_require__(229);
 
-	var keyOf = __webpack_require__(129);
+	var keyOf = __webpack_require__(127);
 
 	var canUseTextInputEvent = (
 	  ExecutionEnvironment.canUseDOM &&
@@ -54295,16 +54295,16 @@
 
 	"use strict";
 
-	var EventConstants = __webpack_require__(136);
-	var EventPluginHub = __webpack_require__(137);
-	var EventPropagators = __webpack_require__(138);
-	var ExecutionEnvironment = __webpack_require__(120);
-	var ReactUpdates = __webpack_require__(140);
-	var SyntheticEvent = __webpack_require__(141);
+	var EventConstants = __webpack_require__(133);
+	var EventPluginHub = __webpack_require__(134);
+	var EventPropagators = __webpack_require__(135);
+	var ExecutionEnvironment = __webpack_require__(122);
+	var ReactUpdates = __webpack_require__(137);
+	var SyntheticEvent = __webpack_require__(138);
 
-	var isEventSupported = __webpack_require__(208);
+	var isEventSupported = __webpack_require__(210);
 	var isTextInputElement = __webpack_require__(230);
-	var keyOf = __webpack_require__(129);
+	var keyOf = __webpack_require__(127);
 
 	var topLevelTypes = EventConstants.topLevelTypes;
 
@@ -54725,14 +54725,14 @@
 
 	"use strict";
 
-	var EventConstants = __webpack_require__(136);
-	var EventPropagators = __webpack_require__(138);
-	var ExecutionEnvironment = __webpack_require__(120);
+	var EventConstants = __webpack_require__(133);
+	var EventPropagators = __webpack_require__(135);
+	var ExecutionEnvironment = __webpack_require__(122);
 	var ReactInputSelection = __webpack_require__(231);
 	var SyntheticCompositionEvent = __webpack_require__(232);
 
 	var getTextContentAccessor = __webpack_require__(233);
-	var keyOf = __webpack_require__(129);
+	var keyOf = __webpack_require__(127);
 
 	var END_KEYCODES = [9, 13, 27, 32]; // Tab, Return, Esc, Space
 	var START_KEYCODE = 229;
@@ -54994,7 +54994,7 @@
 
 	"use strict";
 
-	 var keyOf = __webpack_require__(129);
+	 var keyOf = __webpack_require__(127);
 
 	/**
 	 * Module that is injectable into `EventPluginHub`, that specifies a
@@ -55046,12 +55046,12 @@
 
 	"use strict";
 
-	var EventConstants = __webpack_require__(136);
-	var EventPropagators = __webpack_require__(138);
+	var EventConstants = __webpack_require__(133);
+	var EventPropagators = __webpack_require__(135);
 	var SyntheticMouseEvent = __webpack_require__(234);
 
-	var ReactMount = __webpack_require__(112);
-	var keyOf = __webpack_require__(129);
+	var ReactMount = __webpack_require__(114);
+	var keyOf = __webpack_require__(127);
 
 	var topLevelTypes = EventConstants.topLevelTypes;
 	var getFirstReactDOM = ReactMount.getFirstReactDOM;
@@ -55198,8 +55198,8 @@
 
 	"use strict";
 
-	var DOMProperty = __webpack_require__(133);
-	var ExecutionEnvironment = __webpack_require__(120);
+	var DOMProperty = __webpack_require__(128);
+	var ExecutionEnvironment = __webpack_require__(122);
 
 	var MUST_USE_ATTRIBUTE = DOMProperty.injection.MUST_USE_ATTRIBUTE;
 	var MUST_USE_PROPERTY = DOMProperty.injection.MUST_USE_PROPERTY;
@@ -55392,9 +55392,9 @@
 
 	"use strict";
 
-	var EventConstants = __webpack_require__(136);
+	var EventConstants = __webpack_require__(133);
 
-	var emptyFunction = __webpack_require__(126);
+	var emptyFunction = __webpack_require__(125);
 
 	var topLevelTypes = EventConstants.topLevelTypes;
 
@@ -55461,9 +55461,9 @@
 	"use strict";
 
 	var ReactEmptyComponent = __webpack_require__(157);
-	var ReactMount = __webpack_require__(112);
+	var ReactMount = __webpack_require__(114);
 
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	var ReactBrowserComponentMixin = {
 	  /**
@@ -55517,12 +55517,12 @@
 
 	var ReactDOMIDOperations = __webpack_require__(235);
 	var ReactMarkupChecksum = __webpack_require__(197);
-	var ReactMount = __webpack_require__(112);
-	var ReactPerf = __webpack_require__(114);
+	var ReactMount = __webpack_require__(114);
+	var ReactPerf = __webpack_require__(116);
 	var ReactReconcileTransaction = __webpack_require__(236);
 
-	var getReactRootElementInContainer = __webpack_require__(196);
-	var invariant = __webpack_require__(83);
+	var getReactRootElementInContainer = __webpack_require__(194);
+	var invariant = __webpack_require__(84);
 	var setInnerHTML = __webpack_require__(237);
 
 
@@ -55645,10 +55645,10 @@
 
 	"use strict";
 
-	var ReactUpdates = __webpack_require__(140);
-	var Transaction = __webpack_require__(213);
+	var ReactUpdates = __webpack_require__(137);
+	var Transaction = __webpack_require__(206);
 
-	var emptyFunction = __webpack_require__(126);
+	var emptyFunction = __webpack_require__(125);
 	var mixInto = __webpack_require__(162);
 
 	var RESET_BATCHED_UPDATES = {
@@ -55728,8 +55728,8 @@
 
 	var AutoFocusMixin = __webpack_require__(238);
 	var ReactBrowserComponentMixin = __webpack_require__(174);
-	var ReactCompositeComponent = __webpack_require__(104);
-	var ReactDOM = __webpack_require__(108);
+	var ReactCompositeComponent = __webpack_require__(106);
+	var ReactDOM = __webpack_require__(110);
 
 	var keyMirror = __webpack_require__(52);
 
@@ -55801,11 +55801,11 @@
 
 	"use strict";
 
-	var EventConstants = __webpack_require__(136);
+	var EventConstants = __webpack_require__(133);
 	var LocalEventTrapMixin = __webpack_require__(239);
 	var ReactBrowserComponentMixin = __webpack_require__(174);
-	var ReactCompositeComponent = __webpack_require__(104);
-	var ReactDOM = __webpack_require__(108);
+	var ReactCompositeComponent = __webpack_require__(106);
+	var ReactDOM = __webpack_require__(110);
 
 	// Store a reference to the <form> `ReactDOMComponent`.
 	var form = ReactDOM.form;
@@ -55861,11 +55861,11 @@
 
 	"use strict";
 
-	var EventConstants = __webpack_require__(136);
+	var EventConstants = __webpack_require__(133);
 	var LocalEventTrapMixin = __webpack_require__(239);
 	var ReactBrowserComponentMixin = __webpack_require__(174);
-	var ReactCompositeComponent = __webpack_require__(104);
-	var ReactDOM = __webpack_require__(108);
+	var ReactCompositeComponent = __webpack_require__(106);
+	var ReactDOM = __webpack_require__(110);
 
 	// Store a reference to the <img> `ReactDOMComponent`.
 	var img = ReactDOM.img;
@@ -55920,15 +55920,15 @@
 	"use strict";
 
 	var AutoFocusMixin = __webpack_require__(238);
-	var DOMPropertyOperations = __webpack_require__(100);
+	var DOMPropertyOperations = __webpack_require__(102);
 	var LinkedValueUtils = __webpack_require__(240);
 	var ReactBrowserComponentMixin = __webpack_require__(174);
-	var ReactCompositeComponent = __webpack_require__(104);
-	var ReactDOM = __webpack_require__(108);
-	var ReactMount = __webpack_require__(112);
+	var ReactCompositeComponent = __webpack_require__(106);
+	var ReactDOM = __webpack_require__(110);
+	var ReactMount = __webpack_require__(114);
 
-	var invariant = __webpack_require__(83);
-	var merge = __webpack_require__(127);
+	var invariant = __webpack_require__(84);
+	var merge = __webpack_require__(126);
 
 	// Store a reference to the <input> `ReactDOMComponent`.
 	var input = ReactDOM.input;
@@ -56109,10 +56109,10 @@
 	"use strict";
 
 	var ReactBrowserComponentMixin = __webpack_require__(174);
-	var ReactCompositeComponent = __webpack_require__(104);
-	var ReactDOM = __webpack_require__(108);
+	var ReactCompositeComponent = __webpack_require__(106);
+	var ReactDOM = __webpack_require__(110);
 
-	var warning = __webpack_require__(119);
+	var warning = __webpack_require__(121);
 
 	// Store a reference to the <option> `ReactDOMComponent`.
 	var option = ReactDOM.option;
@@ -56173,10 +56173,10 @@
 	var AutoFocusMixin = __webpack_require__(238);
 	var LinkedValueUtils = __webpack_require__(240);
 	var ReactBrowserComponentMixin = __webpack_require__(174);
-	var ReactCompositeComponent = __webpack_require__(104);
-	var ReactDOM = __webpack_require__(108);
+	var ReactCompositeComponent = __webpack_require__(106);
+	var ReactDOM = __webpack_require__(110);
 
-	var merge = __webpack_require__(127);
+	var merge = __webpack_require__(126);
 
 	// Store a reference to the <select> `ReactDOMComponent`.
 	var select = ReactDOM.select;
@@ -56358,16 +56358,16 @@
 	"use strict";
 
 	var AutoFocusMixin = __webpack_require__(238);
-	var DOMPropertyOperations = __webpack_require__(100);
+	var DOMPropertyOperations = __webpack_require__(102);
 	var LinkedValueUtils = __webpack_require__(240);
 	var ReactBrowserComponentMixin = __webpack_require__(174);
-	var ReactCompositeComponent = __webpack_require__(104);
-	var ReactDOM = __webpack_require__(108);
+	var ReactCompositeComponent = __webpack_require__(106);
+	var ReactDOM = __webpack_require__(110);
 
-	var invariant = __webpack_require__(83);
-	var merge = __webpack_require__(127);
+	var invariant = __webpack_require__(84);
+	var merge = __webpack_require__(126);
 
-	var warning = __webpack_require__(119);
+	var warning = __webpack_require__(121);
 
 	// Store a reference to the <textarea> `ReactDOMComponent`.
 	var textarea = ReactDOM.textarea;
@@ -56508,13 +56508,13 @@
 	"use strict";
 
 	var EventListener = __webpack_require__(241);
-	var ExecutionEnvironment = __webpack_require__(120);
-	var PooledClass = __webpack_require__(153);
-	var ReactInstanceHandles = __webpack_require__(111);
-	var ReactMount = __webpack_require__(112);
-	var ReactUpdates = __webpack_require__(140);
+	var ExecutionEnvironment = __webpack_require__(122);
+	var PooledClass = __webpack_require__(151);
+	var ReactInstanceHandles = __webpack_require__(113);
+	var ReactMount = __webpack_require__(114);
+	var ReactUpdates = __webpack_require__(137);
 
-	var getEventTarget = __webpack_require__(214);
+	var getEventTarget = __webpack_require__(211);
 	var getUnboundedScrollPosition = __webpack_require__(242);
 	var mixInto = __webpack_require__(162);
 
@@ -56701,16 +56701,16 @@
 
 	"use strict";
 
-	var DOMProperty = __webpack_require__(133);
-	var EventPluginHub = __webpack_require__(137);
-	var ReactComponent = __webpack_require__(103);
-	var ReactCompositeComponent = __webpack_require__(104);
-	var ReactDOM = __webpack_require__(108);
+	var DOMProperty = __webpack_require__(128);
+	var EventPluginHub = __webpack_require__(134);
+	var ReactComponent = __webpack_require__(105);
+	var ReactCompositeComponent = __webpack_require__(106);
+	var ReactDOM = __webpack_require__(110);
 	var ReactEmptyComponent = __webpack_require__(157);
-	var ReactBrowserEventEmitter = __webpack_require__(139);
-	var ReactPerf = __webpack_require__(114);
-	var ReactRootIndex = __webpack_require__(191);
-	var ReactUpdates = __webpack_require__(140);
+	var ReactBrowserEventEmitter = __webpack_require__(136);
+	var ReactPerf = __webpack_require__(116);
+	var ReactRootIndex = __webpack_require__(192);
+	var ReactUpdates = __webpack_require__(137);
 
 	var ReactInjection = {
 	  Component: ReactComponent.injection,
@@ -56752,14 +56752,14 @@
 
 	"use strict";
 
-	var EventConstants = __webpack_require__(136);
-	var EventPropagators = __webpack_require__(138);
+	var EventConstants = __webpack_require__(133);
+	var EventPropagators = __webpack_require__(135);
 	var ReactInputSelection = __webpack_require__(231);
-	var SyntheticEvent = __webpack_require__(141);
+	var SyntheticEvent = __webpack_require__(138);
 
 	var getActiveElement = __webpack_require__(243);
 	var isTextInputElement = __webpack_require__(230);
-	var keyOf = __webpack_require__(129);
+	var keyOf = __webpack_require__(127);
 	var shallowEqual = __webpack_require__(123);
 
 	var topLevelTypes = EventConstants.topLevelTypes;
@@ -57000,11 +57000,11 @@
 
 	"use strict";
 
-	var EventConstants = __webpack_require__(136);
-	var EventPluginUtils = __webpack_require__(101);
-	var EventPropagators = __webpack_require__(138);
+	var EventConstants = __webpack_require__(133);
+	var EventPluginUtils = __webpack_require__(103);
+	var EventPropagators = __webpack_require__(135);
 	var SyntheticClipboardEvent = __webpack_require__(244);
-	var SyntheticEvent = __webpack_require__(141);
+	var SyntheticEvent = __webpack_require__(138);
 	var SyntheticFocusEvent = __webpack_require__(245);
 	var SyntheticKeyboardEvent = __webpack_require__(246);
 	var SyntheticMouseEvent = __webpack_require__(234);
@@ -57013,8 +57013,8 @@
 	var SyntheticUIEvent = __webpack_require__(249);
 	var SyntheticWheelEvent = __webpack_require__(250);
 
-	var invariant = __webpack_require__(83);
-	var keyOf = __webpack_require__(129);
+	var invariant = __webpack_require__(84);
+	var keyOf = __webpack_require__(127);
 
 	var topLevelTypes = EventConstants.topLevelTypes;
 
@@ -57428,7 +57428,7 @@
 
 	"use strict";
 
-	var DOMProperty = __webpack_require__(133);
+	var DOMProperty = __webpack_require__(128);
 
 	var MUST_USE_ATTRIBUTE = DOMProperty.injection.MUST_USE_ATTRIBUTE;
 
@@ -57531,9 +57531,9 @@
 	"use strict";
 
 	// Defeat circular references by requiring this directly.
-	var ReactCompositeComponent = __webpack_require__(104);
+	var ReactCompositeComponent = __webpack_require__(106);
 
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	/**
 	 * Create a component that will throw an exception when unmounted.
@@ -57594,48 +57594,6 @@
 	 * See the License for the specific language governing permissions and
 	 * limitations under the License.
 	 *
-	 * @providesModule ReactRootIndex
-	 * @typechecks
-	 */
-
-	"use strict";
-
-	var ReactRootIndexInjection = {
-	  /**
-	   * @param {function} _createReactRootIndex
-	   */
-	  injectCreateReactRootIndex: function(_createReactRootIndex) {
-	    ReactRootIndex.createReactRootIndex = _createReactRootIndex;
-	  }
-	};
-
-	var ReactRootIndex = {
-	  createReactRootIndex: null,
-	  injection: ReactRootIndexInjection
-	};
-
-	module.exports = ReactRootIndex;
-
-
-/***/ },
-/* 192 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
 	 * @providesModule CSSPropertyOperations
 	 * @typechecks static-only
 	 */
@@ -57646,7 +57604,7 @@
 
 	var dangerousStyleValue = __webpack_require__(252);
 	var hyphenateStyleName = __webpack_require__(253);
-	var memoizeStringOnly = __webpack_require__(152);
+	var memoizeStringOnly = __webpack_require__(154);
 
 	var processStyleName = memoizeStringOnly(function(styleName) {
 	  return hyphenateStyleName(styleName);
@@ -57721,117 +57679,49 @@
 
 
 /***/ },
+/* 192 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule ReactRootIndex
+	 * @typechecks
+	 */
+
+	"use strict";
+
+	var ReactRootIndexInjection = {
+	  /**
+	   * @param {function} _createReactRootIndex
+	   */
+	  injectCreateReactRootIndex: function(_createReactRootIndex) {
+	    ReactRootIndex.createReactRootIndex = _createReactRootIndex;
+	  }
+	};
+
+	var ReactRootIndex = {
+	  createReactRootIndex: null,
+	  injection: ReactRootIndexInjection
+	};
+
+	module.exports = ReactRootIndex;
+
+
+/***/ },
 /* 193 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule ReactMultiChildUpdateTypes
-	 */
-
-	"use strict";
-
-	var keyMirror = __webpack_require__(52);
-
-	/**
-	 * When a component's children are updated, a series of update configuration
-	 * objects are created in order to batch and serialize the required changes.
-	 *
-	 * Enumerates all the possible types of update configurations.
-	 *
-	 * @internal
-	 */
-	var ReactMultiChildUpdateTypes = keyMirror({
-	  INSERT_MARKUP: null,
-	  MOVE_EXISTING: null,
-	  REMOVE_NODE: null,
-	  TEXT_CONTENT: null
-	});
-
-	module.exports = ReactMultiChildUpdateTypes;
-
-
-/***/ },
-/* 194 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/* WEBPACK VAR INJECTION */(function(process) {/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule flattenChildren
-	 */
-
-	"use strict";
-
-	var traverseAllChildren = __webpack_require__(154);
-	var warning = __webpack_require__(119);
-
-	/**
-	 * @param {function} traverseContext Context passed through traversal.
-	 * @param {?ReactComponent} child React child component.
-	 * @param {!string} name String name of key path to child.
-	 */
-	function flattenSingleChildIntoContext(traverseContext, child, name) {
-	  // We found a component instance.
-	  var result = traverseContext;
-	  var keyUnique = !result.hasOwnProperty(name);
-	  ("production" !== process.env.NODE_ENV ? warning(
-	    keyUnique,
-	    'flattenChildren(...): Encountered two children with the same key, ' +
-	    '`%s`. Child keys must be unique; when two children share a key, only ' +
-	    'the first child will be used.',
-	    name
-	  ) : null);
-	  if (keyUnique && child != null) {
-	    result[name] = child;
-	  }
-	}
-
-	/**
-	 * Flattens children that are typically specified as `props.children`. Any null
-	 * children will not be included in the resulting object.
-	 * @return {!object} flattened children keyed by name.
-	 */
-	function flattenChildren(children) {
-	  if (children == null) {
-	    return children;
-	  }
-	  var result = {};
-	  traverseAllChildren(children, flattenSingleChildIntoContext, result);
-	  return result;
-	}
-
-	module.exports = flattenChildren;
-	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
-
-/***/ },
-/* 195 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -57853,7 +57743,7 @@
 	 * @typechecks
 	 */
 
-	var isTextNode = __webpack_require__(255);
+	var isTextNode = __webpack_require__(254);
 
 	/*jslint bitwise:true */
 
@@ -57886,7 +57776,7 @@
 
 
 /***/ },
-/* 196 */
+/* 194 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -57932,6 +57822,116 @@
 
 
 /***/ },
+/* 195 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule ReactMultiChildUpdateTypes
+	 */
+
+	"use strict";
+
+	var keyMirror = __webpack_require__(52);
+
+	/**
+	 * When a component's children are updated, a series of update configuration
+	 * objects are created in order to batch and serialize the required changes.
+	 *
+	 * Enumerates all the possible types of update configurations.
+	 *
+	 * @internal
+	 */
+	var ReactMultiChildUpdateTypes = keyMirror({
+	  INSERT_MARKUP: null,
+	  MOVE_EXISTING: null,
+	  REMOVE_NODE: null,
+	  TEXT_CONTENT: null
+	});
+
+	module.exports = ReactMultiChildUpdateTypes;
+
+
+/***/ },
+/* 196 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule flattenChildren
+	 */
+
+	"use strict";
+
+	var traverseAllChildren = __webpack_require__(152);
+	var warning = __webpack_require__(121);
+
+	/**
+	 * @param {function} traverseContext Context passed through traversal.
+	 * @param {?ReactComponent} child React child component.
+	 * @param {!string} name String name of key path to child.
+	 */
+	function flattenSingleChildIntoContext(traverseContext, child, name) {
+	  // We found a component instance.
+	  var result = traverseContext;
+	  var keyUnique = !result.hasOwnProperty(name);
+	  ("production" !== process.env.NODE_ENV ? warning(
+	    keyUnique,
+	    'flattenChildren(...): Encountered two children with the same key, ' +
+	    '`%s`. Child keys must be unique; when two children share a key, only ' +
+	    'the first child will be used.',
+	    name
+	  ) : null);
+	  if (keyUnique && child != null) {
+	    result[name] = child;
+	  }
+	}
+
+	/**
+	 * Flattens children that are typically specified as `props.children`. Any null
+	 * children will not be included in the resulting object.
+	 * @return {!object} flattened children keyed by name.
+	 */
+	function flattenChildren(children) {
+	  if (children == null) {
+	    return children;
+	  }
+	  var result = {};
+	  traverseAllChildren(children, flattenSingleChildIntoContext, result);
+	  return result;
+	}
+
+	module.exports = flattenChildren;
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
+
+/***/ },
 /* 197 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -57955,7 +57955,7 @@
 
 	"use strict";
 
-	var adler32 = __webpack_require__(254);
+	var adler32 = __webpack_require__(255);
 
 	var ReactMarkupChecksum = {
 	  CHECKSUM_ATTR_NAME: 'data-react-checksum',
@@ -58015,12 +58015,12 @@
 
 	"use strict";
 
-	var PooledClass = __webpack_require__(153);
-	var CallbackQueue = __webpack_require__(212);
+	var PooledClass = __webpack_require__(151);
+	var CallbackQueue = __webpack_require__(205);
 	var ReactPutListenerQueue = __webpack_require__(256);
-	var Transaction = __webpack_require__(213);
+	var Transaction = __webpack_require__(206);
 
-	var emptyFunction = __webpack_require__(126);
+	var emptyFunction = __webpack_require__(125);
 	var mixInto = __webpack_require__(162);
 
 	/**
@@ -58115,6 +58115,95 @@
 /* 199 */
 /***/ function(module, exports, __webpack_require__) {
 
+	/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule performance
+	 * @typechecks
+	 */
+
+	"use strict";
+
+	var ExecutionEnvironment = __webpack_require__(122);
+
+	var performance;
+
+	if (ExecutionEnvironment.canUseDOM) {
+	  performance =
+	    window.performance ||
+	    window.msPerformance ||
+	    window.webkitPerformance;
+	}
+
+	module.exports = performance || {};
+
+
+/***/ },
+/* 200 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule joinClasses
+	 * @typechecks static-only
+	 */
+
+	"use strict";
+
+	/**
+	 * Combines multiple className strings into one.
+	 * http://jsperf.com/joinclasses-args-vs-array
+	 *
+	 * @param {...?string} classes
+	 * @return {string}
+	 */
+	function joinClasses(className/*, ... */) {
+	  if (!className) {
+	    className = '';
+	  }
+	  var nextClass;
+	  var argLength = arguments.length;
+	  if (argLength > 1) {
+	    for (var ii = 1; ii < argLength; ii++) {
+	      nextClass = arguments[ii];
+	      nextClass && (className += ' ' + nextClass);
+	    }
+	  }
+	  return className;
+	}
+
+	module.exports = joinClasses;
+
+
+/***/ },
+/* 201 */
+/***/ function(module, exports, __webpack_require__) {
+
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2014 Facebook, Inc.
 	 *
@@ -58134,7 +58223,7 @@
 	 * @typechecks
 	 */
 
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	/**
 	 * The CSSCore module specifies the API (and implements most of the methods)
@@ -58234,7 +58323,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
-/* 200 */
+/* 202 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -58257,7 +58346,7 @@
 
 	"use strict";
 
-	var ExecutionEnvironment = __webpack_require__(120);
+	var ExecutionEnvironment = __webpack_require__(122);
 
 	/**
 	 * EVENT_NAME_MAP is used to determine which event fired when a
@@ -58356,7 +58445,68 @@
 
 
 /***/ },
-/* 201 */
+/* 203 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule accumulate
+	 */
+
+	"use strict";
+
+	var invariant = __webpack_require__(84);
+
+	/**
+	 * Accumulates items that must not be null or undefined.
+	 *
+	 * This is used to conserve memory by avoiding array allocations.
+	 *
+	 * @return {*|array<*>} An accumulation of items.
+	 */
+	function accumulate(current, next) {
+	  ("production" !== process.env.NODE_ENV ? invariant(
+	    next != null,
+	    'accumulate(...): Accumulated items must be not be null or undefined.'
+	  ) : invariant(next != null));
+	  if (current == null) {
+	    return next;
+	  } else {
+	    // Both are not empty. Warning: Never call x.concat(y) when you are not
+	    // certain that x is an Array (x could be a string with concat method).
+	    var currentIsArray = Array.isArray(current);
+	    var nextIsArray = Array.isArray(next);
+	    if (currentIsArray) {
+	      return current.concat(next);
+	    } else {
+	      if (nextIsArray) {
+	        return [current].concat(next);
+	      } else {
+	        return [current, next];
+	      }
+	    }
+	  }
+	}
+
+	module.exports = accumulate;
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
+
+/***/ },
+/* 204 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -58374,153 +58524,392 @@
 	 * See the License for the specific language governing permissions and
 	 * limitations under the License.
 	 *
-	 * @providesModule joinClasses
-	 * @typechecks static-only
+	 * @providesModule forEachAccumulated
 	 */
 
 	"use strict";
 
 	/**
-	 * Combines multiple className strings into one.
-	 * http://jsperf.com/joinclasses-args-vs-array
-	 *
-	 * @param {...?string} classes
-	 * @return {string}
+	 * @param {array} an "accumulation" of items which is either an Array or
+	 * a single item. Useful when paired with the `accumulate` module. This is a
+	 * simple utility that allows us to reason about a collection of items, but
+	 * handling the case when there is exactly one item (and we do not need to
+	 * allocate an array).
 	 */
-	function joinClasses(className/*, ... */) {
-	  if (!className) {
-	    className = '';
+	var forEachAccumulated = function(arr, cb, scope) {
+	  if (Array.isArray(arr)) {
+	    arr.forEach(cb, scope);
+	  } else if (arr) {
+	    cb.call(scope, arr);
 	  }
-	  var nextClass;
-	  var argLength = arguments.length;
-	  if (argLength > 1) {
-	    for (var ii = 1; ii < argLength; ii++) {
-	      nextClass = arguments[ii];
-	      nextClass && (className += ' ' + nextClass);
-	    }
-	  }
-	  return className;
-	}
+	};
 
-	module.exports = joinClasses;
-
-
-/***/ },
-/* 202 */
-/***/ function(module, exports, __webpack_require__) {
-
-	module.exports = (function () {
-	  'use strict';
-
-	  /**
-	   * Sort an array using the merge sort algorithm.
-	   *
-	   * @param {function} comparatorFn The comparator function.
-	   * @param {array} arr The array to sort.
-	   * @returns {array} The sorted array.
-	   */
-	  function mergeSort(comparatorFn, arr) {
-	    var len = arr.length, firstHalf, secondHalf;
-	    if (len >= 2) {
-	      firstHalf = arr.slice(0, len / 2);
-	      secondHalf = arr.slice(len / 2, len);
-	      return merge(comparatorFn, mergeSort(comparatorFn, firstHalf), mergeSort(comparatorFn, secondHalf));
-	    } else {
-	      return arr.slice();
-	    }
-	  }
-
-	  /**
-	   * The merge part of the merge sort algorithm.
-	   *
-	   * @param {function} comparatorFn The comparator function.
-	   * @param {array} arr1 The first sorted array.
-	   * @param {array} arr2 The second sorted array.
-	   * @returns {array} The merged and sorted array.
-	   */
-	  function merge(comparatorFn, arr1, arr2) {
-	    var result = [], left1 = arr1.length, left2 = arr2.length;
-	    while (left1 > 0 && left2 > 0) {
-	      if (comparatorFn(arr1[0], arr2[0]) <= 0) {
-	        result.push(arr1.shift());
-	        left1--;
-	      } else {
-	        result.push(arr2.shift());
-	        left2--;
-	      }
-	    }
-	    if (left1 > 0) {
-	      result.push.apply(result, arr1);
-	    } else {
-	      result.push.apply(result, arr2);
-	    }
-	    return result;
-	  }
-
-	  return mergeSort;
-	})();
-
-
-/***/ },
-/* 203 */
-/***/ function(module, exports, __webpack_require__) {
-
-	module.exports = (function () {
-	  'use strict';
-
-	  /**
-	   * Find the index to insert an element in array keeping the sort order.
-	   *
-	   * @param {function} comparatorFn The comparator function which sorted the array.
-	   * @param {array} arr The sorted array.
-	   * @param {object} el The element to insert.
-	   */
-	  function findInsertIndex(comparatorFn, arr, el) {
-	    var i, len;
-	    for (i = 0, len = arr.length; i < len; i++) {
-	      if (comparatorFn(arr[i], el) > 0) {
-	        break;
-	      }
-	    }
-	    return i;
-	  }
-
-	  return findInsertIndex;
-	})();
-
-
-/***/ },
-/* 204 */
-/***/ function(module, exports, __webpack_require__) {
-
-	
-	/**
-	 * Module exports.
-	 */
-
-	module.exports = on;
-
-	/**
-	 * Helper for subscriptions.
-	 *
-	 * @param {Object|EventEmitter} obj with `Emitter` mixin or `EventEmitter`
-	 * @param {String} event name
-	 * @param {Function} callback
-	 * @api public
-	 */
-
-	function on(obj, ev, fn) {
-	  obj.on(ev, fn);
-	  return {
-	    destroy: function(){
-	      obj.removeListener(ev, fn);
-	    }
-	  };
-	}
+	module.exports = forEachAccumulated;
 
 
 /***/ },
 /* 205 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule CallbackQueue
+	 */
+
+	"use strict";
+
+	var PooledClass = __webpack_require__(151);
+
+	var invariant = __webpack_require__(84);
+	var mixInto = __webpack_require__(162);
+
+	/**
+	 * A specialized pseudo-event module to help keep track of components waiting to
+	 * be notified when their DOM representations are available for use.
+	 *
+	 * This implements `PooledClass`, so you should never need to instantiate this.
+	 * Instead, use `CallbackQueue.getPooled()`.
+	 *
+	 * @class ReactMountReady
+	 * @implements PooledClass
+	 * @internal
+	 */
+	function CallbackQueue() {
+	  this._callbacks = null;
+	  this._contexts = null;
+	}
+
+	mixInto(CallbackQueue, {
+
+	  /**
+	   * Enqueues a callback to be invoked when `notifyAll` is invoked.
+	   *
+	   * @param {function} callback Invoked when `notifyAll` is invoked.
+	   * @param {?object} context Context to call `callback` with.
+	   * @internal
+	   */
+	  enqueue: function(callback, context) {
+	    this._callbacks = this._callbacks || [];
+	    this._contexts = this._contexts || [];
+	    this._callbacks.push(callback);
+	    this._contexts.push(context);
+	  },
+
+	  /**
+	   * Invokes all enqueued callbacks and clears the queue. This is invoked after
+	   * the DOM representation of a component has been created or updated.
+	   *
+	   * @internal
+	   */
+	  notifyAll: function() {
+	    var callbacks = this._callbacks;
+	    var contexts = this._contexts;
+	    if (callbacks) {
+	      ("production" !== process.env.NODE_ENV ? invariant(
+	        callbacks.length === contexts.length,
+	        "Mismatched list of contexts in callback queue"
+	      ) : invariant(callbacks.length === contexts.length));
+	      this._callbacks = null;
+	      this._contexts = null;
+	      for (var i = 0, l = callbacks.length; i < l; i++) {
+	        callbacks[i].call(contexts[i]);
+	      }
+	      callbacks.length = 0;
+	      contexts.length = 0;
+	    }
+	  },
+
+	  /**
+	   * Resets the internal queue.
+	   *
+	   * @internal
+	   */
+	  reset: function() {
+	    this._callbacks = null;
+	    this._contexts = null;
+	  },
+
+	  /**
+	   * `PooledClass` looks for this.
+	   */
+	  destructor: function() {
+	    this.reset();
+	  }
+
+	});
+
+	PooledClass.addPoolingTo(CallbackQueue);
+
+	module.exports = CallbackQueue;
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
+
+/***/ },
+/* 206 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule Transaction
+	 */
+
+	"use strict";
+
+	var invariant = __webpack_require__(84);
+
+	/**
+	 * `Transaction` creates a black box that is able to wrap any method such that
+	 * certain invariants are maintained before and after the method is invoked
+	 * (Even if an exception is thrown while invoking the wrapped method). Whoever
+	 * instantiates a transaction can provide enforcers of the invariants at
+	 * creation time. The `Transaction` class itself will supply one additional
+	 * automatic invariant for you - the invariant that any transaction instance
+	 * should not be run while it is already being run. You would typically create a
+	 * single instance of a `Transaction` for reuse multiple times, that potentially
+	 * is used to wrap several different methods. Wrappers are extremely simple -
+	 * they only require implementing two methods.
+	 *
+	 * <pre>
+	 *                       wrappers (injected at creation time)
+	 *                                      +        +
+	 *                                      |        |
+	 *                    +-----------------|--------|--------------+
+	 *                    |                 v        |              |
+	 *                    |      +---------------+   |              |
+	 *                    |   +--|    wrapper1   |---|----+         |
+	 *                    |   |  +---------------+   v    |         |
+	 *                    |   |          +-------------+  |         |
+	 *                    |   |     +----|   wrapper2  |--------+   |
+	 *                    |   |     |    +-------------+  |     |   |
+	 *                    |   |     |                     |     |   |
+	 *                    |   v     v                     v     v   | wrapper
+	 *                    | +---+ +---+   +---------+   +---+ +---+ | invariants
+	 * perform(anyMethod) | |   | |   |   |         |   |   | |   | | maintained
+	 * +----------------->|-|---|-|---|-->|anyMethod|---|---|-|---|-|-------->
+	 *                    | |   | |   |   |         |   |   | |   | |
+	 *                    | |   | |   |   |         |   |   | |   | |
+	 *                    | |   | |   |   |         |   |   | |   | |
+	 *                    | +---+ +---+   +---------+   +---+ +---+ |
+	 *                    |  initialize                    close    |
+	 *                    +-----------------------------------------+
+	 * </pre>
+	 *
+	 * Use cases:
+	 * - Preserving the input selection ranges before/after reconciliation.
+	 *   Restoring selection even in the event of an unexpected error.
+	 * - Deactivating events while rearranging the DOM, preventing blurs/focuses,
+	 *   while guaranteeing that afterwards, the event system is reactivated.
+	 * - Flushing a queue of collected DOM mutations to the main UI thread after a
+	 *   reconciliation takes place in a worker thread.
+	 * - Invoking any collected `componentDidUpdate` callbacks after rendering new
+	 *   content.
+	 * - (Future use case): Wrapping particular flushes of the `ReactWorker` queue
+	 *   to preserve the `scrollTop` (an automatic scroll aware DOM).
+	 * - (Future use case): Layout calculations before and after DOM upates.
+	 *
+	 * Transactional plugin API:
+	 * - A module that has an `initialize` method that returns any precomputation.
+	 * - and a `close` method that accepts the precomputation. `close` is invoked
+	 *   when the wrapped process is completed, or has failed.
+	 *
+	 * @param {Array<TransactionalWrapper>} transactionWrapper Wrapper modules
+	 * that implement `initialize` and `close`.
+	 * @return {Transaction} Single transaction for reuse in thread.
+	 *
+	 * @class Transaction
+	 */
+	var Mixin = {
+	  /**
+	   * Sets up this instance so that it is prepared for collecting metrics. Does
+	   * so such that this setup method may be used on an instance that is already
+	   * initialized, in a way that does not consume additional memory upon reuse.
+	   * That can be useful if you decide to make your subclass of this mixin a
+	   * "PooledClass".
+	   */
+	  reinitializeTransaction: function() {
+	    this.transactionWrappers = this.getTransactionWrappers();
+	    if (!this.wrapperInitData) {
+	      this.wrapperInitData = [];
+	    } else {
+	      this.wrapperInitData.length = 0;
+	    }
+	    this._isInTransaction = false;
+	  },
+
+	  _isInTransaction: false,
+
+	  /**
+	   * @abstract
+	   * @return {Array<TransactionWrapper>} Array of transaction wrappers.
+	   */
+	  getTransactionWrappers: null,
+
+	  isInTransaction: function() {
+	    return !!this._isInTransaction;
+	  },
+
+	  /**
+	   * Executes the function within a safety window. Use this for the top level
+	   * methods that result in large amounts of computation/mutations that would
+	   * need to be safety checked.
+	   *
+	   * @param {function} method Member of scope to call.
+	   * @param {Object} scope Scope to invoke from.
+	   * @param {Object?=} args... Arguments to pass to the method (optional).
+	   *                           Helps prevent need to bind in many cases.
+	   * @return Return value from `method`.
+	   */
+	  perform: function(method, scope, a, b, c, d, e, f) {
+	    ("production" !== process.env.NODE_ENV ? invariant(
+	      !this.isInTransaction(),
+	      'Transaction.perform(...): Cannot initialize a transaction when there ' +
+	      'is already an outstanding transaction.'
+	    ) : invariant(!this.isInTransaction()));
+	    var errorThrown;
+	    var ret;
+	    try {
+	      this._isInTransaction = true;
+	      // Catching errors makes debugging more difficult, so we start with
+	      // errorThrown set to true before setting it to false after calling
+	      // close -- if it's still set to true in the finally block, it means
+	      // one of these calls threw.
+	      errorThrown = true;
+	      this.initializeAll(0);
+	      ret = method.call(scope, a, b, c, d, e, f);
+	      errorThrown = false;
+	    } finally {
+	      try {
+	        if (errorThrown) {
+	          // If `method` throws, prefer to show that stack trace over any thrown
+	          // by invoking `closeAll`.
+	          try {
+	            this.closeAll(0);
+	          } catch (err) {
+	          }
+	        } else {
+	          // Since `method` didn't throw, we don't want to silence the exception
+	          // here.
+	          this.closeAll(0);
+	        }
+	      } finally {
+	        this._isInTransaction = false;
+	      }
+	    }
+	    return ret;
+	  },
+
+	  initializeAll: function(startIndex) {
+	    var transactionWrappers = this.transactionWrappers;
+	    for (var i = startIndex; i < transactionWrappers.length; i++) {
+	      var wrapper = transactionWrappers[i];
+	      try {
+	        // Catching errors makes debugging more difficult, so we start with the
+	        // OBSERVED_ERROR state before overwriting it with the real return value
+	        // of initialize -- if it's still set to OBSERVED_ERROR in the finally
+	        // block, it means wrapper.initialize threw.
+	        this.wrapperInitData[i] = Transaction.OBSERVED_ERROR;
+	        this.wrapperInitData[i] = wrapper.initialize ?
+	          wrapper.initialize.call(this) :
+	          null;
+	      } finally {
+	        if (this.wrapperInitData[i] === Transaction.OBSERVED_ERROR) {
+	          // The initializer for wrapper i threw an error; initialize the
+	          // remaining wrappers but silence any exceptions from them to ensure
+	          // that the first error is the one to bubble up.
+	          try {
+	            this.initializeAll(i + 1);
+	          } catch (err) {
+	          }
+	        }
+	      }
+	    }
+	  },
+
+	  /**
+	   * Invokes each of `this.transactionWrappers.close[i]` functions, passing into
+	   * them the respective return values of `this.transactionWrappers.init[i]`
+	   * (`close`rs that correspond to initializers that failed will not be
+	   * invoked).
+	   */
+	  closeAll: function(startIndex) {
+	    ("production" !== process.env.NODE_ENV ? invariant(
+	      this.isInTransaction(),
+	      'Transaction.closeAll(): Cannot close transaction when none are open.'
+	    ) : invariant(this.isInTransaction()));
+	    var transactionWrappers = this.transactionWrappers;
+	    for (var i = startIndex; i < transactionWrappers.length; i++) {
+	      var wrapper = transactionWrappers[i];
+	      var initData = this.wrapperInitData[i];
+	      var errorThrown;
+	      try {
+	        // Catching errors makes debugging more difficult, so we start with
+	        // errorThrown set to true before setting it to false after calling
+	        // close -- if it's still set to true in the finally block, it means
+	        // wrapper.close threw.
+	        errorThrown = true;
+	        if (initData !== Transaction.OBSERVED_ERROR) {
+	          wrapper.close && wrapper.close.call(this, initData);
+	        }
+	        errorThrown = false;
+	      } finally {
+	        if (errorThrown) {
+	          // The closer for wrapper i threw an error; close the remaining
+	          // wrappers but silence any exceptions from them to ensure that the
+	          // first error is the one to bubble up.
+	          try {
+	            this.closeAll(i + 1);
+	          } catch (e) {
+	          }
+	        }
+	      }
+	    }
+	    this.wrapperInitData.length = 0;
+	  }
+	};
+
+	var Transaction = {
+
+	  Mixin: Mixin,
+
+	  /**
+	   * Token to look for to determine if an error occured.
+	   */
+	  OBSERVED_ERROR: {}
+
+	};
+
+	module.exports = Transaction;
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
+
+/***/ },
+/* 207 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -58544,7 +58933,7 @@
 
 	"use strict";
 
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	/**
 	 * Injectable ordering of event plugins.
@@ -58810,10 +59199,10 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
-/* 206 */
+/* 208 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(process) {/**
+	/**
 	 * Copyright 2013-2014 Facebook, Inc.
 	 *
 	 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -58828,92 +59217,93 @@
 	 * See the License for the specific language governing permissions and
 	 * limitations under the License.
 	 *
-	 * @providesModule accumulate
+	 * @providesModule ReactEventEmitterMixin
 	 */
 
 	"use strict";
 
-	var invariant = __webpack_require__(83);
+	var EventPluginHub = __webpack_require__(134);
 
-	/**
-	 * Accumulates items that must not be null or undefined.
-	 *
-	 * This is used to conserve memory by avoiding array allocations.
-	 *
-	 * @return {*|array<*>} An accumulation of items.
-	 */
-	function accumulate(current, next) {
-	  ("production" !== process.env.NODE_ENV ? invariant(
-	    next != null,
-	    'accumulate(...): Accumulated items must be not be null or undefined.'
-	  ) : invariant(next != null));
-	  if (current == null) {
-	    return next;
-	  } else {
-	    // Both are not empty. Warning: Never call x.concat(y) when you are not
-	    // certain that x is an Array (x could be a string with concat method).
-	    var currentIsArray = Array.isArray(current);
-	    var nextIsArray = Array.isArray(next);
-	    if (currentIsArray) {
-	      return current.concat(next);
-	    } else {
-	      if (nextIsArray) {
-	        return [current].concat(next);
-	      } else {
-	        return [current, next];
-	      }
-	    }
-	  }
+	function runEventQueueInBatch(events) {
+	  EventPluginHub.enqueueEvents(events);
+	  EventPluginHub.processEventQueue();
 	}
 
-	module.exports = accumulate;
-	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
+	var ReactEventEmitterMixin = {
 
-/***/ },
-/* 207 */
-/***/ function(module, exports, __webpack_require__) {
+	  /**
+	   * Streams a fired top-level event to `EventPluginHub` where plugins have the
+	   * opportunity to create `ReactEvent`s to be dispatched.
+	   *
+	   * @param {string} topLevelType Record from `EventConstants`.
+	   * @param {object} topLevelTarget The listening component root node.
+	   * @param {string} topLevelTargetID ID of `topLevelTarget`.
+	   * @param {object} nativeEvent Native environment event.
+	   */
+	  handleTopLevel: function(
+	      topLevelType,
+	      topLevelTarget,
+	      topLevelTargetID,
+	      nativeEvent) {
+	    var events = EventPluginHub.extractEvents(
+	      topLevelType,
+	      topLevelTarget,
+	      topLevelTargetID,
+	      nativeEvent
+	    );
 
-	/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule forEachAccumulated
-	 */
-
-	"use strict";
-
-	/**
-	 * @param {array} an "accumulation" of items which is either an Array or
-	 * a single item. Useful when paired with the `accumulate` module. This is a
-	 * simple utility that allows us to reason about a collection of items, but
-	 * handling the case when there is exactly one item (and we do not need to
-	 * allocate an array).
-	 */
-	var forEachAccumulated = function(arr, cb, scope) {
-	  if (Array.isArray(arr)) {
-	    arr.forEach(cb, scope);
-	  } else if (arr) {
-	    cb.call(scope, arr);
+	    runEventQueueInBatch(events);
 	  }
 	};
 
-	module.exports = forEachAccumulated;
+	module.exports = ReactEventEmitterMixin;
 
 
 /***/ },
-/* 208 */
+/* 209 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
+	 * @providesModule ViewportMetrics
+	 */
+
+	"use strict";
+
+	var getUnboundedScrollPosition = __webpack_require__(242);
+
+	var ViewportMetrics = {
+
+	  currentScrollLeft: 0,
+
+	  currentScrollTop: 0,
+
+	  refreshScrollValues: function() {
+	    var scrollPosition = getUnboundedScrollPosition(window);
+	    ViewportMetrics.currentScrollLeft = scrollPosition.x;
+	    ViewportMetrics.currentScrollTop = scrollPosition.y;
+	  }
+
+	};
+
+	module.exports = ViewportMetrics;
+
+
+/***/ },
+/* 210 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -58936,7 +59326,7 @@
 
 	"use strict";
 
-	var ExecutionEnvironment = __webpack_require__(120);
+	var ExecutionEnvironment = __webpack_require__(122);
 
 	var useHasFeature;
 	if (ExecutionEnvironment.canUseDOM) {
@@ -58989,511 +59379,7 @@
 
 
 /***/ },
-/* 209 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule performance
-	 * @typechecks
-	 */
-
-	"use strict";
-
-	var ExecutionEnvironment = __webpack_require__(120);
-
-	var performance;
-
-	if (ExecutionEnvironment.canUseDOM) {
-	  performance =
-	    window.performance ||
-	    window.msPerformance ||
-	    window.webkitPerformance;
-	}
-
-	module.exports = performance || {};
-
-
-/***/ },
-/* 210 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule ReactEventEmitterMixin
-	 */
-
-	"use strict";
-
-	var EventPluginHub = __webpack_require__(137);
-
-	function runEventQueueInBatch(events) {
-	  EventPluginHub.enqueueEvents(events);
-	  EventPluginHub.processEventQueue();
-	}
-
-	var ReactEventEmitterMixin = {
-
-	  /**
-	   * Streams a fired top-level event to `EventPluginHub` where plugins have the
-	   * opportunity to create `ReactEvent`s to be dispatched.
-	   *
-	   * @param {string} topLevelType Record from `EventConstants`.
-	   * @param {object} topLevelTarget The listening component root node.
-	   * @param {string} topLevelTargetID ID of `topLevelTarget`.
-	   * @param {object} nativeEvent Native environment event.
-	   */
-	  handleTopLevel: function(
-	      topLevelType,
-	      topLevelTarget,
-	      topLevelTargetID,
-	      nativeEvent) {
-	    var events = EventPluginHub.extractEvents(
-	      topLevelType,
-	      topLevelTarget,
-	      topLevelTargetID,
-	      nativeEvent
-	    );
-
-	    runEventQueueInBatch(events);
-	  }
-	};
-
-	module.exports = ReactEventEmitterMixin;
-
-
-/***/ },
 /* 211 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule ViewportMetrics
-	 */
-
-	"use strict";
-
-	var getUnboundedScrollPosition = __webpack_require__(242);
-
-	var ViewportMetrics = {
-
-	  currentScrollLeft: 0,
-
-	  currentScrollTop: 0,
-
-	  refreshScrollValues: function() {
-	    var scrollPosition = getUnboundedScrollPosition(window);
-	    ViewportMetrics.currentScrollLeft = scrollPosition.x;
-	    ViewportMetrics.currentScrollTop = scrollPosition.y;
-	  }
-
-	};
-
-	module.exports = ViewportMetrics;
-
-
-/***/ },
-/* 212 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/* WEBPACK VAR INJECTION */(function(process) {/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule CallbackQueue
-	 */
-
-	"use strict";
-
-	var PooledClass = __webpack_require__(153);
-
-	var invariant = __webpack_require__(83);
-	var mixInto = __webpack_require__(162);
-
-	/**
-	 * A specialized pseudo-event module to help keep track of components waiting to
-	 * be notified when their DOM representations are available for use.
-	 *
-	 * This implements `PooledClass`, so you should never need to instantiate this.
-	 * Instead, use `CallbackQueue.getPooled()`.
-	 *
-	 * @class ReactMountReady
-	 * @implements PooledClass
-	 * @internal
-	 */
-	function CallbackQueue() {
-	  this._callbacks = null;
-	  this._contexts = null;
-	}
-
-	mixInto(CallbackQueue, {
-
-	  /**
-	   * Enqueues a callback to be invoked when `notifyAll` is invoked.
-	   *
-	   * @param {function} callback Invoked when `notifyAll` is invoked.
-	   * @param {?object} context Context to call `callback` with.
-	   * @internal
-	   */
-	  enqueue: function(callback, context) {
-	    this._callbacks = this._callbacks || [];
-	    this._contexts = this._contexts || [];
-	    this._callbacks.push(callback);
-	    this._contexts.push(context);
-	  },
-
-	  /**
-	   * Invokes all enqueued callbacks and clears the queue. This is invoked after
-	   * the DOM representation of a component has been created or updated.
-	   *
-	   * @internal
-	   */
-	  notifyAll: function() {
-	    var callbacks = this._callbacks;
-	    var contexts = this._contexts;
-	    if (callbacks) {
-	      ("production" !== process.env.NODE_ENV ? invariant(
-	        callbacks.length === contexts.length,
-	        "Mismatched list of contexts in callback queue"
-	      ) : invariant(callbacks.length === contexts.length));
-	      this._callbacks = null;
-	      this._contexts = null;
-	      for (var i = 0, l = callbacks.length; i < l; i++) {
-	        callbacks[i].call(contexts[i]);
-	      }
-	      callbacks.length = 0;
-	      contexts.length = 0;
-	    }
-	  },
-
-	  /**
-	   * Resets the internal queue.
-	   *
-	   * @internal
-	   */
-	  reset: function() {
-	    this._callbacks = null;
-	    this._contexts = null;
-	  },
-
-	  /**
-	   * `PooledClass` looks for this.
-	   */
-	  destructor: function() {
-	    this.reset();
-	  }
-
-	});
-
-	PooledClass.addPoolingTo(CallbackQueue);
-
-	module.exports = CallbackQueue;
-	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
-
-/***/ },
-/* 213 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/* WEBPACK VAR INJECTION */(function(process) {/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule Transaction
-	 */
-
-	"use strict";
-
-	var invariant = __webpack_require__(83);
-
-	/**
-	 * `Transaction` creates a black box that is able to wrap any method such that
-	 * certain invariants are maintained before and after the method is invoked
-	 * (Even if an exception is thrown while invoking the wrapped method). Whoever
-	 * instantiates a transaction can provide enforcers of the invariants at
-	 * creation time. The `Transaction` class itself will supply one additional
-	 * automatic invariant for you - the invariant that any transaction instance
-	 * should not be run while it is already being run. You would typically create a
-	 * single instance of a `Transaction` for reuse multiple times, that potentially
-	 * is used to wrap several different methods. Wrappers are extremely simple -
-	 * they only require implementing two methods.
-	 *
-	 * <pre>
-	 *                       wrappers (injected at creation time)
-	 *                                      +        +
-	 *                                      |        |
-	 *                    +-----------------|--------|--------------+
-	 *                    |                 v        |              |
-	 *                    |      +---------------+   |              |
-	 *                    |   +--|    wrapper1   |---|----+         |
-	 *                    |   |  +---------------+   v    |         |
-	 *                    |   |          +-------------+  |         |
-	 *                    |   |     +----|   wrapper2  |--------+   |
-	 *                    |   |     |    +-------------+  |     |   |
-	 *                    |   |     |                     |     |   |
-	 *                    |   v     v                     v     v   | wrapper
-	 *                    | +---+ +---+   +---------+   +---+ +---+ | invariants
-	 * perform(anyMethod) | |   | |   |   |         |   |   | |   | | maintained
-	 * +----------------->|-|---|-|---|-->|anyMethod|---|---|-|---|-|-------->
-	 *                    | |   | |   |   |         |   |   | |   | |
-	 *                    | |   | |   |   |         |   |   | |   | |
-	 *                    | |   | |   |   |         |   |   | |   | |
-	 *                    | +---+ +---+   +---------+   +---+ +---+ |
-	 *                    |  initialize                    close    |
-	 *                    +-----------------------------------------+
-	 * </pre>
-	 *
-	 * Use cases:
-	 * - Preserving the input selection ranges before/after reconciliation.
-	 *   Restoring selection even in the event of an unexpected error.
-	 * - Deactivating events while rearranging the DOM, preventing blurs/focuses,
-	 *   while guaranteeing that afterwards, the event system is reactivated.
-	 * - Flushing a queue of collected DOM mutations to the main UI thread after a
-	 *   reconciliation takes place in a worker thread.
-	 * - Invoking any collected `componentDidUpdate` callbacks after rendering new
-	 *   content.
-	 * - (Future use case): Wrapping particular flushes of the `ReactWorker` queue
-	 *   to preserve the `scrollTop` (an automatic scroll aware DOM).
-	 * - (Future use case): Layout calculations before and after DOM upates.
-	 *
-	 * Transactional plugin API:
-	 * - A module that has an `initialize` method that returns any precomputation.
-	 * - and a `close` method that accepts the precomputation. `close` is invoked
-	 *   when the wrapped process is completed, or has failed.
-	 *
-	 * @param {Array<TransactionalWrapper>} transactionWrapper Wrapper modules
-	 * that implement `initialize` and `close`.
-	 * @return {Transaction} Single transaction for reuse in thread.
-	 *
-	 * @class Transaction
-	 */
-	var Mixin = {
-	  /**
-	   * Sets up this instance so that it is prepared for collecting metrics. Does
-	   * so such that this setup method may be used on an instance that is already
-	   * initialized, in a way that does not consume additional memory upon reuse.
-	   * That can be useful if you decide to make your subclass of this mixin a
-	   * "PooledClass".
-	   */
-	  reinitializeTransaction: function() {
-	    this.transactionWrappers = this.getTransactionWrappers();
-	    if (!this.wrapperInitData) {
-	      this.wrapperInitData = [];
-	    } else {
-	      this.wrapperInitData.length = 0;
-	    }
-	    this._isInTransaction = false;
-	  },
-
-	  _isInTransaction: false,
-
-	  /**
-	   * @abstract
-	   * @return {Array<TransactionWrapper>} Array of transaction wrappers.
-	   */
-	  getTransactionWrappers: null,
-
-	  isInTransaction: function() {
-	    return !!this._isInTransaction;
-	  },
-
-	  /**
-	   * Executes the function within a safety window. Use this for the top level
-	   * methods that result in large amounts of computation/mutations that would
-	   * need to be safety checked.
-	   *
-	   * @param {function} method Member of scope to call.
-	   * @param {Object} scope Scope to invoke from.
-	   * @param {Object?=} args... Arguments to pass to the method (optional).
-	   *                           Helps prevent need to bind in many cases.
-	   * @return Return value from `method`.
-	   */
-	  perform: function(method, scope, a, b, c, d, e, f) {
-	    ("production" !== process.env.NODE_ENV ? invariant(
-	      !this.isInTransaction(),
-	      'Transaction.perform(...): Cannot initialize a transaction when there ' +
-	      'is already an outstanding transaction.'
-	    ) : invariant(!this.isInTransaction()));
-	    var errorThrown;
-	    var ret;
-	    try {
-	      this._isInTransaction = true;
-	      // Catching errors makes debugging more difficult, so we start with
-	      // errorThrown set to true before setting it to false after calling
-	      // close -- if it's still set to true in the finally block, it means
-	      // one of these calls threw.
-	      errorThrown = true;
-	      this.initializeAll(0);
-	      ret = method.call(scope, a, b, c, d, e, f);
-	      errorThrown = false;
-	    } finally {
-	      try {
-	        if (errorThrown) {
-	          // If `method` throws, prefer to show that stack trace over any thrown
-	          // by invoking `closeAll`.
-	          try {
-	            this.closeAll(0);
-	          } catch (err) {
-	          }
-	        } else {
-	          // Since `method` didn't throw, we don't want to silence the exception
-	          // here.
-	          this.closeAll(0);
-	        }
-	      } finally {
-	        this._isInTransaction = false;
-	      }
-	    }
-	    return ret;
-	  },
-
-	  initializeAll: function(startIndex) {
-	    var transactionWrappers = this.transactionWrappers;
-	    for (var i = startIndex; i < transactionWrappers.length; i++) {
-	      var wrapper = transactionWrappers[i];
-	      try {
-	        // Catching errors makes debugging more difficult, so we start with the
-	        // OBSERVED_ERROR state before overwriting it with the real return value
-	        // of initialize -- if it's still set to OBSERVED_ERROR in the finally
-	        // block, it means wrapper.initialize threw.
-	        this.wrapperInitData[i] = Transaction.OBSERVED_ERROR;
-	        this.wrapperInitData[i] = wrapper.initialize ?
-	          wrapper.initialize.call(this) :
-	          null;
-	      } finally {
-	        if (this.wrapperInitData[i] === Transaction.OBSERVED_ERROR) {
-	          // The initializer for wrapper i threw an error; initialize the
-	          // remaining wrappers but silence any exceptions from them to ensure
-	          // that the first error is the one to bubble up.
-	          try {
-	            this.initializeAll(i + 1);
-	          } catch (err) {
-	          }
-	        }
-	      }
-	    }
-	  },
-
-	  /**
-	   * Invokes each of `this.transactionWrappers.close[i]` functions, passing into
-	   * them the respective return values of `this.transactionWrappers.init[i]`
-	   * (`close`rs that correspond to initializers that failed will not be
-	   * invoked).
-	   */
-	  closeAll: function(startIndex) {
-	    ("production" !== process.env.NODE_ENV ? invariant(
-	      this.isInTransaction(),
-	      'Transaction.closeAll(): Cannot close transaction when none are open.'
-	    ) : invariant(this.isInTransaction()));
-	    var transactionWrappers = this.transactionWrappers;
-	    for (var i = startIndex; i < transactionWrappers.length; i++) {
-	      var wrapper = transactionWrappers[i];
-	      var initData = this.wrapperInitData[i];
-	      var errorThrown;
-	      try {
-	        // Catching errors makes debugging more difficult, so we start with
-	        // errorThrown set to true before setting it to false after calling
-	        // close -- if it's still set to true in the finally block, it means
-	        // wrapper.close threw.
-	        errorThrown = true;
-	        if (initData !== Transaction.OBSERVED_ERROR) {
-	          wrapper.close && wrapper.close.call(this, initData);
-	        }
-	        errorThrown = false;
-	      } finally {
-	        if (errorThrown) {
-	          // The closer for wrapper i threw an error; close the remaining
-	          // wrappers but silence any exceptions from them to ensure that the
-	          // first error is the one to bubble up.
-	          try {
-	            this.closeAll(i + 1);
-	          } catch (e) {
-	          }
-	        }
-	      }
-	    }
-	    this.wrapperInitData.length = 0;
-	  }
-	};
-
-	var Transaction = {
-
-	  Mixin: Mixin,
-
-	  /**
-	   * Token to look for to determine if an error occured.
-	   */
-	  OBSERVED_ERROR: {}
-
-	};
-
-	module.exports = Transaction;
-	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
-
-/***/ },
-/* 214 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -59535,7 +59421,37 @@
 
 
 /***/ },
-/* 215 */
+/* 212 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+	/**
+	 * Module exports.
+	 */
+
+	module.exports = on;
+
+	/**
+	 * Helper for subscriptions.
+	 *
+	 * @param {Object|EventEmitter} obj with `Emitter` mixin or `EventEmitter`
+	 * @param {String} event name
+	 * @param {Function} callback
+	 * @api public
+	 */
+
+	function on(obj, ev, fn) {
+	  obj.on(ev, fn);
+	  return {
+	    destroy: function(){
+	      obj.removeListener(ev, fn);
+	    }
+	  };
+	}
+
+
+/***/ },
+/* 213 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -59560,7 +59476,7 @@
 
 	"use strict";
 
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 	var keyMirror = __webpack_require__(52);
 
 	/**
@@ -59689,6 +59605,90 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(86)))
 
 /***/ },
+/* 214 */
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = (function () {
+	  'use strict';
+
+	  /**
+	   * Sort an array using the merge sort algorithm.
+	   *
+	   * @param {function} comparatorFn The comparator function.
+	   * @param {array} arr The array to sort.
+	   * @returns {array} The sorted array.
+	   */
+	  function mergeSort(comparatorFn, arr) {
+	    var len = arr.length, firstHalf, secondHalf;
+	    if (len >= 2) {
+	      firstHalf = arr.slice(0, len / 2);
+	      secondHalf = arr.slice(len / 2, len);
+	      return merge(comparatorFn, mergeSort(comparatorFn, firstHalf), mergeSort(comparatorFn, secondHalf));
+	    } else {
+	      return arr.slice();
+	    }
+	  }
+
+	  /**
+	   * The merge part of the merge sort algorithm.
+	   *
+	   * @param {function} comparatorFn The comparator function.
+	   * @param {array} arr1 The first sorted array.
+	   * @param {array} arr2 The second sorted array.
+	   * @returns {array} The merged and sorted array.
+	   */
+	  function merge(comparatorFn, arr1, arr2) {
+	    var result = [], left1 = arr1.length, left2 = arr2.length;
+	    while (left1 > 0 && left2 > 0) {
+	      if (comparatorFn(arr1[0], arr2[0]) <= 0) {
+	        result.push(arr1.shift());
+	        left1--;
+	      } else {
+	        result.push(arr2.shift());
+	        left2--;
+	      }
+	    }
+	    if (left1 > 0) {
+	      result.push.apply(result, arr1);
+	    } else {
+	      result.push.apply(result, arr2);
+	    }
+	    return result;
+	  }
+
+	  return mergeSort;
+	})();
+
+
+/***/ },
+/* 215 */
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = (function () {
+	  'use strict';
+
+	  /**
+	   * Find the index to insert an element in array keeping the sort order.
+	   *
+	   * @param {function} comparatorFn The comparator function which sorted the array.
+	   * @param {array} arr The sorted array.
+	   * @param {object} el The element to insert.
+	   */
+	  function findInsertIndex(comparatorFn, arr, el) {
+	    var i, len;
+	    for (i = 0, len = arr.length; i < len; i++) {
+	      if (comparatorFn(arr[i], el) > 0) {
+	        break;
+	      }
+	    }
+	    return i;
+	  }
+
+	  return findInsertIndex;
+	})();
+
+
+/***/ },
 /* 216 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -59696,6 +59696,82 @@
 
 /***/ },
 /* 217 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/** @license MIT License (c) copyright 2010-2014 original author or authors */
+	/** @author Brian Cavalier */
+	/** @author John Hann */
+
+	(function(define) { 'use strict';
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function() {
+		/**
+		 * Circular queue
+		 * @param {number} capacityPow2 power of 2 to which this queue's capacity
+		 *  will be set initially. eg when capacityPow2 == 3, queue capacity
+		 *  will be 8.
+		 * @constructor
+		 */
+		function Queue(capacityPow2) {
+			this.head = this.tail = this.length = 0;
+			this.buffer = new Array(1 << capacityPow2);
+		}
+
+		Queue.prototype.push = function(x) {
+			if(this.length === this.buffer.length) {
+				this._ensureCapacity(this.length * 2);
+			}
+
+			this.buffer[this.tail] = x;
+			this.tail = (this.tail + 1) & (this.buffer.length - 1);
+			++this.length;
+			return this.length;
+		};
+
+		Queue.prototype.shift = function() {
+			var x = this.buffer[this.head];
+			this.buffer[this.head] = void 0;
+			this.head = (this.head + 1) & (this.buffer.length - 1);
+			--this.length;
+			return x;
+		};
+
+		Queue.prototype._ensureCapacity = function(capacity) {
+			var head = this.head;
+			var buffer = this.buffer;
+			var newBuffer = new Array(capacity);
+			var i = 0;
+			var len;
+
+			if(head === 0) {
+				len = this.length;
+				for(; i<len; ++i) {
+					newBuffer[i] = buffer[i];
+				}
+			} else {
+				capacity = buffer.length;
+				len = this.tail;
+				for(; head<capacity; ++i, ++head) {
+					newBuffer[i] = buffer[head];
+				}
+
+				for(head=0; head<len; ++i, ++head) {
+					newBuffer[i] = buffer[head];
+				}
+			}
+
+			this.buffer = newBuffer;
+			this.head = 0;
+			this.tail = this.length;
+		};
+
+		return Queue;
+
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	}(__webpack_require__(87)));
+
+
+/***/ },
+/* 218 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -59726,15 +59802,36 @@
 
 
 /***/ },
-/* 218 */
+/* 219 */
 /***/ function(module, exports, __webpack_require__) {
 
-	
-	module.exports =  __webpack_require__(266);
+	/**
+	 * Slice reference.
+	 */
+
+	var slice = [].slice;
+
+	/**
+	 * Bind `obj` to `fn`.
+	 *
+	 * @param {Object} obj
+	 * @param {Function|String} fn or string
+	 * @return {Function}
+	 * @api public
+	 */
+
+	module.exports = function(obj, fn){
+	  if ('string' == typeof fn) fn = obj[fn];
+	  if ('function' != typeof fn) throw new Error('bind() requires a function');
+	  var args = slice.call(arguments, 2);
+	  return function(){
+	    return fn.apply(obj, args.concat(slice.call(arguments)));
+	  }
+	};
 
 
 /***/ },
-/* 219 */
+/* 220 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -59904,36 +60001,15 @@
 
 
 /***/ },
-/* 220 */
+/* 221 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/**
-	 * Slice reference.
-	 */
-
-	var slice = [].slice;
-
-	/**
-	 * Bind `obj` to `fn`.
-	 *
-	 * @param {Object} obj
-	 * @param {Function|String} fn or string
-	 * @return {Function}
-	 * @api public
-	 */
-
-	module.exports = function(obj, fn){
-	  if ('string' == typeof fn) fn = obj[fn];
-	  if ('function' != typeof fn) throw new Error('bind() requires a function');
-	  var args = slice.call(arguments, 2);
-	  return function(){
-	    return fn.apply(obj, args.concat(slice.call(arguments)));
-	  }
-	};
+	
+	module.exports =  __webpack_require__(266);
 
 
 /***/ },
-/* 221 */
+/* 222 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -60019,21 +60095,6 @@
 
 	exports.isEmpty = function(obj){
 	  return 0 == exports.length(obj);
-	};
-
-/***/ },
-/* 222 */
-/***/ function(module, exports, __webpack_require__) {
-
-	
-	var indexOf = [].indexOf;
-
-	module.exports = function(arr, obj){
-	  if (indexOf) return arr.indexOf(obj);
-	  for (var i = 0; i < arr.length; ++i) {
-	    if (arr[i] === obj) return i;
-	  }
-	  return -1;
 	};
 
 /***/ },
@@ -60124,77 +60185,16 @@
 /* 225 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_RESULT__;/** @license MIT License (c) copyright 2010-2014 original author or authors */
-	/** @author Brian Cavalier */
-	/** @author John Hann */
+	
+	var indexOf = [].indexOf;
 
-	(function(define) { 'use strict';
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function() {
-		/**
-		 * Circular queue
-		 * @param {number} capacityPow2 power of 2 to which this queue's capacity
-		 *  will be set initially. eg when capacityPow2 == 3, queue capacity
-		 *  will be 8.
-		 * @constructor
-		 */
-		function Queue(capacityPow2) {
-			this.head = this.tail = this.length = 0;
-			this.buffer = new Array(1 << capacityPow2);
-		}
-
-		Queue.prototype.push = function(x) {
-			if(this.length === this.buffer.length) {
-				this._ensureCapacity(this.length * 2);
-			}
-
-			this.buffer[this.tail] = x;
-			this.tail = (this.tail + 1) & (this.buffer.length - 1);
-			++this.length;
-			return this.length;
-		};
-
-		Queue.prototype.shift = function() {
-			var x = this.buffer[this.head];
-			this.buffer[this.head] = void 0;
-			this.head = (this.head + 1) & (this.buffer.length - 1);
-			--this.length;
-			return x;
-		};
-
-		Queue.prototype._ensureCapacity = function(capacity) {
-			var head = this.head;
-			var buffer = this.buffer;
-			var newBuffer = new Array(capacity);
-			var i = 0;
-			var len;
-
-			if(head === 0) {
-				len = this.length;
-				for(; i<len; ++i) {
-					newBuffer[i] = buffer[i];
-				}
-			} else {
-				capacity = buffer.length;
-				len = this.tail;
-				for(; head<capacity; ++i, ++head) {
-					newBuffer[i] = buffer[head];
-				}
-
-				for(head=0; head<len; ++i, ++head) {
-					newBuffer[i] = buffer[head];
-				}
-			}
-
-			this.buffer = newBuffer;
-			this.head = 0;
-			this.tail = this.length;
-		};
-
-		return Queue;
-
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-	}(__webpack_require__(87)));
-
+	module.exports = function(arr, obj){
+	  if (indexOf) return arr.indexOf(obj);
+	  for (var i = 0; i < arr.length; ++i) {
+	    if (arr[i] === obj) return i;
+	  }
+	  return -1;
+	};
 
 /***/ },
 /* 226 */
@@ -60423,7 +60423,7 @@
 
 	"use strict";
 
-	var SyntheticEvent = __webpack_require__(141);
+	var SyntheticEvent = __webpack_require__(138);
 
 	/**
 	 * @interface Event
@@ -60537,7 +60537,7 @@
 
 	var ReactDOMSelection = __webpack_require__(258);
 
-	var containsNode = __webpack_require__(195);
+	var containsNode = __webpack_require__(193);
 	var focusNode = __webpack_require__(259);
 	var getActiveElement = __webpack_require__(243);
 
@@ -60683,7 +60683,7 @@
 
 	"use strict";
 
-	var SyntheticEvent = __webpack_require__(141);
+	var SyntheticEvent = __webpack_require__(138);
 
 	/**
 	 * @interface Event
@@ -60739,7 +60739,7 @@
 
 	"use strict";
 
-	var ExecutionEnvironment = __webpack_require__(120);
+	var ExecutionEnvironment = __webpack_require__(122);
 
 	var contentKey = null;
 
@@ -60789,7 +60789,7 @@
 	"use strict";
 
 	var SyntheticUIEvent = __webpack_require__(249);
-	var ViewportMetrics = __webpack_require__(211);
+	var ViewportMetrics = __webpack_require__(209);
 
 	var getEventModifierState = __webpack_require__(260);
 
@@ -60884,13 +60884,13 @@
 
 	"use strict";
 
-	var CSSPropertyOperations = __webpack_require__(192);
+	var CSSPropertyOperations = __webpack_require__(191);
 	var DOMChildrenOperations = __webpack_require__(261);
-	var DOMPropertyOperations = __webpack_require__(100);
-	var ReactMount = __webpack_require__(112);
-	var ReactPerf = __webpack_require__(114);
+	var DOMPropertyOperations = __webpack_require__(102);
+	var ReactMount = __webpack_require__(114);
+	var ReactPerf = __webpack_require__(116);
 
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 	var setInnerHTML = __webpack_require__(237);
 
 	/**
@@ -61078,12 +61078,12 @@
 
 	"use strict";
 
-	var CallbackQueue = __webpack_require__(212);
-	var PooledClass = __webpack_require__(153);
-	var ReactBrowserEventEmitter = __webpack_require__(139);
+	var CallbackQueue = __webpack_require__(205);
+	var PooledClass = __webpack_require__(151);
+	var ReactBrowserEventEmitter = __webpack_require__(136);
 	var ReactInputSelection = __webpack_require__(231);
 	var ReactPutListenerQueue = __webpack_require__(256);
-	var Transaction = __webpack_require__(213);
+	var Transaction = __webpack_require__(206);
 
 	var mixInto = __webpack_require__(162);
 
@@ -61265,7 +61265,7 @@
 
 	"use strict";
 
-	var ExecutionEnvironment = __webpack_require__(120);
+	var ExecutionEnvironment = __webpack_require__(122);
 
 	/**
 	 * Set the innerHTML property of a node, ensuring that whitespace is preserved
@@ -61394,11 +61394,11 @@
 
 	"use strict";
 
-	var ReactBrowserEventEmitter = __webpack_require__(139);
+	var ReactBrowserEventEmitter = __webpack_require__(136);
 
-	var accumulate = __webpack_require__(206);
-	var forEachAccumulated = __webpack_require__(207);
-	var invariant = __webpack_require__(83);
+	var accumulate = __webpack_require__(203);
+	var forEachAccumulated = __webpack_require__(204);
+	var invariant = __webpack_require__(84);
 
 	function remove(event) {
 	  event.remove();
@@ -61454,9 +61454,9 @@
 
 	"use strict";
 
-	var ReactPropTypes = __webpack_require__(115);
+	var ReactPropTypes = __webpack_require__(117);
 
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	var hasReadOnlyValue = {
 	  'button': true,
@@ -61604,7 +61604,7 @@
 	 * @typechecks
 	 */
 
-	var emptyFunction = __webpack_require__(126);
+	var emptyFunction = __webpack_require__(125);
 
 	/**
 	 * Upstream version of event listener. Does not take into account specific
@@ -61790,7 +61790,7 @@
 
 	"use strict";
 
-	var SyntheticEvent = __webpack_require__(141);
+	var SyntheticEvent = __webpack_require__(138);
 
 	/**
 	 * @interface Event
@@ -62099,9 +62099,9 @@
 
 	"use strict";
 
-	var SyntheticEvent = __webpack_require__(141);
+	var SyntheticEvent = __webpack_require__(138);
 
-	var getEventTarget = __webpack_require__(214);
+	var getEventTarget = __webpack_require__(211);
 
 	/**
 	 * @interface UIEvent
@@ -62440,7 +62440,7 @@
 
 	"use strict";
 
-	var hyphenate = __webpack_require__(263);
+	var hyphenate = __webpack_require__(264);
 
 	var msPattern = /^ms-/;
 
@@ -62486,6 +62486,42 @@
 	 * See the License for the specific language governing permissions and
 	 * limitations under the License.
 	 *
+	 * @providesModule isTextNode
+	 * @typechecks
+	 */
+
+	var isNode = __webpack_require__(263);
+
+	/**
+	 * @param {*} object The object to check.
+	 * @return {boolean} Whether or not the object is a DOM text node.
+	 */
+	function isTextNode(object) {
+	  return isNode(object) && object.nodeType == 3;
+	}
+
+	module.exports = isTextNode;
+
+
+/***/ },
+/* 255 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
 	 * @providesModule adler32
 	 */
 
@@ -62513,42 +62549,6 @@
 
 
 /***/ },
-/* 255 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule isTextNode
-	 * @typechecks
-	 */
-
-	var isNode = __webpack_require__(265);
-
-	/**
-	 * @param {*} object The object to check.
-	 * @return {boolean} Whether or not the object is a DOM text node.
-	 */
-	function isTextNode(object) {
-	  return isNode(object) && object.nodeType == 3;
-	}
-
-	module.exports = isTextNode;
-
-
-/***/ },
 /* 256 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -62572,8 +62572,8 @@
 
 	"use strict";
 
-	var PooledClass = __webpack_require__(153);
-	var ReactBrowserEventEmitter = __webpack_require__(139);
+	var PooledClass = __webpack_require__(151);
+	var ReactBrowserEventEmitter = __webpack_require__(136);
 
 	var mixInto = __webpack_require__(162);
 
@@ -62648,7 +62648,7 @@
 
 	"use strict";
 
-	var ExecutionEnvironment = __webpack_require__(120);
+	var ExecutionEnvironment = __webpack_require__(122);
 
 	var getNodeForCharacterOffset = __webpack_require__(267);
 	var getTextContentAccessor = __webpack_require__(233);
@@ -62967,10 +62967,10 @@
 	"use strict";
 
 	var Danger = __webpack_require__(268);
-	var ReactMultiChildUpdateTypes = __webpack_require__(193);
+	var ReactMultiChildUpdateTypes = __webpack_require__(195);
 
 	var getTextContentAccessor = __webpack_require__(233);
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	/**
 	 * The DOM property to use when setting text content.
@@ -63151,7 +63151,7 @@
 
 	"use strict";
 
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	/**
 	 * Normalization of deprecated HTML5 `key` values
@@ -63267,6 +63267,45 @@
 	 * See the License for the specific language governing permissions and
 	 * limitations under the License.
 	 *
+	 * @providesModule isNode
+	 * @typechecks
+	 */
+
+	/**
+	 * @param {*} object The object to check.
+	 * @return {boolean} Whether or not the object is a DOM node.
+	 */
+	function isNode(object) {
+	  return !!(object && (
+	    typeof Node === 'function' ? object instanceof Node :
+	      typeof object === 'object' &&
+	      typeof object.nodeType === 'number' &&
+	      typeof object.nodeName === 'string'
+	  ));
+	}
+
+	module.exports = isNode;
+
+
+/***/ },
+/* 264 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2013-2014 Facebook, Inc.
+	 *
+	 * Licensed under the Apache License, Version 2.0 (the "License");
+	 * you may not use this file except in compliance with the License.
+	 * You may obtain a copy of the License at
+	 *
+	 * http://www.apache.org/licenses/LICENSE-2.0
+	 *
+	 * Unless required by applicable law or agreed to in writing, software
+	 * distributed under the License is distributed on an "AS IS" BASIS,
+	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	 * See the License for the specific language governing permissions and
+	 * limitations under the License.
+	 *
 	 * @providesModule hyphenate
 	 * @typechecks
 	 */
@@ -63293,7 +63332,7 @@
 
 
 /***/ },
-/* 264 */
+/* 265 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/*! JSON v3.2.6 | http://bestiejs.github.io/json3 | Copyright 2012-2013, Kit Cambridge | http://kit.mit-license.org */
@@ -64160,45 +64199,6 @@
 
 
 /***/ },
-/* 265 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Copyright 2013-2014 Facebook, Inc.
-	 *
-	 * Licensed under the Apache License, Version 2.0 (the "License");
-	 * you may not use this file except in compliance with the License.
-	 * You may obtain a copy of the License at
-	 *
-	 * http://www.apache.org/licenses/LICENSE-2.0
-	 *
-	 * Unless required by applicable law or agreed to in writing, software
-	 * distributed under the License is distributed on an "AS IS" BASIS,
-	 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	 * See the License for the specific language governing permissions and
-	 * limitations under the License.
-	 *
-	 * @providesModule isNode
-	 * @typechecks
-	 */
-
-	/**
-	 * @param {*} object The object to check.
-	 * @return {boolean} Whether or not the object is a DOM node.
-	 */
-	function isNode(object) {
-	  return !!(object && (
-	    typeof Node === 'function' ? object instanceof Node :
-	      typeof object === 'object' &&
-	      typeof object.nodeType === 'number' &&
-	      typeof object.nodeName === 'string'
-	  ));
-	}
-
-	module.exports = isNode;
-
-
-/***/ },
 /* 266 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -64327,12 +64327,12 @@
 
 	"use strict";
 
-	var ExecutionEnvironment = __webpack_require__(120);
+	var ExecutionEnvironment = __webpack_require__(122);
 
 	var createNodesFromMarkup = __webpack_require__(272);
-	var emptyFunction = __webpack_require__(126);
+	var emptyFunction = __webpack_require__(125);
 	var getMarkupWrap = __webpack_require__(273);
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	var OPEN_TAG_NAME_EXP = /^(<[^ \/>]+)/;
 	var RESULT_INDEX_ATTR = 'data-danger-index';
@@ -64519,10 +64519,10 @@
 	 * Module dependencies.
 	 */
 
-	var transports = __webpack_require__(277);
-	var Emitter = __webpack_require__(219);
-	var debug = __webpack_require__(146)('engine.io-client:socket');
-	var index = __webpack_require__(222);
+	var transports = __webpack_require__(276);
+	var Emitter = __webpack_require__(220);
+	var debug = __webpack_require__(150)('engine.io-client:socket');
+	var index = __webpack_require__(225);
 	var parser = __webpack_require__(274);
 	var parseuri = __webpack_require__(278);
 	var parsejson = __webpack_require__(279);
@@ -64627,7 +64627,7 @@
 
 	Socket.Socket = Socket;
 	Socket.Transport = __webpack_require__(275);
-	Socket.transports = __webpack_require__(277);
+	Socket.transports = __webpack_require__(276);
 	Socket.parser = __webpack_require__(274);
 
 	/**
@@ -65191,11 +65191,11 @@
 
 	/*jslint evil: true, sub: true */
 
-	var ExecutionEnvironment = __webpack_require__(120);
+	var ExecutionEnvironment = __webpack_require__(122);
 
-	var createArrayFrom = __webpack_require__(276);
+	var createArrayFrom = __webpack_require__(277);
 	var getMarkupWrap = __webpack_require__(273);
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	/**
 	 * Dummy container used to render all markup.
@@ -65288,9 +65288,9 @@
 	 * @providesModule getMarkupWrap
 	 */
 
-	var ExecutionEnvironment = __webpack_require__(120);
+	var ExecutionEnvironment = __webpack_require__(122);
 
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	/**
 	 * Dummy container used to detect which wraps are necessary.
@@ -65402,9 +65402,9 @@
 	 */
 
 	var keys = __webpack_require__(281);
-	var sliceBuffer = __webpack_require__(288);
+	var sliceBuffer = __webpack_require__(287);
 	var base64encoder = __webpack_require__(291);
-	var after = __webpack_require__(287);
+	var after = __webpack_require__(288);
 	var utf8 = __webpack_require__(290);
 
 	/**
@@ -65975,7 +65975,7 @@
 	 */
 
 	var parser = __webpack_require__(274);
-	var Emitter = __webpack_require__(219);
+	var Emitter = __webpack_require__(220);
 
 	/**
 	 * Module exports.
@@ -66126,6 +66126,66 @@
 /* 276 */
 /***/ function(module, exports, __webpack_require__) {
 
+	/* WEBPACK VAR INJECTION */(function(global) {/**
+	 * Module dependencies
+	 */
+
+	var XMLHttpRequest = __webpack_require__(283);
+	var XHR = __webpack_require__(284);
+	var JSONP = __webpack_require__(285);
+	var websocket = __webpack_require__(286);
+
+	/**
+	 * Export transports.
+	 */
+
+	exports.polling = polling;
+	exports.websocket = websocket;
+
+	/**
+	 * Polling transport polymorphic constructor.
+	 * Decides on xhr vs jsonp based on feature detection.
+	 *
+	 * @api private
+	 */
+
+	function polling(opts){
+	  var xhr;
+	  var xd = false;
+	  var xs = false;
+	  var jsonp = false !== opts.jsonp;
+
+	  if (global.location) {
+	    var isSSL = 'https:' == location.protocol;
+	    var port = location.port;
+
+	    // some user agents have empty `location.port`
+	    if (!port) {
+	      port = isSSL ? 443 : 80;
+	    }
+
+	    xd = opts.hostname != location.hostname || port != opts.port;
+	    xs = opts.secure != isSSL;
+	  }
+
+	  opts.xdomain = xd;
+	  opts.xscheme = xs;
+	  xhr = new XMLHttpRequest(opts);
+
+	  if ('open' in xhr && !opts.forceJSONP) {
+	    return new XHR(opts);
+	  } else {
+	    if (!jsonp) throw new Error('JSONP disabled');
+	    return new JSONP(opts);
+	  }
+	}
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 277 */
+/***/ function(module, exports, __webpack_require__) {
+
 	/**
 	 * Copyright 2013-2014 Facebook, Inc.
 	 *
@@ -66218,66 +66278,6 @@
 
 	module.exports = createArrayFrom;
 
-
-/***/ },
-/* 277 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/* WEBPACK VAR INJECTION */(function(global) {/**
-	 * Module dependencies
-	 */
-
-	var XMLHttpRequest = __webpack_require__(283);
-	var XHR = __webpack_require__(284);
-	var JSONP = __webpack_require__(285);
-	var websocket = __webpack_require__(286);
-
-	/**
-	 * Export transports.
-	 */
-
-	exports.polling = polling;
-	exports.websocket = websocket;
-
-	/**
-	 * Polling transport polymorphic constructor.
-	 * Decides on xhr vs jsonp based on feature detection.
-	 *
-	 * @api private
-	 */
-
-	function polling(opts){
-	  var xhr;
-	  var xd = false;
-	  var xs = false;
-	  var jsonp = false !== opts.jsonp;
-
-	  if (global.location) {
-	    var isSSL = 'https:' == location.protocol;
-	    var port = location.port;
-
-	    // some user agents have empty `location.port`
-	    if (!port) {
-	      port = isSSL ? 443 : 80;
-	    }
-
-	    xd = opts.hostname != location.hostname || port != opts.port;
-	    xs = opts.secure != isSSL;
-	  }
-
-	  opts.xdomain = xd;
-	  opts.xscheme = xs;
-	  xhr = new XMLHttpRequest(opts);
-
-	  if ('open' in xhr && !opts.forceJSONP) {
-	    return new XHR(opts);
-	  } else {
-	    if (!jsonp) throw new Error('JSONP disabled');
-	    return new JSONP(opts);
-	  }
-	}
-	
-	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
 /* 278 */
@@ -66453,7 +66453,7 @@
 	 * @typechecks
 	 */
 
-	var invariant = __webpack_require__(83);
+	var invariant = __webpack_require__(84);
 
 	/**
 	 * Convert array-like objects to arrays.
@@ -66564,9 +66564,9 @@
 
 	var XMLHttpRequest = __webpack_require__(283);
 	var Polling = __webpack_require__(292);
-	var Emitter = __webpack_require__(219);
+	var Emitter = __webpack_require__(220);
 	var inherit = __webpack_require__(294);
-	var debug = __webpack_require__(146)('engine.io-client:polling-xhr');
+	var debug = __webpack_require__(150)('engine.io-client:polling-xhr');
 
 	/**
 	 * Module exports.
@@ -67163,7 +67163,7 @@
 	var parser = __webpack_require__(274);
 	var parseqs = __webpack_require__(280);
 	var inherit = __webpack_require__(294);
-	var debug = __webpack_require__(146)('engine.io-client:websocket');
+	var debug = __webpack_require__(150)('engine.io-client:websocket');
 
 	/**
 	 * `ws` exposes a WebSocket-compatible interface in
@@ -67390,40 +67390,6 @@
 /* 287 */
 /***/ function(module, exports, __webpack_require__) {
 
-	module.exports = after
-
-	function after(count, callback, err_cb) {
-	    var bail = false
-	    err_cb = err_cb || noop
-	    proxy.count = count
-
-	    return (count === 0) ? callback() : proxy
-
-	    function proxy(err, result) {
-	        if (proxy.count <= 0) {
-	            throw new Error('after called too many times')
-	        }
-	        --proxy.count
-
-	        // after first error, rest are passed to err_cb
-	        if (err) {
-	            bail = true
-	            callback(err)
-	            // future error callbacks will go to error handler
-	            callback = err_cb
-	        } else if (proxy.count === 0 && !bail) {
-	            callback(null, result)
-	        }
-	    }
-	}
-
-	function noop() {}
-
-
-/***/ },
-/* 288 */
-/***/ function(module, exports, __webpack_require__) {
-
 	/**
 	 * An abstraction for slicing an arraybuffer even when
 	 * ArrayBuffer.prototype.slice is not supported
@@ -67453,6 +67419,40 @@
 	  }
 	  return result.buffer;
 	};
+
+
+/***/ },
+/* 288 */
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = after
+
+	function after(count, callback, err_cb) {
+	    var bail = false
+	    err_cb = err_cb || noop
+	    proxy.count = count
+
+	    return (count === 0) ? callback() : proxy
+
+	    function proxy(err, result) {
+	        if (proxy.count <= 0) {
+	            throw new Error('after called too many times')
+	        }
+	        --proxy.count
+
+	        // after first error, rest are passed to err_cb
+	        if (err) {
+	            bail = true
+	            callback(err)
+	            // future error callbacks will go to error handler
+	            callback = err_cb
+	        } else if (proxy.count === 0 && !bail) {
+	            callback(null, result)
+	        }
+	    }
+	}
+
+	function noop() {}
 
 
 /***/ },
@@ -67832,7 +67832,7 @@
 	var parseqs = __webpack_require__(280);
 	var parser = __webpack_require__(274);
 	var inherit = __webpack_require__(294);
-	var debug = __webpack_require__(146)('engine.io-client:polling');
+	var debug = __webpack_require__(150)('engine.io-client:polling');
 
 	/**
 	 * Module exports.
