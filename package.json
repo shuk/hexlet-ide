@@ -18,8 +18,6 @@
   "dependencies": {
     "codemirror": "*",
     "commander": "*",
-    "engine.io": "*",
-    "eureca.io": "*",
     "express": "*",
     "express-debug": "*",
     "findit": "*",

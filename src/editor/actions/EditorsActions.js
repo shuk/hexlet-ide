@@ -20,7 +20,7 @@ module.exports = {
     "use strict";
     AppDispatcher.dispatch({
       actionType: ActionTypes.EDITORS_CLOSE,
-      id: editor.id
+      path: editor.path
     });
   },
 
@@ -28,17 +28,16 @@ module.exports = {
     "use strict";
     AppDispatcher.dispatch({
       actionType: ActionTypes.EDITORS_MAKE_CURRENT,
-      id: editor.id
+      path: editor.path
     });
   },
 
   save: function(editor) {
     "use strict";
-    var filePath = TreeStore.getPath(editor.id);
-    rpc.fs.write(filePath, editor.content).then(function() {
+    rpc.fs.write(editor.path, editor.content).then(function() {
       AppDispatcher.dispatch({
         actionType: ActionTypes.EDITORS_SAVE_CURRENT,
-        id: editor.id
+        path: editor.path
       });
     });
   },
@@ -47,7 +46,7 @@ module.exports = {
     "use strict";
     AppDispatcher.dispatch({
       actionType: ActionTypes.EDITORS_EDIT_CURRENT,
-      id: editor.id,
+      path: editor.path,
       content: content
     });
   }

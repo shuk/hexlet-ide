@@ -9,54 +9,31 @@ var shared = require("../../shared");
 
 module.exports = function(options) {
   return {
-    tree: function() {
-      return when.promise(function(resolve) {
-        var rootDirName = path.basename(options.rootDir);
-        var rootItem = {
-          name: rootDirName,
-          path: options.rootDir,
-          state: "opened",
-          id: fs.statSync(options.rootDir).ino
+    tree: function(dirPath) {
+      dirPath = dirPath ? dirPath : options.rootDir;
+      var rootDirName = path.basename(dirPath);
+      var rootItem = {
+        name: rootDirName,
+        path: dirPath,
+        state: "opened",
+        id: fs.statSync(dirPath).ino,
+        type: "directory"
+      };
+
+      var children = fs.readdirSync(dirPath);
+      rootItem.children = children.map(function(item) {
+        var itemPath = path.join(dirPath, item);
+        var stat = fs.statSync(itemPath);
+        return {
+          name: item,
+          id: stat.ino,
+          type: stat.isDirectory() ? "directory" : "file",
+          path: itemPath,
+          state: "closed"
         };
-        var tree = new TreeModel(shared.treeOptions);
-        var rootNode = tree.parse(rootItem);
-
-        var finder = require("findit")(options.rootDir);
-
-        finder.on("directory", function (dir, stat) {
-          var parentNode = rootNode.first(function(n) {
-            return path.dirname(dir) === n.model.path;
-          });
-
-          if (parentNode) {
-            var item = {
-              name: path.basename(dir),
-              id: stat.ino,
-              type: "folder",
-              path: dir,
-              state: "closed"
-            };
-            parentNode.addChild(tree.parse(item));
-          }
-        });
-
-        finder.on("file", function (file, stat) {
-          var parentNode = rootNode.first(function(n) {
-            return [path.dirname(file), file].indexOf(n.model.path) !== -1;
-          });
-          var item = {
-            name: path.basename(file),
-            id: stat.ino,
-            type: "file",
-            path: file
-          };
-          parentNode.addChild(tree.parse(item));
-        });
-
-        finder.on("end", function () {
-          resolve(rootNode.model);
-        });
       });
+
+      return rootItem;
     },
 
     read: function(path) {
@@ -65,6 +42,9 @@ module.exports = function(options) {
 
     touch: function(filepath) {
       var fullPath = path.join(path.dirname(options.rootDir), filepath);
+      if (fs.existsSync(fullPath)) {
+        return null;
+      }
       fs.writeFileSync(fullPath, "");
       var item = {
         name: path.basename(filepath),
@@ -76,9 +56,8 @@ module.exports = function(options) {
       return item;
     },
 
-    write: function(filepath, content) {
-      var fullPath = path.join(path.dirname(options.rootDir), filepath);
-      return fs.writeFileSync(fullPath, content);
+    write: function(filePath, content) {
+      return fs.writeFileSync(filePath, content);
     },
 
     unlink: function(folder) {
@@ -88,11 +67,14 @@ module.exports = function(options) {
 
     mkdir: function(folder) {
       var fullPath = path.join(path.dirname(options.rootDir), folder);
+      if (fs.existsSync(fullPath)) {
+        return null;
+      }
       fs.mkdirSync(fullPath);
       var item = {
         name: path.basename(folder),
         id: fs.statSync(fullPath).ino,
-        type: "folder",
+        type: "directory",
         path: fullPath,
         state: "closed"
       };

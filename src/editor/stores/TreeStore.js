@@ -15,7 +15,7 @@ var TreeStore = BaseStore.extend({
     return root !== undefined ? root.model : root;
   },
 
-  getPath: function(id) {
+  getPathById: function(id) {
     var node = root.first(function(node) { return node.model.id === id; });
     return node.getPath().map(function(node){ return node.model.name; }).join("/");
   },
@@ -24,7 +24,7 @@ var TreeStore = BaseStore.extend({
     var parentNode = root.first(function(node) { return node.model.id === id; });
     if (parentNode.model.type === "file") {
       return [parentNode.model.id];
-    } else if (parentNode.model.type === "folder") {
+    } else if (parentNode.model.type === "directory") {
       return parentNode.all(function(node) {
         return node.model.type === "file";
       }).map(function(node) {
@@ -40,11 +40,26 @@ AppDispatcher.registerHandler(ActionTypes.TREE_LOAD, function(payload) {
   TreeStore.emitChange();
 });
 
-AppDispatcher.registerHandler(ActionTypes.TREE_TOGGLE_FOLDER_STATE, function(payload) {
+AppDispatcher.registerHandler(ActionTypes.TREE_CLOSE_FOLDER, function(payload) {
   var id = payload.id;
   var node = root.first(function(node) { return node.model.id === id; });
   var model = node.model;
-  model.state = (model.state === "opened") ? "closed" : "opened";
+  model.state = "closed";
+  TreeStore.emitChange();
+});
+
+AppDispatcher.registerHandler(ActionTypes.TREE_OPEN_FOLDER, function(payload) {
+  var id = payload.id;
+  var node = root.first(function(node) { return node.model.id === id; });
+  var item = payload.item;
+  if (node.isRoot()) {
+    root = tree.parse(item);
+  } else {
+    var parent = node.parent;
+    node.drop();
+    var newNode = tree.parse(item);
+    parent.addChild(newNode);
+  }
   TreeStore.emitChange();
 });
 

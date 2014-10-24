@@ -23,9 +23,9 @@ AppDispatcher.registerHandler(ActionTypes.TREE_OPEN_FILE, function(payload) {
   var item = payload.item;
   var content = payload.content;
 
-  var editor = _.find(editors, {id: item.id});
+  var editor = _.find(editors, {path: item.path});
   if (!editor) {
-    editors.push({id: item.id, dirty: false, name: item.name, current: true, content: content});
+    editors.push({path: item.path, dirty: false, name: item.name, current: true, content: content});
   } else {
     editor.current = true;
   }
@@ -34,7 +34,7 @@ AppDispatcher.registerHandler(ActionTypes.TREE_OPEN_FILE, function(payload) {
 });
 
 AppDispatcher.registerHandler(ActionTypes.EDITORS_EDIT_CURRENT, function(payload) {
-  var editor = _.find(editors, {id: payload.id});
+  var editor = _.find(editors, {path: payload.path});
   editor.content = payload.content;
   editor.dirty = true;
 
@@ -42,7 +42,7 @@ AppDispatcher.registerHandler(ActionTypes.EDITORS_EDIT_CURRENT, function(payload
 });
 
 AppDispatcher.registerHandler(ActionTypes.EDITORS_SAVE_CURRENT, function(payload) {
-  var editor = _.find(editors, {id: payload.id});
+  var editor = _.find(editors, {path: payload.path});
   editor.dirty = false;
 
   EditorsStore.emitChange();
@@ -51,14 +51,14 @@ AppDispatcher.registerHandler(ActionTypes.EDITORS_SAVE_CURRENT, function(payload
 AppDispatcher.registerHandler(ActionTypes.EDITORS_MAKE_CURRENT, function(payload) {
   editors.map(function(t) { t.current = false; });
 
-  var editor = _.find(editors, {id: payload.id});
+  var editor = _.find(editors, {path: payload.path});
   editor.current = true;
 
   EditorsStore.emitChange();
 });
 
 AppDispatcher.registerHandler(ActionTypes.EDITORS_CLOSE, function(payload) {
-  editors = _.filter(editors, function(t) { return t.id !== payload.id; });
+  editors = _.filter(editors, function(t) { return t.path !== payload.path; });
 
   if (editors.length > 0) {
     var editor = _.last(editors);
@@ -72,7 +72,7 @@ AppDispatcher.registerHandler(ActionTypes.TREE_REMOVE, function(payload) {
   var currentEditor = EditorsStore.getCurrent();
 
   var removedFiles = payload.removedFiles;
-  editors = _.filter(editors, function(t) { return !_.contains(removedFiles, t.id); });
+  editors = _.filter(editors, function(t) { return !_.contains(removedFiles, t.path); });
 
   var needSelectNewEditor = !_.contains(editors, currentEditor) && editors.length > 0;
 

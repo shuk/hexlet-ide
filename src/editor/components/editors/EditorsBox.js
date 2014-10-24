@@ -55,7 +55,6 @@ var EditorsBox = React.createClass({
     } else {
       EditorsActions.closeEditor(current);
     }
-    // TabsActions.flushTabContent(this.state.current.id, this.state.value);
   },
 
   render: function() {
@@ -69,7 +68,7 @@ var EditorsBox = React.createClass({
         "active": editor.current,
       });
 
-      return (<li key={"editor_" + editor.id} className={classes}>
+      return (<li key={"editor_" + editor.path} className={classes}>
         <a href="#">
           <span onDoubleClick={this.handleCloseTab.bind(this, editor)} onClick={this.selectEditor.bind(this, editor)}>
             {editor.name}
@@ -94,7 +93,7 @@ var EditorsBox = React.createClass({
               });
 
               return (
-                <div className={classes} key={editor.id}>
+                <div className={classes} key={editor.path}>
                   <Editor mode={mode}
                     focus={editor.current}
                     onChangeValue={this.handleChangeEditorValue.bind(this, editor)}

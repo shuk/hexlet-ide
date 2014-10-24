@@ -21,18 +21,27 @@ var TreeActions = {
     });
   },
 
-  toggleFolderState: function(id) {
+  toggleFolderState: function(tree) {
     "use strict";
-    AppDispatcher.dispatch({
-      actionType: ActionTypes.TREE_TOGGLE_FOLDER_STATE,
-      id: id
-    });
+    if (tree.state === "closed") {
+      rpc.fs.tree(tree.path).then(function(result) {
+        AppDispatcher.dispatch({
+          actionType: ActionTypes.TREE_OPEN_FOLDER,
+          id: tree.id,
+          item: result
+        });
+      });
+    } else {
+      AppDispatcher.dispatch({
+        actionType: ActionTypes.TREE_CLOSE_FOLDER,
+        id: tree.id
+      });
+    }
   },
 
   openFile: function(item) {
     "use strict";
 
-    // FIXME calculate path
     rpc.fs.read(item.path).then(function(result) {
       AppDispatcher.dispatch({
         actionType: ActionTypes.TREE_OPEN_FILE,
@@ -43,21 +52,20 @@ var TreeActions = {
   },
 
   createFolder: function(parentId, name) {
-    // var rpc = new Eureca.Client();
-    var parentFolder = TreeStore.getPath(parentId);
+    var parentFolder = TreeStore.getPathById(parentId);
     rpc.fs.mkdir(path.join(parentFolder, name)).then(function(result) {
-      // FIXME check result
-      AppDispatcher.dispatch({
-        actionType: ActionTypes.TREE_CREATE_FOLDER,
-        parentId: parentId,
-        item: result
-      });
+      if (result) {
+        AppDispatcher.dispatch({
+          actionType: ActionTypes.TREE_CREATE_FOLDER,
+          parentId: parentId,
+          item: result
+        });
+      }
     });
   },
 
   remove: function(id) {
-    // var rpc = new Eureca.Client();
-    var folderPath = TreeStore.getPath(id);
+    var folderPath = TreeStore.getPathById(id);
     var files = TreeStore.getFilesForPath(id);
     rpc.fs.unlink(folderPath).then(function(result) {
       // FIXME check result
@@ -70,27 +78,28 @@ var TreeActions = {
   },
 
   createFile: function(parentId, name) {
-    // var rpc = new Eureca.Client();
-    var parentFolder = TreeStore.getPath(parentId);
+    var parentFolder = TreeStore.getPathById(parentId);
     rpc.fs.touch(path.join(parentFolder, name)).then(function(result) {
-      // FIXME check result
-      AppDispatcher.dispatch({
-        actionType: ActionTypes.TREE_CREATE_FILE,
-        parentId: parentId,
-        item: result
-      });
+      if (result) {
+        AppDispatcher.dispatch({
+          actionType: ActionTypes.TREE_CREATE_FILE,
+          parentId: parentId,
+          item: result
+        });
+      }
     });
   },
 
   rename: function(parentId, name) {
-    var parentPath = TreeStore.getPath(parentId);
+    var parentPath = TreeStore.getPathById(parentId);
     rpc.fs.rename(parentPath, name).then(function(result) {
-      // FIXME check result
-      AppDispatcher.dispatch({
-        actionType: ActionTypes.TREE_RENAME,
-        parentId: parentId,
-        item: result
-      });
+      if (result) {
+        AppDispatcher.dispatch({
+          actionType: ActionTypes.TREE_RENAME,
+          parentId: parentId,
+          item: result
+        });
+      }
     });
   }
 };

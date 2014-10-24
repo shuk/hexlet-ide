@@ -92,7 +92,7 @@ var TreeBox = React.createClass({
   getContextMenuItems: function(item) {
     var contextMenuChildren = [];
 
-    if (item.type === "folder") {
+    if (item.type === "directory") {
       contextMenuChildren.push([
         {onClick: this.handleOpenCreateFolderModal.bind(this, item.id), title: "New folder"},
         {onClick: this.handleOpenCreateFileModal.bind(this, item.id), title: "New file"}

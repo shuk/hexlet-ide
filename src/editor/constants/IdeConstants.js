@@ -9,7 +9,8 @@ module.exports = {
 
     TREE_LOAD: null,
     TREE_RELOAD: null,
-    TREE_TOGGLE_FOLDER_STATE: null,
+    TREE_OPEN_FOLDER: null,
+    TREE_CLOSE_FOLDER: null,
     TREE_OPEN_FILE: null,
     TREE_OPEN_CONTEXT_MENU: null,
     TREE_CREATE_FILE: null,
