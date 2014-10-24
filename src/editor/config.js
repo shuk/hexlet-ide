@@ -8,16 +8,28 @@ var defaultConfig = {
     rows: 9
   },
   autosaveInterval: 1000,
-  url: "",
-  rpcOptions: {
-    reconnectionDelay: 10000,
-    reconnectionDelayMax: 10000
-  }
+  rpc: {
+    url: "",
+    options: {
+      reconnectionDelay: 10000,
+      reconnectionDelayMax: 10000,
+      reconnectionAttempts: 2
+    },
+    events: {
+      connect: _.noop,
+      error: _.noop,
+      disconnect: _.noop,
+      reconnect: _.noop,
+      reconnecting: _.noop,
+      reconnect_error: _.noop,
+      reconnect_failed: _.noop
+    }
+  },
 };
 
 
 module.exports = {
   extend: function(config) {
-     _.extend(this, defaultConfig, config);
+     _.extend(this, _.merge(defaultConfig, config));
   }
 };

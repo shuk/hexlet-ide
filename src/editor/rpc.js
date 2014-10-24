@@ -1,11 +1,17 @@
-/* global module require window */
+/* global module require  */
 
 var io = require("socket.io-client");
+var _ = require("lodash");
 
 var Config = require("editor/config");
 
 var rpc = require("../rpc");
 
-var socket = io.connect(Config.url, Config.rpcOptions);
+var socket = io.connect(Config.rpc.url, Config.rpc.options);
+
+_.each(Config.rpc.events, function(callback, name) {
+  "use strict";
+  socket.on(name, callback);
+});
 
 module.exports = rpc.createClient(socket);
