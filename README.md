@@ -1,6 +1,8 @@
 [![Build Status](https://travis-ci.org/Hexlet/hexlet-ide.svg?branch=master)](https://travis-ci.org/Hexlet/hexlet-ide)
 
-### RUN
+### RUN backend
+    npm i
+
     hexlet-ide -r .
 
 ### Embed usage

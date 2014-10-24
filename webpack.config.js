@@ -1,7 +1,11 @@
-/* global module require __dirname */
+/* global module require __dirname process */
 
 var path = require("path");
-var webpack = require("webpack");
+
+function isPublish() {
+  "use strict";
+  return process.env.NODE_ENV === "publish";
+}
 
 module.exports = {
   output: {
@@ -18,9 +22,9 @@ module.exports = {
   //     "react": "React"
   // },
 
-  cache: true,
-  debug: true,
-  devtool: "source-map",
+  cache: isPublish() ? false : true,
+  debug: isPublish() ? false : true,
+  devtool: isPublish() ? false : "source-map",
   target: "web",
   entry: ["./src/editor/main.js"],
 
@@ -59,28 +63,6 @@ module.exports = {
     }, {
       test: /\.(png|svg|woff|eot|ttf|otf)$/,
       loader: "url?limit=100000"
-    }],
-
-    plugins: [
-      new webpack.ProvidePlugin({
-      // $: "jquery",
-      // jQuery: "jquery",
-      // rpc: "rpc"
-    })
-    ]
-
-    // , {
-    //     test: /\.gif/,
-    //     loader: 'url-loader?limit=10000&mimetype=image/gif'
-    //   }, {
-    //     test: /\.jpg/,
-    //     loader: 'url-loader?limit=10000&mimetype=image/jpg'
-    //   }, {
-    //     test: /\.png/,
-    //     loader: 'url-loader?limit=10000&mimetype=image/png'
-    //   }, {
-    //     test: /\.jsx$/,
-    //     loader: 'jsx-loader'
-    //   }]
+    }]
   }
 };

@@ -19,6 +19,13 @@ gulp.task("webpack", function() {
   .pipe(gulp.dest("src/backend/public/assets"));
 });
 
+gulp.task("prepublish", function() {
+  process.env.NODE_ENV = "publish";
+  return gulp.src("./src/editor/main.js")
+  .pipe(webpack(webpackConfig))
+  .pipe(gulp.dest("src/backend/public/assets"));
+});
+
 gulp.task("develop", function() {
   process.env.NODE_ENV = "develop";
   process.env.PORT = 9000;
