@@ -57,7 +57,8 @@ module.exports = function(options) {
     },
 
     write: function(filePath, content) {
-      return fs.writeFileSync(filePath, content);
+      var fullPath = path.join(path.dirname(options.rootDir), filePath);
+      return fs.writeFileSync(fullPath, content);
     },
 
     unlink: function(folder) {
