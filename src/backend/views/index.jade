@@ -7,5 +7,7 @@ html
       #hexlet-ide
 
     script.
-        var widget = HexletIde.create(document.getElementById("hexlet-ide"), {});
+        var widget = HexletIde.create(document.getElementById("hexlet-ide"), {
+            url: window.location.href
+        });
 

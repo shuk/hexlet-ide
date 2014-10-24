@@ -4,6 +4,7 @@ var React = require("react/addons");
 var TerminalsActions = require("editor/actions/TerminalsActions");
 var TerminalsStore = require("editor/stores/TerminalsStore");
 var WatchStoreMixin = require("editor/mixins/WatchStore");
+var Config = require("editor/config");
 
 var RunnerBox = React.createClass({
   mixins: [ WatchStoreMixin(TerminalsStore) ],
@@ -22,8 +23,8 @@ var RunnerBox = React.createClass({
           <div className="input-group-btn">
             <button type="button" className="btn btn-default dropdown-toggle" data-toggle="dropdown">Run <span className="caret"></span></button>
             <ul className="dropdown-menu dropdown-menu-right" role="menu">
-              <li><a href="#" onClick={this.handleRunCommandInNewTerminal}>Run in new terminal</a></li>
-              <li><a href="#" onClick={this.handleRunCommandInCurrentTerminal}>Run in current terminal</a></li>
+              <li><button onClick={this.handleRunCommandInNewTerminal}>Run in new terminal</button></li>
+              <li><button onClick={this.handleRunCommandInCurrentTerminal}>Run in current terminal</button></li>
             </ul>
           </div>
         </div>
@@ -33,10 +34,7 @@ var RunnerBox = React.createClass({
 
   handleRunCommandInNewTerminal: function() {
     var cmd = this.refs.commandTxt.getDOMNode().value;
-    TerminalsActions.runCommandInNewTerminal(cmd, {
-      cols: 160,
-      rows: 24
-    });
+    TerminalsActions.runCommandInNewTerminal(cmd, Config.terminal);
   },
 
   handleRunCommandInCurrentTerminal: function() {
@@ -44,10 +42,7 @@ var RunnerBox = React.createClass({
     if (this.state.currentTerminal) {
       TerminalsActions.runCommand(this.state.currentTerminal, cmd);
     } else {
-      TerminalsActions.runCommandInNewTerminal(cmd, {
-        cols: 160,
-        rows: 24
-      });
+      TerminalsActions.runCommandInNewTerminal(cmd, Config.terminal);
     }
   }
 });

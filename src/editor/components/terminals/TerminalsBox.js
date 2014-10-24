@@ -28,7 +28,7 @@ var TerminalsBox = React.createClass({
       });
 
       return <li key={"tab_" + terminal.id} className={tabClasses}>
-        <a href="#">
+        <a>
           <span  onClick={this.selectTerminal.bind(this, terminal)}>{"terminal_" + terminal.id}</span>
           <span className="glyphicon glyphicon-remove" onClick={this.closeTerminal.bind(this, terminal)}></span>
         </a>
@@ -57,7 +57,7 @@ var TerminalsBox = React.createClass({
         <ul className="nav nav-tabs" role="tablist">
           {this.renderTabHeaders()}
           <li key="tab_create">
-            <a href="#" onClick={this.createTerminal}>Create terminal</a>
+            <a onClick={this.createTerminal}>Create terminal</a>
           </li>
         </ul>
         <div className="tab-content">

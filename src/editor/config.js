@@ -1,9 +1,19 @@
-/* global module */
+/* global module require window */
 
-module.exports = {
+var _ = require("lodash");
+
+var defaultConfig = {
   terminal: {
     cols: 110,
     rows: 9
   },
-  autosaveInterval: 1000
+  autosaveInterval: 1000,
+  url: ""
+};
+
+
+module.exports = {
+  extend: function(config) {
+     _.extend(this, defaultConfig, config);
+  }
 };

@@ -1,7 +1,6 @@
 /** @jsx React.DOM */
 
 var _ = require("lodash");
-var Immutable = require("immutable");
 var React = require("react/addons");
 
 var TreeActions = require("editor/actions/TreeActions");

@@ -21,23 +21,29 @@ require("bootstrap/dist/js/bootstrap");
 require("editor/styles/application.less");
 
 var React = require("react/addons");
-var Ide = require("editor/components/Ide");
 
 var Config = require("editor/config");
 
-var TreeActions = require("editor/actions/TreeActions");
-var TerminalsActions = require("editor/actions/TerminalsActions");
-var IdeActions = require("editor/actions/IdeActions");
-var EditorsActions = require("editor/actions/EditorsActions");
+var TreeActions = null;
+var TerminalsActions = null;
+var IdeActions = null;
+var EditorsActions = null;
 
 var EditorsStore = require("editor/stores/EditorsStore");
 
-function HexletIdeWidget(domElement) {
+function HexletIdeWidget(domElement, options) {
+  Config.extend(options);
+  TreeActions = require("editor/actions/TreeActions");
+  TerminalsActions = require("editor/actions/TerminalsActions");
+  IdeActions = require("editor/actions/IdeActions");
+  EditorsActions = require("editor/actions/EditorsActions");
+
   this.domElement = domElement;
   this.rpc = require("./rpc");
   this.bindEvents();
   this.runAutosave();
   this.render();
+
 }
 
 HexletIdeWidget.prototype.bindEvents = function() {
@@ -62,6 +68,7 @@ HexletIdeWidget.prototype.runAutosave = function() {
 }
 
 HexletIdeWidget.prototype.render = function() {
+  var Ide = require("editor/components/Ide");
   return React.renderComponent(<Ide />, this.domElement);
 }
 
@@ -81,6 +88,7 @@ var HexletIde = {
 
 if (typeof window !== "undefined") {
   window.HexletIde = HexletIde;
-} else if (typeof module !== "undefined") {
+}
+if (typeof module !== "undefined") {
   module.exports = HexletIde;
 }
