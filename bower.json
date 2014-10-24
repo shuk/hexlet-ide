@@ -1,5 +1,7 @@
 {
     "name": "hexlet-ide",
+    "version": "0.0.2",
+    "main": "src/backend/public/assets/main.js",
     "dependencies": {
         "bootstrap": "*",
         "fuelux": "*"
