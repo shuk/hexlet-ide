@@ -17,8 +17,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # item.vm.network 'private_network', type: 'dhcp' # NOTE: nfs
     # item.vm.synced_folder '.', '/vagrant', type: 'nfs'
 
-    item.vm.network 'forwarded_port', guest: 80, host: 8081
-    item.vm.network 'forwarded_port', guest: 3000, host: 3000
     item.vm.network 'forwarded_port', guest: 9000, host: 9000
 
     item.ssh.forward_agent = true
@@ -32,8 +30,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     #   ansible.verbose = 'vv'
     # end
 
-    # item.vm.provision 'shell', inline: ansible_script,
-    #   privileged: false
+    item.vm.provision 'shell', inline: ansible_script,
+      privileged: false
 
     item.vm.provider 'virtualbox' do |v, override|
       override.vm.box = 'ubuntu/trusty64'
