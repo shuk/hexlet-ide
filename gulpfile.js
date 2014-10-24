@@ -15,14 +15,14 @@ gulp.task("default", ["develop"]);
 
 gulp.task("webpack", function() {
   return gulp.src("./src/editor/main.js")
-  .pipe(webpack(webpackConfig))
+  .pipe(webpack(webpackConfig()))
   .pipe(gulp.dest("src/backend/public/assets"));
 });
 
 gulp.task("prepublish", function() {
-  process.env.NODE_ENV = "publish";
+  process.env.NODE_ENV = "prepublish";
   return gulp.src("./src/editor/main.js")
-  .pipe(webpack(webpackConfig))
+  .pipe(webpack(webpackConfig()))
   .pipe(gulp.dest("src/backend/public/assets"));
 });
 

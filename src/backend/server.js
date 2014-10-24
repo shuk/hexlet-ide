@@ -29,7 +29,7 @@ var s = function(options) {
     });
 
     var webpack = require("webpack");
-    var webpackConfig = require("../../webpack.config.js");
+    var webpackConfig = require("../../webpack.config.js")();
     var compiler = webpack(webpackConfig);
 
     var webpackDevMiddleware = require("webpack-dev-middleware");
