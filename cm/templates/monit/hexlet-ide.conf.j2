@@ -1,7 +1,0 @@
-# vi:syntax=monit
-
-check process hexlet-ide
-        matching "myprocessname"
-        start program = "/etc/init.d/myproccessname start"
-        stop program = "/usr/bin/killall myprocessname"
-        if cpu usage > 95% for 10 cycles then restart
