@@ -1,6 +1,6 @@
 install:
 	npm install
-	bower install
+	bower install # ?
 
 develop:
 	gulp develop
@@ -11,9 +11,12 @@ test:
 publish:
 	npm publish
 
-setup-staging:
-	ansible-playbook cm/setup.yml -i cm/staging
-deploy-staging:
-	ansible-playbook cm/deploy.yml -i cm/staging
+docker_build:
+	docker build -t hexlet-ide .
 
-.PHONY: test
+docker_run:
+	docker run -p 9000:9000 hexlet-ide
+
+
+
+.PHONY: test publish develop install
