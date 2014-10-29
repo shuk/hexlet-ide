@@ -1,9 +1,9 @@
 {
     "verbose": false,
+    "script": "bin/hexlet-ide.js",
     "ignore": [
         "bower_components/*",
         "node_modules/*",
-        "src/editor/*",
         "test/*"
     ]
 }

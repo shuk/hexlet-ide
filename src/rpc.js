@@ -64,6 +64,7 @@ Client.prototype.ready = function(callback) {
 module.exports = {
   createServer: function(io, rpcMethods) {
     io.on("connection", function(socket) {
+      console.log("Connected new user ", socket.client.conn.transport.constructor.name);
 
       var methodNames = [];
       _.each(rpcMethods, function(methods, namespace) {

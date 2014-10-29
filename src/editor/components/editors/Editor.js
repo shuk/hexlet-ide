@@ -25,11 +25,21 @@ var Editor = React.createClass({
     var element = this.refs.editor;
     var myCodeMirror = CodeMirror(element.getDOMNode(), {
       lineNumbers: true,
-      // tabSize: 2,
+      tabSize: 2,
+      extraKeys: {
+        Tab: function(cm) {
+          var spaces = Array(cm.getOption("indentUnit") + 1).join(" ");
+          cm.replaceSelection(spaces);
+        },
+        "Shift-Tab": "autocomplete"
+      },
       value: this.props.initContent,
       mode: this.props.mode,
-      theme: "solarized dark"
+      theme: "solarized dark",
+      indentWithTabs: false
     });
+
+    console.log(CodeMirror.mimeModes);
 
     myCodeMirror.on("change", function(CodeMirror, object) {
       $this.props.onChangeValue(myCodeMirror.getValue());

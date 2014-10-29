@@ -33,7 +33,7 @@ var TreeBox = React.createClass({
       },
       content: function() {
         return (
-          <input type="text" name="folderName" ref="nameInput" />
+          <input type="text" className="form-control" name="folderName" ref="nameInput" />
         );
       }
     });
@@ -47,7 +47,7 @@ var TreeBox = React.createClass({
       },
       content: function() {
         return (
-          <input type="text" name="folderName" ref="nameInput" defaultValue={item.name} />
+          <input type="text" className="form-control" name="folderName" ref="nameInput" defaultValue={item.name} />
         );
       }
     });
@@ -72,7 +72,7 @@ var TreeBox = React.createClass({
         TreeActions.createFile(parentId, modal.refs.nameInput.getDOMNode().value);
       },
       content: function() {
-        return <input type="text" name="folderName" ref="nameInput" />
+        return <input type="text" className="form-control" name="folderName" ref="nameInput" focus={true} />
       }
     });
   },

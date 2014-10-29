@@ -6,22 +6,25 @@ var fixturesDir = "./test/fixtures/project/";
 var testDir = "/var/tmp/test_dir";
 
 var helper = {};
-helper.port = process.env.PORT || 8080;
+helper.port = process.env.PORT || 9000;
 helper.baseUrl = "http://localhost:" + helper.port;
-helper.browser = Browser.create({ debug: false, site: helper.baseUrl, waitFor: 3000 });
-helper.getBrowser = function() { return helper.browser; };
 
-//NOTE: this is stub for React.js
-helper.browser.on("opened", function(window) {
-  window.getSelection = function() {
-    return {
-      rangeCount: 0
-    };
+
+var Nightmare = require("nightmare");
+var debug = require("debug")("nightmare");
+var customActions = require("./support/nightmareCustomActions");
+Object.keys(customActions).forEach(function (name) {
+  var fn = customActions[name];
+  Nightmare.prototype[name] = function() {
+    debug('queueing action "' + name + '"');
+    var args = [].slice.call(arguments);
+    this.queue.push([fn, args]);
+    return this;
   };
 });
 
 
-before(function(done) {
+before(function() {
   this.timeout(10000);
 
   if (process.env.NODE_ENV === "travis") {
@@ -32,8 +35,6 @@ before(function(done) {
       rootDir: testDir
     });
   }
-
-  helper.browser.visit("/", done);
 });
 
 after(function() {

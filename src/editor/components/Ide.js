@@ -35,11 +35,11 @@ var Ide = React.createClass({
         <Modal />
         <div className="well well-mini" onClick={this.handleGlobalClick}>
           <div className="row">
-            <div className="col-md-3 file-tree-box">
+            <div className="col-md-3 file-tree-box nopadding">
               <RunnerBox />
               <TreeBox />
             </div>
-            <div className="col-md-9">
+            <div className="col-md-9 nopadding">
               <div className="row">
                 <div className="col-md-12">
                   <EditorsBox />

@@ -17,15 +17,11 @@ var RunnerBox = React.createClass({
 
   render: function() {
     return (
-      <div className="btn-toolbar runner-box" role="toolbar">
+      <div className="runner-box">
         <div className="input-group">
           <input type="text" className="form-control" ref="commandTxt" />
           <div className="input-group-btn">
-            <button type="button" className="btn btn-default dropdown-toggle" data-toggle="dropdown">Run <span className="caret"></span></button>
-            <ul className="dropdown-menu dropdown-menu-right" role="menu">
-              <li><a onClick={this.handleRunCommandInNewTerminal}>Run in new terminal</a></li>
-              <li><a onClick={this.handleRunCommandInCurrentTerminal}>Run in current terminal</a></li>
-            </ul>
+            <button onClick={this.handleRunCommandInNewTerminal} type="button" className="btn btn-default">Run</button>
           </div>
         </div>
       </div>

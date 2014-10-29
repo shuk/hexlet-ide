@@ -1,24 +1,11 @@
 /** @jsx React.DOM */
-
-/* global require */
-require("bootstrap/dist/css/bootstrap.css");
-require("fuelux/dist/css/fuelux.css");
-require("codemirror/lib/codemirror.css");
-require("codemirror/theme/solarized.css");
+require("./dependencies");
 
 var key = require("keymaster");
 
 key.filter = function(event) {
   return true;
 }
-
-var $ = jQuery = require("jquery/dist/jquery");
-
-require("codemirror/mode/javascript/javascript");
-require("codemirror/mode/jade/jade");
-
-require("bootstrap/dist/js/bootstrap");
-require("editor/styles/application.less");
 
 var React = require("react/addons");
 
@@ -43,7 +30,6 @@ function HexletIdeWidget(domElement, options) {
   this.bindEvents();
   this.runAutosave();
   this.render();
-
 }
 
 HexletIdeWidget.prototype.bindEvents = function() {

@@ -32,15 +32,19 @@ var EditorsBox = React.createClass({
     EditorsActions.edit(current, content);
   },
 
-  handleSaveFile: function() {
+  handleSaveFile: function(e) {
     EditorsActions.save(this.state.current);
   },
 
   selectEditor: function(editor, e) {
+    e.stopPropagation();
+    e.preventDefault();
     EditorsActions.makeCurrent(editor);
   },
 
-  handleCloseTab: function(e) {
+  handleCloseTab: function(editor, e) {
+    e.stopPropagation();
+    e.preventDefault();
     var current = this.state.current;
     if (this.state.current.dirty) {
       ModalActions.showModal({
@@ -69,10 +73,9 @@ var EditorsBox = React.createClass({
       });
 
       return (<li key={"editor_" + editor.id} className={classes}>
-        <a href="#">
-          <span onDoubleClick={this.handleCloseTab.bind(this, editor)} onClick={this.selectEditor.bind(this, editor)}>
-            {editor.name}
-            {editor.dirty ? "*" : ""}
+        <a href="#" onDoubleClick={this.handleCloseTab.bind(this, editor)} onClick={this.selectEditor.bind(this, editor)}>
+          <span>
+            {editor.name} {editor.dirty ? "*" : ""}
           </span>
           <span className="glyphicon glyphicon-remove" onClick={this.handleCloseTab.bind(this, editor)}></span>
         </a>
@@ -109,7 +112,9 @@ var EditorsBox = React.createClass({
   getEditorMode: function(fileName) {
     var modes = {
       "js": "javascript",
-      "jade": "jade"
+      "jade": "jade",
+      "txt": "text",
+      "": "text"
     };
 
     var extension = _.last(fileName.split("."));

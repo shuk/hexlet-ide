@@ -22,14 +22,14 @@ var TerminalsBox = React.createClass({
   },
 
   renderTabHeaders: function() {
-    return _.map(this.state.terminals, function(terminal) {
+    return _.map(this.state.terminals, function(terminal, id) {
       var tabClasses = React.addons.classSet({
         "active": terminal.current
       });
 
-      return <li key={"tab_" + terminal.id} className={tabClasses}>
-        <a>
-          <span  onClick={this.selectTerminal.bind(this, terminal)}>{"terminal_" + terminal.id}</span>
+      return <li key={"tab_" + id} className={tabClasses}>
+        <a href="#" onClick={this.selectTerminal.bind(this, terminal)}>
+          <span>{"Terminal " + id}</span>
           <span className="glyphicon glyphicon-remove" onClick={this.closeTerminal.bind(this, terminal)}></span>
         </a>
       </li>;
@@ -67,15 +67,21 @@ var TerminalsBox = React.createClass({
     );
   },
 
-  selectTerminal: function(terminal) {
+  selectTerminal: function(terminal, e) {
+    e.preventDefault();
+    e.stopPropagation();
     TerminalsActions.selectTerminal(terminal);
   },
 
-  createTerminal: function() {
+  createTerminal: function(e) {
+    e.preventDefault();
+    e.stopPropagation();
     TerminalsActions.createTerminal(Config.terminal);
   },
 
-  closeTerminal: function(terminal) {
+  closeTerminal: function(terminal, e) {
+    e.preventDefault();
+    e.stopPropagation();
     TerminalsActions.closeTerminal(terminal);
   },
 });
