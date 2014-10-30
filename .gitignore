@@ -8,5 +8,3 @@ dev/js
 dev/fonts
 *.log
 
-src/backend/public/assets/main.js
-src/backend/public/assets/main.js.map
