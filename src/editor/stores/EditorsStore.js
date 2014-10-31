@@ -12,6 +12,10 @@ var EditorsStore = BaseStore.extend({
     return editors;
   },
 
+  getAllDirty: function() {
+    return _.filter(editors, "dirty");
+  },
+
   getCurrent: function() {
     return _.find(editors, { current: true });
   }

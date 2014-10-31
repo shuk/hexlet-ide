@@ -45,19 +45,18 @@ var EditorsBox = React.createClass({
   handleCloseTab: function(editor, e) {
     e.stopPropagation();
     e.preventDefault();
-    var current = this.state.current;
-    if (this.state.current.dirty) {
+    if (editor.dirty) {
       ModalActions.showModal({
         title: "Close unsaved tab",
         onApply: function() {
-          EditorsActions.closeEditor(current);
+          EditorsActions.closeEditor(editor);
         },
         content: function() {
           return <p>are you sure? (unsaved data will be lost)</p>;
         }
       });
     } else {
-      EditorsActions.closeEditor(current);
+      EditorsActions.closeEditor(editor);
     }
   },
 
@@ -113,6 +112,7 @@ var EditorsBox = React.createClass({
     var modes = {
       "js": "javascript",
       "jade": "jade",
+      "py": "python",
       "txt": "text",
       "": "text"
     };
