@@ -5,7 +5,7 @@ var _ = require("lodash");
 
 var Config = require("editor/config");
 
-var rpc = require("../rpc");
+var rpc = require("../lib/rpc");
 
 var socket = io.connect(Config.rpc.url, Config.rpc.options);
 

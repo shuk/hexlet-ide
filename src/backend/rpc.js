@@ -1,5 +1,5 @@
 /* global module require */
-var rpc = require("../rpc");
+var rpc = require("../lib/rpc");
 
 module.exports = function(io, options) {
   rpc.createServer(io, {
