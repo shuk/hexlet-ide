@@ -22,6 +22,10 @@ module.exports = function() {
     target: "web",
     entry: ["./src/editor/main.js"],
 
+    externals: {
+      "react/addons": "React"
+    },
+
     // stats: {
     //   colors: true,
     //   reasons: true

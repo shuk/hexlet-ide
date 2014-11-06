@@ -1,5 +1,5 @@
 /* global require */
-require("es5-shim");
+// require("es5-shim");
 
 var $ = jQuery = require("jquery/dist/jquery");
 require("bootstrap/dist/css/bootstrap.css");
