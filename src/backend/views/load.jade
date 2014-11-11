@@ -1,0 +1,20 @@
+html
+  head
+    title!= title
+    script(src="http://fb.me/react-with-addons-0.12.0.min.js")
+    script(type='text/javascript' src="assets/main.js")
+  body
+    .container
+      #hexlet-ide(style="margin-top: 20px")
+
+    script.
+        var rpc = {
+              url: window.location.href,
+              events: {
+                reconnect: console.log.bind(console, "reconnect"),
+                reconnect_error: console.log.bind(console, "reconnect_error"),
+                reconnect_failed: console.log.bind(console, "reconnect_failed"),
+              }
+          };
+        React.render(HexletIde.Component(rpc), document.getElementById("hexlet-ide"));
+

@@ -12,7 +12,8 @@ var React = require("react/addons");
 var Config = require("editor/config");
 
 function HexletIdeWidget(domElement, options) {
-    Config.extend(options);
+  Config.extend(options);
+  this.rpc = require("editor/rpc");
 }
 
 HexletIdeWidget.prototype.render = function(domElement, rpcConfig) {
@@ -27,6 +28,12 @@ HexletIdeWidget.prototype.exec = function(cmd) {
 var HexletIde = {
   create: function(domElement, options) {
     return new HexletIdeWidget(options).render(domElement, options);
+  },
+
+  Component: function(options) {
+    Config.extend(options);
+    var Ide = require("editor/components/Ide");
+    return <Ide rpcConfig={options}/>;
   }
 };
 
