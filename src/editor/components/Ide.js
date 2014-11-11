@@ -26,7 +26,6 @@ var Ide = React.createClass({
   },
 
   componentWillMount: function() {
-    console.log(this.props);
     this.domElement = this.props.domElement;
     this.rpc = require("editor/rpc");
     this.bindEvents();
@@ -49,7 +48,6 @@ var Ide = React.createClass({
 
   runAutosave: function() {
     this.autosaveTimer = setInterval(function() {
-    console.log("123");
       var editors = EditorsStore.getAllDirty();
       editors.forEach(EditorsActions.save);
     }, Config.autosaveInterval);
