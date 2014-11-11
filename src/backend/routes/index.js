@@ -9,4 +9,7 @@ router.get("/", function(req, res) {
   res.render("index", {});
 });
 
+router.get("/load", function(req, res) {
+  res.render("load", {});
+});
 module.exports = router;

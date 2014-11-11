@@ -2,6 +2,7 @@
 
 var React = require("react/addons");
 
+var Config = require("editor/config");
 var TreeBox = require("editor/components/tree/TreeBox");
 var EditorsBox = require("editor/components/editors/EditorsBox");
 var TerminalsBox = require("editor/components/terminals/TerminalsBox");
@@ -11,13 +12,51 @@ var Loader = require("editor/components/common/Loader");
 var RunnerBox = require("editor/components/RunnerBox");
 
 var IdeActions = require("editor/actions/IdeActions");
+var TreeActions = require("editor/actions/TreeActions");
+var TerminalsActions = require("editor/actions/TerminalsActions");
+var EditorsActions = require("editor/actions/EditorsActions");
 var WatchStoreMixin = require("editor/mixins/WatchStore");
 var IdeStore = require("editor/stores/IdeStore");
+var EditorsStore = require("editor/stores/EditorsStore");
 
 var Ide = React.createClass({
   mixins: [WatchStoreMixin(IdeStore)],
   getFluxState: function() {
     return IdeStore.getState();
+  },
+
+  componentWillMount: function() {
+    console.log(this.props);
+    this.domElement = this.props.domElement;
+    this.rpc = require("editor/rpc");
+    this.bindEvents();
+    this.runAutosave();
+  },
+
+  bindEvents: function() {
+    this.rpc.ready(function(proxy) {
+      TreeActions.loadTree();
+      TerminalsActions.createTerminal(Config.terminal);
+
+      IdeActions.loadCompleted();
+    });
+
+    //FIXME: это хак, пока не сделано дуплексное RPC между клиентом и сервером
+    this.rpc.socket.on("terminalUpdated", function(msg) {
+      TerminalsActions.finishUpdateTerminal(msg);
+    });
+  },
+
+  runAutosave: function() {
+    this.autosaveTimer = setInterval(function() {
+    console.log("123");
+      var editors = EditorsStore.getAllDirty();
+      editors.forEach(EditorsActions.save);
+    }, Config.autosaveInterval);
+  },
+
+  runCommand: function(cmd) {
+    TerminalsActions.runCommandInNewTerminal(cmd, Config.terminal);
   },
 
   handleGlobalClick: function() {
