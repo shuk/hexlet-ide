@@ -8,12 +8,10 @@ key.filter = function(event) {
 }
 
 var React = require("react/addons");
-
 var Config = require("editor/config");
 
 function HexletIdeWidget(domElement, options) {
   Config.extend(options);
-  this.rpc = require("editor/rpc");
 }
 
 HexletIdeWidget.prototype.render = function(domElement, rpcConfig) {
@@ -21,19 +19,15 @@ HexletIdeWidget.prototype.render = function(domElement, rpcConfig) {
   return React.renderComponent(<Ide rpcConfig={rpcConfig}/>, domElement);
 }
 
-HexletIdeWidget.prototype.exec = function(cmd) {
-  return this.rpc.run.exec(cmd);
-}
-
 var HexletIde = {
   create: function(domElement, options) {
     return new HexletIdeWidget(options).render(domElement, options);
   },
 
-  Component: function(options) {
+  Component: function(options, cmd, onExec) {
     Config.extend(options);
     var Ide = require("editor/components/Ide");
-    return <Ide rpcConfig={options}/>;
+    return <Ide rpcConfig={options} cmd={cmd} onExec={onExec}/>;
   }
 };
 

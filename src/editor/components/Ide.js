@@ -25,11 +25,17 @@ var Ide = React.createClass({
     return IdeStore.getState();
   },
 
+  rpc: require("editor/rpc"),
+
   componentWillMount: function() {
-    this.domElement = this.props.domElement;
-    this.rpc = require("editor/rpc");
     this.bindEvents();
     this.runAutosave();
+  },
+
+  componentWillReceiveProps: function(nextProps) {
+    if (nextProps.cmd !== this.props.cmd) {
+      this.exec(nextProps.cmd);
+    }
   },
 
   bindEvents: function() {
@@ -38,7 +44,9 @@ var Ide = React.createClass({
       TerminalsActions.createTerminal(Config.terminal);
 
       IdeActions.loadCompleted();
-    });
+
+      this.exec(this.props.cmd);
+    }.bind(this));
 
     //FIXME: это хак, пока не сделано дуплексное RPC между клиентом и сервером
     this.rpc.socket.on("terminalUpdated", function(msg) {
@@ -51,6 +59,13 @@ var Ide = React.createClass({
       var editors = EditorsStore.getAllDirty();
       editors.forEach(EditorsActions.save);
     }, Config.autosaveInterval);
+  },
+
+  exec: function(cmd) {
+    this.rpc.run.exec(cmd)
+    .then(function(result){
+      this.props.onExec(result);
+    }.bind(this));
   },
 
   runCommand: function(cmd) {

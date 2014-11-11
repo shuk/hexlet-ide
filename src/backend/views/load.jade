@@ -16,5 +16,9 @@ html
                 reconnect_failed: console.log.bind(console, "reconnect_failed"),
               }
           };
-        React.render(HexletIde.Component(rpc), document.getElementById("hexlet-ide"));
+        var onExec = function (result) {
+          console.log(result);
+        };
+        React.render(HexletIde.Component(rpc, "make test", onExec),
+                     document.getElementById("hexlet-ide"));
 
