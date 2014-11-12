@@ -19,7 +19,7 @@ var RunnerBox = React.createClass({
     return (
       <div className="runner-box">
         <div className="input-group">
-          <input type="text" className="form-control" ref="commandTxt" />
+          <input type="text" className="form-control" ref="commandTxt" value={this.props.cmd} disabled/>
           <div className="input-group-btn">
             <button onClick={this.handleRunCommandInNewTerminal} type="button" className="btn btn-default">Run</button>
           </div>

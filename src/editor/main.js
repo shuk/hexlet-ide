@@ -26,6 +26,7 @@ function HexletIdeWidget(domElement, options) {
   EditorsActions = require("editor/actions/EditorsActions");
 
   this.domElement = domElement;
+  this.cmd = options.cmd;
   this.rpc = require("./rpc");
   this.bindEvents();
   this.runAutosave();
@@ -55,7 +56,7 @@ HexletIdeWidget.prototype.runAutosave = function() {
 
 HexletIdeWidget.prototype.render = function() {
   var Ide = require("editor/components/Ide");
-  return React.renderComponent(<Ide />, this.domElement);
+  return React.renderComponent(<Ide cmd={this.cmd} />, this.domElement);
 }
 
 HexletIdeWidget.prototype.runCommand = function(cmd) {
