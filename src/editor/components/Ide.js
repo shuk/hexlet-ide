@@ -36,7 +36,7 @@ var Ide = React.createClass({
         <div className="well well-mini" onClick={this.handleGlobalClick}>
           <div className="row">
             <div className="col-md-3 file-tree-box nopadding">
-              <RunnerBox />
+              <RunnerBox cmd={this.props.cmd}/>
               <TreeBox />
             </div>
             <div className="col-md-9 nopadding">
