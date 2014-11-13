@@ -3,29 +3,35 @@
 var AppDispatcher = require("editor/dispatcher/AppDispatcher");
 var IdeConstants = require("editor/constants/IdeConstants");
 var ActionTypes = IdeConstants.ActionTypes;
+var TerminalsStore = require("editor/stores/TerminalsStore");
 
 var rpc = require("editor/rpc");
+var _ = require("lodash");
 
 var TerminalsActions = {
   createTerminal: function(params) {
-    rpc.terminal.create(params).then(function(msg) {
-      AppDispatcher.dispatch({
-        actionType: ActionTypes.TERMINALS_CREATE_TERMINAL,
-        id: msg.id,
-        params: msg.params
-      });
+    var id = TerminalsStore.getNextSequence();
+    AppDispatcher.dispatch({
+      actionType: ActionTypes.TERMINALS_CREATE_TERMINAL,
+      id: id,
+      params: params
     });
+
+    var options = _.merge({ id: id}, params);
+    rpc.terminal.create(options);
   },
 
   runCommandInNewTerminal: function(cmd, params) {
-    rpc.terminal.create(params).then(function(msg) {
-      AppDispatcher.dispatch({
-        actionType: ActionTypes.TERMINALS_CREATE_TERMINAL,
-        id: msg.id,
-        params: msg.params
-      });
+    var id = TerminalsStore.getNextSequence();
+    AppDispatcher.dispatch({
+      actionType: ActionTypes.TERMINALS_CREATE_TERMINAL,
+      id: id,
+      params: params
+    });
 
-      rpc.terminal.update({ id: msg.id, data: cmd + "\n" });
+    var options = _.merge({ id: id }, params);
+    rpc.terminal.create(options).then(function() {
+      rpc.terminal.update({ id: id, data: cmd + "\n" });
     });
   },
 

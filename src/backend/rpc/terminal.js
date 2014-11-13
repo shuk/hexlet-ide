@@ -16,10 +16,10 @@ function createTerminal(socket, options, params) { "use strict";
 
   terminal.on("data", function(data) {
     //FIXME: хак, пока нет дуплексной связи между сервером и клиентом
-    socket.emit("terminalUpdated", { id: terminal.pid, data: data });
+    socket.emit("terminalUpdated", { id: params.id, data: data });
   });
 
-  terminals[terminal.pid] = terminal;
+  terminals[params.id] = terminal;
   return terminal;
 }
 
@@ -28,7 +28,6 @@ module.exports = function(options) {
     create: function(params) {
       var terminal = createTerminal(this.clientSocket, options, params);
       console.log("Created shell with pty master/slave pair (master: %d, pid: %d)", terminal.fd, terminal.pid);
-      return { id: terminal.pid, params: params };
     },
 
     update: function(msg) {
