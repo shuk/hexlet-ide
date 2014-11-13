@@ -113,6 +113,10 @@ var EditorsBox = React.createClass({
       "js": "javascript",
       "jade": "jade",
       "py": "python",
+      "rb": "ruby",
+      "c": "clike",
+      "c++": "clike",
+      "java": "clike",
       "txt": "text",
       "": "text"
     };
