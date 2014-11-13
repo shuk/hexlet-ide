@@ -9,6 +9,7 @@ var ActionTypes = require("editor/constants/IdeConstants").ActionTypes;
 var BaseStore = require("./BaseStore");
 
 var terminals = {};
+var terminalSequence = 1;
 
 var TerminalsStore = BaseStore.extend({
   getAll: function() {
@@ -17,6 +18,10 @@ var TerminalsStore = BaseStore.extend({
 
   getCurrent: function() {
     return _.find(terminals, "current");
+  },
+
+  getNextSequence: function() {
+    return terminalSequence++;
   }
 });
 
