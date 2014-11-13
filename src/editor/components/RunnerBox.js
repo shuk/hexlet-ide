@@ -2,6 +2,7 @@
 
 var React = require("react/addons");
 var TerminalsActions = require("editor/actions/TerminalsActions");
+var TreeActions = require("editor/actions/TreeActions");
 var TerminalsStore = require("editor/stores/TerminalsStore");
 var WatchStoreMixin = require("editor/mixins/WatchStore");
 var Config = require("editor/config");

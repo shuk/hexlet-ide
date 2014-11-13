@@ -9,6 +9,7 @@ var ContextMenu = require("editor/components/common/ContextMenu");
 var Modal = require("editor/components/common/Modal");
 var Loader = require("editor/components/common/Loader");
 var RunnerBox = require("editor/components/RunnerBox");
+var ActionsBox = require("editor/components/ActionsBox");
 
 var IdeActions = require("editor/actions/IdeActions");
 var WatchStoreMixin = require("editor/mixins/WatchStore");
@@ -35,8 +36,15 @@ var Ide = React.createClass({
         <Modal />
         <div className="well well-mini" onClick={this.handleGlobalClick}>
           <div className="row">
-            <div className="col-md-3 file-tree-box nopadding">
-              <RunnerBox cmd={this.props.cmd}/>
+            <div className="col-md-3 nopadding">
+              <div className="row">
+                <div className="col-md-10 file-tree-box">
+                  <RunnerBox cmd={this.props.cmd}/>
+                </div>
+                <div className="col-md-1 nopadding">
+                  <ActionsBox />
+                </div>
+              </div>
               <TreeBox />
             </div>
             <div className="col-md-9 nopadding">
