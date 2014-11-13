@@ -8,6 +8,9 @@ require("codemirror/lib/codemirror.css");
 require("codemirror/theme/solarized.css");
 
 require("codemirror/mode/javascript/javascript");
+require("codemirror/mode/python/python");
+require("codemirror/mode/ruby/ruby");
+require("codemirror/mode/clike/clike");
 require("codemirror/mode/jade/jade");
 
 require("codemirror/addon/hint/show-hint");
