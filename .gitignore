@@ -6,5 +6,6 @@ node_modules
 dev/css
 dev/js
 dev/fonts
+src/backend/public/*
 *.log
 

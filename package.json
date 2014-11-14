@@ -47,6 +47,7 @@
     "gulp-util": "*",
     "gulp-watch": "*",
     "gulp-webpack": "*",
+    "main-bower-files": "*",
     "jsx-loader": "*",
     "less-loader": "*",
     "mocha": "*",

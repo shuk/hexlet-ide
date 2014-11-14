@@ -1,6 +1,7 @@
 /* global process require */
 
 var gulp = require("gulp");
+var mainBowerFiles = require('main-bower-files');
 var webpack = require("gulp-webpack");
 var nodemon = require("gulp-nodemon");
 
@@ -9,6 +10,14 @@ var nodemonConfig = require("./nodemon.json");
 
 // var $ = require("gulp-load-plugins")();
 gulp.task("default", ["develop"]);
+
+gulp.task('bower-copy', function() {
+  gulp.src(mainBowerFiles())
+  .pipe(gulp.dest('src/backend/public/'));
+
+  return gulp.src('./bower_components/bootstrap/dist/fonts/*')
+  .pipe(gulp.dest('src/backend/public/fonts'));
+});
 
 gulp.task("webpack", function() {
   return gulp.src("./src/editor/main.js")

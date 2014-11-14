@@ -5,5 +5,13 @@
     "dependencies": {
         "bootstrap": "*",
         "fuelux": "*"
+    },
+    "overrides": {
+      "bootstrap": {
+        "main": [
+          "**/bootstrap.css",
+          "**/bootstrap.css.map"
+        ]
+      }
     }
 }
