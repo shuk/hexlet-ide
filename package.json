@@ -59,7 +59,6 @@
     "webpack": "*",
     "webpack-dev-middleware": "*",
     "webpack-dev-server": "*",
-    "zombie": "*",
     "debug": "~2.1.0",
     "polyfill-function-prototype-bind": "0.0.1",
     "es5-shim": "~4.0.3"
