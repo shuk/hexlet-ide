@@ -1,6 +1,5 @@
 /* global require process module before after */
 var fs = require("fs-extra");
-var Browser = require("zombie");
 
 var fixturesDir = "./test/fixtures/project/";
 var testDir = "/var/tmp/test_dir";
@@ -9,9 +8,9 @@ var helper = {};
 helper.port = process.env.PORT || 9000;
 helper.baseUrl = "http://localhost:" + helper.port;
 
-
 var Nightmare = require("nightmare");
 var debug = require("debug")("nightmare");
+
 var customActions = require("./support/nightmareCustomActions");
 Object.keys(customActions).forEach(function (name) {
   var fn = customActions[name];

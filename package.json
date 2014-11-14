@@ -9,7 +9,7 @@
   "keywords": [],
   "scripts": {
     "start": "bin/hexlet-ide.js -p 9000 -r ./test/fixtures/project",
-    "test": "./node_modules/.bin/mocha --harmony --reporter list"
+    "test": "./node_modules/.bin/mocha --harmony --reporter list ./test/integration"
   },
   "bin": {
     "hexlet-ide": "./bin/hexlet-ide.js"
@@ -59,7 +59,6 @@
     "webpack": "*",
     "webpack-dev-middleware": "*",
     "webpack-dev-server": "*",
-    "zombie": "*",
     "debug": "~2.1.0",
     "polyfill-function-prototype-bind": "0.0.1",
     "es5-shim": "~4.0.3"
