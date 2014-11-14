@@ -11,7 +11,6 @@ module.exports = function(fileName) {
       .exists(containerSelector, function(result) {
         expect(result).to.equal(false);
       })
-      .wait(selector)
       .click(selector)
       .wait();
   };
