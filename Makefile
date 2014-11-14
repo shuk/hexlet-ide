@@ -3,6 +3,7 @@ install:
 	bower install # ?
 
 develop:
+	gulp bower-copy
 	gulp develop
 
 test:
