@@ -4,7 +4,8 @@
     "main": "src/backend/public/assets/main.js",
     "dependencies": {
         "bootstrap": "*",
-        "fuelux": "*"
+        "fuelux": "*",
+        "xterm.js": "*"
     },
     "overrides": {
       "bootstrap": {

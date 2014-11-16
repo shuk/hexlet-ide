@@ -5,6 +5,7 @@ var $ = jQuery = require("jquery/dist/jquery");
 require("fuelux/dist/css/fuelux.css");
 require("codemirror/lib/codemirror.css");
 require("codemirror/theme/solarized.css");
+require("xterm.js/src/xterm.css");
 
 require("codemirror/mode/javascript/javascript");
 require("codemirror/mode/python/python");

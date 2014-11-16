@@ -34,9 +34,9 @@ var Ide = React.createClass({
       <div>
         <ContextMenu />
         <Modal />
-        <div className="well well-mini" onClick={this.handleGlobalClick}>
-          <div className="row">
-            <div className="col-md-3 nopadding">
+        <div className="well well-mini max-height" onClick={this.handleGlobalClick}>
+          <div className="row max-height">
+            <div className="col-md-3 nopadding max-height">
               <div className="row">
                 <div className="col-md-10 file-tree-box">
                   <RunnerBox cmd={this.props.cmd}/>
@@ -47,15 +47,9 @@ var Ide = React.createClass({
               </div>
               <TreeBox />
             </div>
-            <div className="col-md-9 nopadding">
-              <div className="row">
-                <div className="col-md-12">
-                  <EditorsBox />
-                </div>
-                <div className="col-md-12">
-                  <TerminalsBox />
-                </div>
-              </div>
+            <div className="col-md-9 nopadding max-height">
+              <EditorsBox />
+              <TerminalsBox />
             </div>
           </div>
         </div>

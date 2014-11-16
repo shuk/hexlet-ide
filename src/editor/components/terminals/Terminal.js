@@ -8,10 +8,16 @@ var Terminal = React.createClass({
     return (
       <div className="row">
         <div className="col-md-12">
-          <div ref="terminal"></div>
+          <div ref="terminal" onClick={this.resize.bind(this)}></div>
         </div>
       </div>
     );
+  },
+
+  resize: function () {
+    var terminal = this.props.terminal;
+    terminal.terminal.element.onresize=function(){terminal.terminal.fit(); console.log("resize")};
+    terminal.terminal.fit();
   },
 
   shouldComponentUpdate: function() {

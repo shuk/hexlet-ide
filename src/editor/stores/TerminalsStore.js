@@ -1,7 +1,7 @@
 /* global require module */
 var _ = require("lodash");
 
-var Terminal = require("term.js/src/term");
+var Terminal = require("xterm.js/src/xterm");
 
 var AppDispatcher = require("editor/dispatcher/AppDispatcher");
 var ActionTypes = require("editor/constants/IdeConstants").ActionTypes;
@@ -30,10 +30,9 @@ AppDispatcher.registerHandler(ActionTypes.TERMINALS_CREATE_TERMINAL, function(pa
     id: payload.id,
     terminal: new Terminal({
       cols: payload.params.cols,
-      rows: payload.params.rows,
+      rows: 5,
       screenKeys: true,
       useStyle: true,
-      cursorBlink: true
     })
   };
   _.each(terminals, function(t) { t.current = false; });

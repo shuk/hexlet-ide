@@ -33,7 +33,6 @@
   "devDependencies": {
     "codemirror": "*",
     "socket.io-client": "*",
-    "term.js": "*",
     "react": "*",
     "jquery": "*",
     "keymaster": "*",
