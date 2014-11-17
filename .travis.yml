@@ -4,6 +4,6 @@ node_js:
 
 before_install: npm install -g gulp bower
 install: npm install && bower install
-before_script: gulp webpack
+before_script: gulp webpack && gulp bower-copy
 env:
   - NODE_ENV=travis
