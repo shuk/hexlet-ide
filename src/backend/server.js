@@ -27,15 +27,15 @@ var s = function(options) {
     require("express-debug")(app, {
       panels: ["locals", "request", "session", "template", "nav"]
     });
-
-    var webpack = require("webpack");
-    var webpackConfig = require("../../webpack.config.js")();
-    var compiler = webpack(webpackConfig);
-
-    var webpackDevMiddleware = require("webpack-dev-middleware");
-    var middleware = webpackDevMiddleware(compiler, webpackConfig.devServer);
-    app.use(middleware);
   }
+
+  var webpack = require("webpack");
+  var webpackConfig = require("../../webpack.config.js")();
+  var compiler = webpack(webpackConfig);
+
+  var webpackDevMiddleware = require("webpack-dev-middleware");
+  var middleware = webpackDevMiddleware(compiler, webpackConfig.devServer);
+  app.use(middleware);
   app.use(express.static(path.join(__dirname, "public")));
 
   // catch 404 and forward to error handler
