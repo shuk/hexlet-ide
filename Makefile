@@ -16,9 +16,9 @@ docker_build:
 	docker build -t hexlet/hexlet-ide .
 
 docker_bash:
-	docker run -it hexlet-ide /bin/bash
+	docker run -p 9000:9000 -it hexlet/hexlet-ide /bin/bash
 
 docker_run:
-	docker run -p 9000:9000 hexlet-ide
+	docker run -p 9000:9000 hexlet/hexlet-ide
 
 .PHONY: test publish develop install

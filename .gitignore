@@ -8,4 +8,5 @@ dev/js
 dev/fonts
 src/backend/public/*
 *.log
+.DS_Store
 
