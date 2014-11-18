@@ -18,5 +18,6 @@ require("codemirror/addon/hint/javascript-hint");
 require("codemirror/addon/hint/css-hint");
 require("codemirror/addon/hint/anyword-hint");
 
+require("xterm.js/addons/fit/fit.js");
 
 require("editor/styles/application.less");
