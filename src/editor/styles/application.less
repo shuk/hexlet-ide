@@ -36,7 +36,7 @@
     border-radius: 0;
     border: 1px solid #ddd;
     overflow: scroll;
-    .full-screen;
+    height: 96.5%;
 }
 
 .runner-box {
@@ -106,13 +106,16 @@
     margin: auto;
 }
 
-.container {
+.full-screen-ide {
     position: fixed;
-    .full-screen;
-    margin: 0;
-    padding: 0;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
 }
 
-#hexlet-ide {
-    .full-screen;
+.full-screen-btn {
+    clear: both;
+    float: right;
+    z-index: 100;
 }

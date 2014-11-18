@@ -25,15 +25,30 @@ var Ide = React.createClass({
     IdeActions.globalClick();
   },
 
+  toggleFullscreen: function() {
+    IdeActions.toggleFullscreen();
+  },
+
+  getIdeInnerClasses: function() {
+    var cx = React.addons.classSet;
+    var classes = cx({
+      "full-screen-ide": this.state.fullScreen
+    });
+    return classes;
+  },
+
   render: function() {
     if (!this.state.isLoaded) {
       return <Loader />;
     }
 
     return (
-      <div>
+      <div className={this.getIdeInnerClasses()}>
         <ContextMenu />
         <Modal />
+        <button className="btn btn-xs full-screen-btn" onClick={this.toggleFullscreen}>
+          Fullscreen
+        </button>
         <div className="well well-mini max-height" onClick={this.handleGlobalClick}>
           <div className="row max-height">
             <div className="col-md-3 nopadding max-height">

@@ -16,6 +16,7 @@ var Terminal = React.createClass({
 
   resize: function () {
     var terminal = this.props.terminal;
+    // FIXME resize on size changed
     terminal.terminal.element.onresize=function(){terminal.terminal.fit(); console.log("resize")};
     terminal.terminal.fit();
   },

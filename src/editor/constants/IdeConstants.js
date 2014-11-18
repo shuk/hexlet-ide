@@ -5,6 +5,7 @@ var keyMirror = require("react/lib/keyMirror");
 module.exports = {
   ActionTypes: keyMirror({
     IDE_GLOBAL_CLICK: null,
+    IDE_TOGGLE_FULL_SCREEN: null,
     IDE_LOADED: null,
 
     TREE_LOAD: null,
