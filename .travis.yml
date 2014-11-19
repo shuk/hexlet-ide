@@ -7,3 +7,6 @@ install: npm install && bower install
 before_script: gulp webpack && gulp bower-copy
 env:
   - NODE_ENV=travis
+
+notifications:
+   slack: hexlet:B18kICQ6LOoGVPjeKAOajrCt

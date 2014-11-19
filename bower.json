@@ -5,7 +5,7 @@
     "dependencies": {
         "bootstrap": "*",
         "fuelux": "*",
-        "xterm.js": "git@github.com:sourcelair/xterm.js.git#0.25"
+        "xterm.js": "https://github.com/sourcelair/xterm.js.git#0.26"
     },
     "overrides": {
       "bootstrap": {
