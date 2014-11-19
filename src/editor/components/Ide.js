@@ -25,18 +25,41 @@ var Ide = React.createClass({
     IdeActions.globalClick();
   },
 
+  toggleFullscreen: function() {
+    IdeActions.toggleFullscreen();
+  },
+
+  getIdeInnerClasses: function() {
+    var cx = React.addons.classSet;
+    var classes = cx({
+      "full-screen-ide": this.state.fullScreen
+    });
+    return classes;
+  },
+
+  getFullScreenButtonTxt: function() {
+    if (this.state.fullScreen) {
+      return "Embedded";
+    } else {
+      return "Fullscreen";
+    }
+  },
+
   render: function() {
-    if (!this.state.isLoaded) {
+    if (!this.state.loaded) {
       return <Loader />;
     }
 
     return (
-      <div>
+      <div className={this.getIdeInnerClasses()}>
         <ContextMenu />
         <Modal />
-        <div className="well well-mini" onClick={this.handleGlobalClick}>
-          <div className="row">
-            <div className="col-md-3 nopadding">
+        <button className="btn btn-xs full-screen-btn" onClick={this.toggleFullscreen}>
+          {this.getFullScreenButtonTxt()}
+        </button>
+        <div className="well well-mini max-height" onClick={this.handleGlobalClick}>
+          <div className="row max-height">
+            <div className="col-md-3 nopadding max-height">
               <div className="row">
                 <div className="col-md-10 file-tree-box">
                   <RunnerBox cmd={this.props.cmd}/>
@@ -47,15 +70,9 @@ var Ide = React.createClass({
               </div>
               <TreeBox />
             </div>
-            <div className="col-md-9 nopadding">
-              <div className="row">
-                <div className="col-md-12">
-                  <EditorsBox />
-                </div>
-                <div className="col-md-12">
-                  <TerminalsBox />
-                </div>
-              </div>
+            <div className="col-md-9 nopadding max-height">
+              <EditorsBox />
+              <TerminalsBox />
             </div>
           </div>
         </div>

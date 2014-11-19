@@ -12,6 +12,13 @@ var IdeActions = {
     });
   },
 
+  toggleFullscreen: function() {
+    "use strict";
+    AppDispatcher.dispatch({
+      actionType: ActionTypes.IDE_TOGGLE_FULL_SCREEN
+    });
+  },
+
   loadCompleted: function() {
     "use strict";
     AppDispatcher.dispatch({

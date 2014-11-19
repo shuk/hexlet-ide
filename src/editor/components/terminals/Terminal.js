@@ -8,10 +8,16 @@ var Terminal = React.createClass({
     return (
       <div className="row">
         <div className="col-md-12">
+          <iframe className="terminal-frame" name="terminalFrame"/>
           <div ref="terminal"></div>
         </div>
       </div>
     );
+  },
+
+  terminalResize: function () {
+    var terminal = this.props.terminal;
+    terminal.terminal.fit();
   },
 
   shouldComponentUpdate: function() {
@@ -29,6 +35,10 @@ var Terminal = React.createClass({
     });
 
     terminal.terminal.open(this.refs.terminal.getDOMNode());
+
+    terminalFrame.onresize = function(){
+      this.terminalResize();
+    }.bind(this);
   }
 });
 
