@@ -118,6 +118,8 @@ var EditorsBox = React.createClass({
       "c++": "clike",
       "java": "clike",
       "txt": "text",
+      "yml": "yaml",
+      "yaml": "yaml",
       "": "text"
     };
 
