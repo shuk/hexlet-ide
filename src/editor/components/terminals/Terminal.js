@@ -6,10 +6,10 @@ var TerminalsActions = require('editor/actions/TerminalsActions');
 var Terminal = React.createClass({
   render: function() {
     return (
-      <div className="row">
-        <div className="col-md-12">
+      <div className="row max-height">
+        <div className="col-md-12 max-height">
           <iframe className="terminal-frame" name="terminalFrame"/>
-          <div ref="terminal"></div>
+          <div className="max-height" ref="terminal" onClick={this.terminalResize.bind(this)}></div>
         </div>
       </div>
     );

@@ -40,7 +40,8 @@ var TerminalsBox = React.createClass({
     return _.map(this.state.terminals, function(terminal) {
       var classes = React.addons.classSet({
         "tab-pane": true,
-        "fade active in": terminal.current
+        "fade active in": terminal.current,
+        "max-height": true
       });
 
       return (
@@ -60,7 +61,7 @@ var TerminalsBox = React.createClass({
             <a onClick={this.createTerminal}>Create terminal</a>
           </li>
         </ul>
-        <div className="tab-content">
+        <div className="tab-content max-height">
           {this.renderTerminals()}
         </div>
       </div>

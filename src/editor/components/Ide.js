@@ -32,7 +32,8 @@ var Ide = React.createClass({
   getIdeInnerClasses: function() {
     var cx = React.addons.classSet;
     var classes = cx({
-      "full-screen-ide": this.state.fullScreen
+      "full-screen-ide": this.state.fullScreen,
+      "embedded-ide": !this.state.fullScreen
     });
     return classes;
   },
