@@ -37,8 +37,16 @@ var Ide = React.createClass({
     return classes;
   },
 
+  getFullScreenButtonTxt: function() {
+    if (this.state.fullScreen) {
+      return "Embedded";
+    } else {
+      return "Fullscreen";
+    }
+  },
+
   render: function() {
-    if (!this.state.isLoaded) {
+    if (!this.state.loaded) {
       return <Loader />;
     }
 
@@ -47,7 +55,7 @@ var Ide = React.createClass({
         <ContextMenu />
         <Modal />
         <button className="btn btn-xs full-screen-btn" onClick={this.toggleFullscreen}>
-          Fullscreen
+          {this.getFullScreenButtonTxt()}
         </button>
         <div className="well well-mini max-height" onClick={this.handleGlobalClick}>
           <div className="row max-height">
