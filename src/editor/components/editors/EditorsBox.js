@@ -1,9 +1,5 @@
-/** @jsx React.DOM */
-
 var _ = require("lodash");
-// var Immutable = require("immutable");
 var React = require("react/addons");
-// var ReactPropTypes = React.PropTypes;
 var key = require("keymaster");
 
 var WatchStoreMixin = require("editor/mixins/WatchStore");
@@ -15,10 +11,6 @@ var EditorsActions = require("editor/actions/EditorsActions");
 var ModalActions = require("editor/actions/ModalActions");
 
 var EditorsBox = React.createClass({
-  // propTypes: {
-  // tabsData: React.PropTypes.renderable.isRequired
-  // defaultCollapsed: React.PropTypes.bool,
-  // },
   mixins: [ WatchStoreMixin(EditorsStore) ],
 
   getFluxState: function() {

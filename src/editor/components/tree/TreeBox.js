@@ -1,4 +1,3 @@
-/** @jsx React.DOM */
 var React = require("react/addons");
 
 var WatchStoreMixin = require("editor/mixins/WatchStore");
@@ -13,10 +12,6 @@ var ModalActions = require("editor/actions/ModalActions");
 var ActionTypes = require("editor/constants/IdeConstants").ActionTypes;
 
 var TreeBox = React.createClass({
-  // propTypes: {
-  // nodeLabel: React.PropTypes.renderable.isRequired
-  // defaultCollapsed: React.PropTypes.bool,
-  // },
   mixins: [ WatchStoreMixin(TreeStore) ],
 
   getFluxState: function() {
@@ -114,13 +109,13 @@ var TreeBox = React.createClass({
     return contextMenuChildren;
   },
 
-  handleContextMenu: function(e, item, type) {
+  handleContextMenu: function(e, item) {
     e.preventDefault();
     var coords = {
       x: e.clientX,
       y: e.clientY
     };
-    var items = this.getContextMenuItems(item, type);
+    var items = this.getContextMenuItems(item);
     ContextMenuActions.showContextMenu(coords, items);
   },
 

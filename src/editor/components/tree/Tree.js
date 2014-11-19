@@ -1,5 +1,3 @@
-/** @jsx React.DOM */
-
 var _ = require("lodash");
 var React = require("react/addons");
 
@@ -12,16 +10,16 @@ var Tree = React.createClass({
     TreeActions.toggleFolderState(tree);
   },
 
-  handleContextMenu: function(e) {
-    this.props.handleContextMenu(e, this.props.tree);
+  handleContextMenu: function(tree, e) {
+    this.props.handleContextMenu(e, tree);
   },
 
-  getChildren: function() {
-    return _.sortBy(this.props.tree.children, ["type", "name"]);
+  getChildren: function(tree) {
+    return _.sortBy(tree.children, ["type", "name"]);
   },
 
   render: function() {
-    var tree = this.props.tree;
+    var { tree, ...other } = this.props;
 
     if (undefined === tree) {
       return null;
@@ -51,7 +49,7 @@ var Tree = React.createClass({
       <li className={treeBranchClasses} data-template="treebranch" data-name={tree.name} role="treeitem" aria-expanded="false">
         <div className="tree-branch-header">
           <button className="tree-branch-name" data-name={tree.name}
-            onContextMenu={this.handleContextMenu}
+            onContextMenu={this.handleContextMenu.bind(this, tree)}
             onClick={this.handleToggleFolderState.bind(this, tree)}>
             <span className="glyphicon icon-caret glyphicon-play"></span>
             <span className={folderIconClasses} data-name={tree.name}> </span>
@@ -61,13 +59,13 @@ var Tree = React.createClass({
 
         {tree.children !== undefined ?
           <ul className={childrenClasses} role="group">
-            {this.getChildren().map(function(item) {
+            {this.getChildren(tree).map(function(item) {
               switch(item.type) {
                 case "directory":
-                  return <Tree key={"tree_" + item.id} tree={item} handleContextMenu={this.props.handleContextMenu} />
+                  return <Tree {...other} key={"tree_" + item.id} tree={item} />
                   break;
                 case "file":
-                  return <Leaf key={"leaf_" + item.id} leaf={item} handleContextMenu={this.props.handleContextMenu} />
+                  return <Leaf {...other} key={"leaf_" + item.id} leaf={item} />
                   break;
                 default:
                   throw "xxx"

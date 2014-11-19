@@ -1,5 +1,3 @@
-/** @jsx React.DOM */
-
 var React = require("react/addons");
 var CodeMirror = require("codemirror");
 
@@ -12,12 +10,6 @@ var Editor = React.createClass({
         </div>
       </div>
     );
-  },
-
-  componentWillReceiveProps: function(nextProps) {
-    // if (nextProps.focus) {
-    //   this.state.myCodeMirror.focus();
-    // }
   },
 
   componentDidMount: function() {

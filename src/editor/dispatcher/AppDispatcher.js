@@ -1,37 +1,9 @@
 /* global require module */
 
-// var ChatConstants = require('../constants/ChatConstants');
 var Dispatcher = require("flux/lib/Dispatcher");
-var copyProperties = require("react/lib/copyProperties");
+var objectAssign = require("react/lib/Object.assign");
 
-// var PayloadSources = ChatConstants.PayloadSources;
-
-var AppDispatcher = copyProperties(new Dispatcher(), {
-
-  /**
-   * @param {object} action The details of the action, including the action's
-   * type and additional data coming from the server.
-   */
-  // handleServerAction: function(action) {
-  //   var payload = {
-  //     source: PayloadSources.SERVER_ACTION,
-  //     action: action
-  //   };
-  //   this.dispatch(payload);
-  // },
-
-  /**
-   * @param {object} action The details of the action, including the action's
-   * type and additional data coming from the view.
-   */
-  // handleViewAction: function(action) {
-  //   var payload = {
-  //     source: PayloadSources.VIEW_ACTION,
-  //     action: action
-  //   };
-  //   this.dispatch(payload);
-  // }
-  //
+var AppDispatcher = objectAssign(new Dispatcher(), {
   registerHandler: function(actionType, callback) {
     if (!actionType) {
       throw "ActionType is undefined!!!";
@@ -42,7 +14,6 @@ var AppDispatcher = copyProperties(new Dispatcher(), {
       }
     });
   }
-
 });
 
 module.exports = AppDispatcher;
