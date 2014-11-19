@@ -1,5 +1,3 @@
-/** @jsx React.DOM */
-
 var React = require("react/addons");
 var ModalActions = require("editor/actions/ModalActions");
 var ModalStore = require("editor/stores/ModalStore");

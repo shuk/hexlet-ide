@@ -1,4 +1,3 @@
-/** @jsx React.DOM */
 var React = require("react/addons");
 
 var WatchStoreMixin = require("editor/mixins/WatchStore");

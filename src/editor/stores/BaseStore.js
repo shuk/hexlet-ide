@@ -1,5 +1,6 @@
 /* global require module */
-var copyProperties = require("react/lib/copyProperties");
+
+var objectAssign = require("react/lib/Object.assign");
 var EventEmitter = require("events").EventEmitter;
 
 var CHANGE_EVENT = "change";
@@ -23,7 +24,7 @@ BaseStore.prototype.removeChangeListener = function(callback) {
 };
 
 BaseStore.extend = function(data) {
-  return copyProperties(new BaseStore(), data);
+  return objectAssign(new BaseStore(), data);
 };
 
 module.exports = BaseStore;

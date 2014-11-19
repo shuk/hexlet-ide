@@ -1,4 +1,3 @@
-/** @jsx React.DOM */
 require("./dependencies");
 
 var key = require("keymaster");
@@ -56,7 +55,7 @@ HexletIdeWidget.prototype.runAutosave = function() {
 
 HexletIdeWidget.prototype.render = function() {
   var Ide = require("editor/components/Ide");
-  return React.renderComponent(<Ide cmd={this.cmd} />, this.domElement);
+  return React.render(<Ide cmd={this.cmd} />, this.domElement);
 }
 
 HexletIdeWidget.prototype.runCommand = function(cmd) {

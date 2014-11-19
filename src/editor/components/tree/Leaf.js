@@ -1,19 +1,16 @@
-/** @jsx React.DOM */
-
 var _ = require("lodash");
 var React = require("react/addons");
 
 var TreeActions = require("editor/actions/TreeActions");
 
 var Leaf = React.createClass({
-  handleOpenFile: function(tree, e) {
-    TreeActions.openFile(tree);
+  handleOpenFile: function(leaf, e) {
+    TreeActions.openFile(leaf);
   },
 
-  handleContextMenu: function(e) {
-    this.props.handleContextMenu(e, this.props.leaf);
+  handleContextMenu: function(leaf, e) {
+    this.props.handleContextMenu(e, leaf);
   },
-
 
   render: function() {
     var leaf = this.props.leaf;
@@ -22,7 +19,7 @@ var Leaf = React.createClass({
     return (
       <li className="tree-item" data-template="treeitem" role="treeitem">
         <button className="tree-item-name"
-          onContextMenu={this.handleContextMenu}
+          onContextMenu={this.handleContextMenu.bind(this, leaf)}
           onDoubleClick={this.handleOpenFile.bind(this, leaf)}>
 
           <span className="glyphicon icon-file glyphicon-file"></span>
