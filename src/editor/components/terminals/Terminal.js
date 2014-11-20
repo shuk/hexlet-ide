@@ -7,7 +7,7 @@ var Terminal = React.createClass({
       <div className="row max-height">
         <div className="col-md-12 max-height">
           <iframe className="terminal-frame" name="terminalFrame"/>
-          <div className="max-height" ref="terminal" onClick={this.terminalResize.bind(this)}></div>
+          <div className="max-height" ref="terminal"></div>
         </div>
       </div>
     );
@@ -33,6 +33,7 @@ var Terminal = React.createClass({
     });
 
     terminal.terminal.open(this.refs.terminal.getDOMNode());
+    this.terminalResize();
 
     terminalFrame.onresize = function(){
       this.terminalResize();
