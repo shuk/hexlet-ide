@@ -20,7 +20,7 @@ module.exports = function() {
     debug: isPrepublish() ? false : true,
     devtool: isPrepublish() ? false : "source-map",
     target: "web",
-    entry: ["./src/editor/main.js"],
+    entry: [path.join(__dirname, "./src/editor/main.js")],
 
     externals: {
       "react/addons": "React"
@@ -41,6 +41,8 @@ module.exports = function() {
         "src", "node_modules", "bower_components"
       ]
     },
+
+    resolveLoader: { root: path.join(__dirname, "node_modules") },
 
     module: {
       loaders: [{

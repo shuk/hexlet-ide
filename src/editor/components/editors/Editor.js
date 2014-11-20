@@ -4,9 +4,9 @@ var CodeMirror = require("codemirror");
 var Editor = React.createClass({
   render: function() {
     return (
-      <div className="row">
-        <div className="col-md-12">
-          <div ref="editor"></div>
+      <div className="row max-height">
+        <div className="col-md-12 max-height">
+          <div className="max-height" ref="editor"></div>
         </div>
       </div>
     );

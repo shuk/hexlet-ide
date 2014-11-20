@@ -78,12 +78,13 @@ var EditorsBox = React.createClass({
           <ul className="nav nav-tabs" role="tablist">
             {items}
           </ul>
-          <div className="tab-content">
+          <div className="tab-content max-height">
             {editors.map(function(editor) {
               var mode = this.getEditorMode(editor.name);
               var classes = cx({
                 "tab-pane": true,
-                "fade active in": editor.current
+                "fade active in": editor.current,
+                "max-height": true
               });
 
               return (
