@@ -64,7 +64,7 @@ var EditorsBox = React.createClass({
       });
 
       return (<li key={"editor_" + editor.id} className={classes}>
-        <a href="#" onDoubleClick={this.handleCloseTab.bind(this, editor)} onClick={this.selectEditor.bind(this, editor)}>
+        <a href="#" onClick={this.selectEditor.bind(this, editor)}>
           <span>
             {editor.name} {editor.dirty ? "*" : ""}
           </span>
