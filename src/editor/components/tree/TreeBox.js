@@ -111,6 +111,7 @@ var TreeBox = React.createClass({
 
   handleContextMenu: function(e, item) {
     e.preventDefault();
+    e.stopPropagation();
     var coords = {
       x: e.clientX,
       y: e.clientY
