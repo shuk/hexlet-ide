@@ -21,6 +21,18 @@ var TerminalsActions = {
     rpc.terminal.create(options);
   },
 
+  createDefaultTerminal: function(params) {
+    var id = TerminalsStore.getNextSequence();
+    AppDispatcher.dispatch({
+      actionType: ActionTypes.TERMINALS_CREATE_TERMINAL,
+      id: id,
+      params: params
+    });
+
+    var options = _.merge({ id: id}, params);
+    rpc.terminal.createDefault(options);
+  },
+
   reconnectTerminals: function() {
     _.each(TerminalsStore.getAll(), function(terminal) {
       rpc.terminal.reconnect({ id: terminal.id });
