@@ -57,7 +57,9 @@ module.exports = function(options) { "use strict";
 
     destroy: function(msg) {
       var id = msg.id;
-      if (terminals[id]) {
+      var terminal = terminals[id];
+
+      if (terminal) {
         closeTerminal(id);
       }
       console.log("Destroy shell pty with (master: %d, pid: %d)", terminal.fd, terminal.pid);
