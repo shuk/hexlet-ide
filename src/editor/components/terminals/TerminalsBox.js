@@ -28,7 +28,12 @@ var TerminalsBox = React.createClass({
       return <li key={"tab_" + id} className={tabClasses}>
         <a href="#" onClick={this.selectTerminal.bind(this, terminal)}>
           <span>{"Terminal " + id}</span>
-          <span className="glyphicon glyphicon-remove" onClick={this.closeTerminal.bind(this, terminal)}></span>
+          <button type="button" className="close" onClick={this.closeTerminal.bind(this, terminal)}>
+            <span aria-hidden="true">&times;</span>
+            <span className="sr-only">
+              Close
+            </span>
+          </button>
         </a>
       </li>;
     }, this);

@@ -68,7 +68,12 @@ var EditorsBox = React.createClass({
           <span>
             {editor.name} {editor.dirty ? "*" : ""}
           </span>
-          <span className="glyphicon glyphicon-remove" onClick={this.handleCloseTab.bind(this, editor)}></span>
+          <button type="button" className="close" onClick={this.handleCloseTab.bind(this, editor)}>
+            <span aria-hidden="true">&times;</span>
+            <span className="sr-only">
+              Close
+            </span>
+          </button>
         </a>
       </li>);
     }, this);
