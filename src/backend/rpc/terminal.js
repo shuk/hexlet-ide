@@ -1,5 +1,6 @@
 /* global require process module console */
 var pty = require("pty.js");
+var _ = require("lodash");
 
 var terminals = {};
 
@@ -34,14 +35,15 @@ function closeTerminal(id) { "use strict;"
   delete terminals[id];
 }
 
+function cleanup() { "use strict;"
+  _.each(_.keys(terminals), function(id) {
+    closeTerminal(id);
+  });
+}
+
 module.exports = function(options) { "use strict";
   return {
     create: function(params) {
-      var id = params.id;
-
-      if (terminals[id]) {
-        closeTerminal(id);
-      }
       var terminal = createTerminal(this.clientSocket, options, params);
       console.log("Created shell with pty master/slave pair (master: %d, pid: %d)", terminal.fd, terminal.pid);
     },
@@ -55,7 +57,9 @@ module.exports = function(options) { "use strict";
 
     destroy: function(msg) {
       var id = msg.id;
-      if (terminals[id]) {
+      var terminal = terminals[id];
+
+      if (terminal) {
         closeTerminal(id);
       }
       console.log("Destroy shell pty with (master: %d, pid: %d)", terminal.fd, terminal.pid);
@@ -66,6 +70,13 @@ module.exports = function(options) { "use strict";
       if (terminals[id]) {
         connectTerminal(this.clientSocket, id);
       }
+    },
+
+    createDefault: function(params) {
+      cleanup();
+
+      var terminal = createTerminal(this.clientSocket, options, params);
+      console.log("Created default shell with pty master/slave pair (master: %d, pid: %d)", terminal.fd, terminal.pid);
     }
   };
 };

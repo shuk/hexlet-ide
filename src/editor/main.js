@@ -36,7 +36,7 @@ function HexletIdeWidget(domElement, options) {
 HexletIdeWidget.prototype.bindEvents = function() {
   this.rpc.ready(function(proxy) {
     TreeActions.loadTree();
-    TerminalsActions.createTerminal(Config.terminal);
+    TerminalsActions.createDefaultTerminal(Config.terminal);
 
     IdeActions.loadCompleted();
   });
