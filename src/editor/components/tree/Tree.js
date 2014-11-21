@@ -46,10 +46,10 @@ var Tree = React.createClass({
     });
 
     return (
-      <li className={treeBranchClasses} data-template="treebranch" data-name={tree.name} role="treeitem" aria-expanded="false">
+      <li className={treeBranchClasses} data-template="treebranch" data-name={tree.name}
+        onContextMenu={this.handleContextMenu.bind(this, tree)} role="treeitem" aria-expanded="false">
         <div className="tree-branch-header">
           <button className="tree-branch-name" data-name={tree.name}
-            onContextMenu={this.handleContextMenu.bind(this, tree)}
             onClick={this.handleToggleFolderState.bind(this, tree)}>
             <span className="glyphicon icon-caret glyphicon-play"></span>
             <span className={folderIconClasses} data-name={tree.name}> </span>
