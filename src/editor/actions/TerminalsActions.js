@@ -21,6 +21,12 @@ var TerminalsActions = {
     rpc.terminal.create(options);
   },
 
+  reconnectTerminals: function() {
+    _.each(TerminalsStore.getAll(), function(terminal) {
+      rpc.terminal.reconnect({ id: terminal.id });
+    });
+  },
+
   runCommandInNewTerminal: function(cmd, params) {
     var id = TerminalsStore.getNextSequence();
     AppDispatcher.dispatch({

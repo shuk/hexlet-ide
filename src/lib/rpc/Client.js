@@ -25,7 +25,7 @@ function generateClientMethod(client, methodName) {
 
 function Client(socket) {
   this.socket = socket;
-  socket.on("rpcMethods", function(methods) {
+  socket.once("rpcMethods", function(methods) {
     this.methods = methods;
 
     methods.forEach(function(method) {

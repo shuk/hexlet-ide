@@ -21,6 +21,7 @@ function HexletIdeWidget(domElement, options) {
   Config.extend(options);
   TreeActions = require("editor/actions/TreeActions");
   TerminalsActions = require("editor/actions/TerminalsActions");
+  TerminalsStore = require("editor/stores/TerminalsStore");
   IdeActions = require("editor/actions/IdeActions");
   EditorsActions = require("editor/actions/EditorsActions");
 
@@ -43,6 +44,10 @@ HexletIdeWidget.prototype.bindEvents = function() {
   //FIXME: это хак, пока не сделано дуплексное RPC между клиентом и сервером
   this.rpc.socket.on("terminalUpdated", function(msg) {
     TerminalsActions.finishUpdateTerminal(msg);
+  });
+
+  this.rpc.socket.on("reconnect", function() {
+    TerminalsActions.reconnectTerminals();
   });
 }
 
