@@ -13,7 +13,7 @@ publish:
 	npm publish
 
 docker_build:
-	docker build -t hexlet/hexlet-ide .
+	docker build -t hexlet/hexlet-ide:$(TAG) .
 
 docker_bash:
 	docker run -p 9000:9000 -it hexlet/hexlet-ide /bin/bash
