@@ -2,9 +2,9 @@ language: node_js
 node_js:
   - "0.10"
 
-before_install: npm install -g gulp bower
+before_install: npm install -g gulp bower eslint
 install: npm install && bower install
-before_script: gulp webpack && gulp bower-copy
+before_script: gulp lint && gulp webpack && gulp bower-copy
 env:
   - NODE_ENV=travis
 
