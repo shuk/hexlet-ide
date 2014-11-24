@@ -4,6 +4,7 @@ var gulp = require("gulp");
 var mainBowerFiles = require('main-bower-files');
 var webpack = require("gulp-webpack");
 var nodemon = require("gulp-nodemon");
+var eslint = require("gulp-eslint");
 
 var webpackConfig = require("./webpack.config.js");
 var nodemonConfig = require("./nodemon.json");
@@ -37,4 +38,10 @@ gulp.task("develop", function() {
   process.env.PORT = 9000;
   process.env.TEST_DIR = "test/fixtures/project";
   nodemon(nodemonConfig);
+});
+
+gulp.task("lint", function() {
+  return gulp.src(["src/**/*.js", "!src/backend/public/**/*"])
+    .pipe(eslint())
+    .pipe(eslint.format());
 });
