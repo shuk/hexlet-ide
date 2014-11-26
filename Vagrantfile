@@ -3,14 +3,6 @@
 
 VAGRANTFILE_API_VERSION = '2'
 
-ansible_script = <<SCRIPT
-  sudo apt-get install -y git
-  git clone https://github.com/mokevnin/dotfiles.git /var/tmp/dotfiles
-  cd /var/tmp/dotfiles
-  git pull -f
-  make
-SCRIPT
-
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.define 'default' do |item|
     item.vm.box = 'ubuntu/trusty64'
@@ -30,9 +22,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       ansible.sudo = true
       ansible.verbose = 'vv'
     end
-
-    item.vm.provision 'shell', inline: ansible_script,
-      privileged: false
 
     item.vm.provider 'virtualbox' do |v, override|
       override.vm.box = 'ubuntu/trusty64'
