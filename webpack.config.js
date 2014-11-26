@@ -26,14 +26,11 @@ module.exports = function() {
       "react/addons": "React"
     },
 
-    // stats: {
-    //   colors: true,
-    //   reasons: true
-    // },
-
     devServer: {
-      publicPath: "/assets/"
-      // contentBase: "./dev"
+      publicPath: "/assets/",
+      headers: {
+        "Cache-Control": "max-age=315360000"
+      }
     },
 
     resolve: {
