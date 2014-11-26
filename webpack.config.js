@@ -5,25 +5,24 @@ var path = require("path");
 function isPrepublish() {
   "use strict";
   return process.env.NODE_ENV === "prepublish";
-};
+}
 
 
-module.exports = function() {
+module.exports = function() { "use strict";
   return {
     output: {
       publicPath: "/assets/",
       path: path.join(__dirname, "dist"),
-      filename: "main.js"
+      filename: "[name].js"
     },
 
     cache: isPrepublish() ? false : true,
     debug: isPrepublish() ? false : true,
     devtool: isPrepublish() ? false : "source-map",
     target: "web",
-    entry: [path.join(__dirname, "./src/editor/main.js")],
-
-    externals: {
-      "react/addons": "React"
+    entry: {
+      main: path.join(__dirname, "./src/editor/main.js"),
+      widget: path.join(__dirname, "./src/editor/widget.js")
     },
 
     // stats: {
