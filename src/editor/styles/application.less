@@ -1,6 +1,10 @@
-.full-screen {
-    height: 100vh;
-    width: 100vw;
+.hexlet-ide {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 3000;
 }
 
 .max-height {
@@ -13,8 +17,9 @@
 
 .CodeMirror {
     border: 1px solid #eee;
-    height: 90%;
+    height: 100%;
 }
+
 .CodeMirror-scroll {
     overflow-y: hidden;
     overflow-x: auto;
@@ -59,6 +64,7 @@
 .editors-box {
     height: 58%;
     & .nav {
+        position: absolute;
         a {
             & * {
                 cursor: pointer;
@@ -76,9 +82,14 @@
             }
         }
     }
+
+    & .file-content {
+      padding-top: 26px;
+    }
 }
 
 .terminals-box {
+    flex-shrink: 2000;
     height: 40%;
     & .nav {
         a {
@@ -125,7 +136,7 @@
 }
 
 .embedded-ide {
-    height: 820px;
+    height: 100%;
     z-index: 3000;
 }
 
@@ -136,3 +147,24 @@
     font-size: 11px;
 }
 
+.vertical-ide-split {
+    display: flex;
+    width: 100%;
+    height: 100%;
+
+    & > .left-ide-panel {
+      width: 380px;
+    }
+
+    & > .right-ide-panel {
+      flex-shrink: 1;
+      width: 100%;
+    }
+}
+
+.horizontal-ide-split {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}

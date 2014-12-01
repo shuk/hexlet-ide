@@ -49,6 +49,7 @@ var Ide = React.createClass({
       return <Loader />;
     }
 
+    // FIXME Перейти на Flex
     return (
       <div className={this.getIdeInnerClasses()}>
         <ContextMenu />
@@ -57,22 +58,23 @@ var Ide = React.createClass({
           {this.getFullScreenButtonTxt()}
         </button>
         <div className="well well-mini max-height" onClick={this.handleGlobalClick}>
-          <div className="row max-height">
-            <div className="col-md-3 nopadding max-height">
+          <div className="row max-height vertical-ide-split">
+            <div className="left-ide-panel nopadding max-height">
               <div className="row">
-                <div className="col-md-10 file-tree-box">
+                <div className="col-xs-10 file-tree-box">
                   <RunnerBox cmd={this.props.cmd}/>
                 </div>
-                <div className="col-md-1 nopadding">
+                <div className="col-xs-1 nopadding">
                   <ActionsBox />
                 </div>
               </div>
               <TreeBox />
             </div>
-            <div className="col-md-9 nopadding max-height">
+            <div className="right-ide-panel nopadding max-height">
               <EditorsBox />
               <TerminalsBox />
             </div>
+
           </div>
         </div>
       </div>
