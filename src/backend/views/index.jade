@@ -19,3 +19,18 @@ html
           },
           cmd: "make test"
         });
+
+        window.addEventListener("message", function(event) {
+          var data = event.data;
+          var cmd = data.cmd;
+
+          if (cmd == "makeTest") {
+            widget.exec("make test").done(function(response) {
+              var result = {
+                cmd: cmd,
+                response: response
+              };
+              event.source.postMessage(result, event.origin);
+            });
+          }
+        });
