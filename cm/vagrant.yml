@@ -7,3 +7,5 @@
 
     - name: install nodejs
       apt: pkg=nodejs state=latest update_cache=yes
+
+    - npm: name=gulp state=latest global=yes
