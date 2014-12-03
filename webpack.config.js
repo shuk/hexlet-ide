@@ -8,7 +8,9 @@ function isPrepublish() {
 }
 
 
-module.exports = function() { "use strict";
+module.exports = function() {
+  "use strict";
+
   return {
     output: {
       publicPath: "/assets/",
@@ -21,8 +23,7 @@ module.exports = function() { "use strict";
     devtool: isPrepublish() ? false : "source-map",
     target: "web",
     entry: {
-      main: path.join(__dirname, "./src/editor/main.js"),
-      widget: path.join(__dirname, "./src/editor/widget.js")
+      main: path.join(__dirname, "./src/editor/main.js")
     },
 
     // stats: {
