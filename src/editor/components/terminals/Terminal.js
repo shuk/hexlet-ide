@@ -5,7 +5,7 @@ var Terminal = React.createClass({
   render: function() {
     return (
       <div className="row max-height">
-        <div className="col-md-12 max-height">
+        <div className="col-xs-12 max-height">
           <iframe className="terminal-frame" name="terminalFrame"/>
           <div className="max-height" ref="terminal"></div>
         </div>

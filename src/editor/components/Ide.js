@@ -35,7 +35,7 @@ var Ide = React.createClass({
         <Modal />
         <div className="well well-sm max-height" onClick={this.handleGlobalClick}>
           <div className="max-height vertical-ide-split">
-            <div className="left-ide-panel nopadding max-height">
+            <div className="col-xs-3 nopadding max-height">
               <div className="row">
                 <div className="col-xs-10 file-tree-box">
                   <RunnerBox cmd={this.props.cmd}/>
@@ -46,7 +46,7 @@ var Ide = React.createClass({
               </div>
               <TreeBox />
             </div>
-            <div className="right-ide-panel nopadding max-height">
+            <div className="col-xs-9 nopadding max-height">
               <EditorsBox />
               <TerminalsBox />
             </div>
