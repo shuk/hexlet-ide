@@ -5,7 +5,7 @@ var ActionTypes = require("editor/constants/IdeConstants").ActionTypes;
 
 var state = {
   loaded: false,
-  fullScreen: false
+  fullscreen: false
 };
 
 var IdeStore = BaseStore.extend({
@@ -22,10 +22,10 @@ AppDispatcher.registerHandler(ActionTypes.IDE_LOADED, function() {
   IdeStore.emitChange();
 });
 
-AppDispatcher.registerHandler(ActionTypes.IDE_TOGGLE_FULL_SCREEN, function() {
+AppDispatcher.registerHandler(ActionTypes.IDE_TOGGLE_FULL_SCREEN, function(payload) {
   "use strict";
 
-  state.fullScreen = !state.fullScreen;
+  state.fullscreen = payload.fullscreen;
   IdeStore.emitChange();
 });
 

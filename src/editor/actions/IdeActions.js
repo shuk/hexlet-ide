@@ -14,8 +14,14 @@ var IdeActions = {
 
   toggleFullscreen: function() {
     "use strict";
+    fullscreen = !fullscreen;
+    var cmd = fullscreen ? "ideFullscreen" : "ideEmbedded";
+    var message = { cmd: cmd };
+
+    window.parent.postMessage(message, "*");
     AppDispatcher.dispatch({
-      actionType: ActionTypes.IDE_TOGGLE_FULL_SCREEN
+      actionType: ActionTypes.IDE_TOGGLE_FULL_SCREEN,
+      fullscreen: fullscreen
     });
   },
 

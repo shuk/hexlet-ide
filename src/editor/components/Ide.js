@@ -24,20 +24,20 @@ var Ide = React.createClass({
   },
 
   toggleFullscreen: function() {
-    IdeActions.toggleFullscreen();
+    IdeActions.toggleFullscreen(this.state.fullscreen);
   },
 
   getIdeInnerClasses: function() {
     var cx = React.addons.classSet;
     var classes = cx({
-      "full-screen-ide": this.state.fullScreen,
-      "embedded-ide": !this.state.fullScreen
+      "full-screen-ide": this.state.fullscreen,
+      "embedded-ide": !this.state.fullscreen
     });
     return classes;
   },
 
-  getFullScreenButtonTxt: function() {
-    if (this.state.fullScreen) {
+  getFullscreenButtonTxt: function() {
+    if (this.state.fullscreen) {
       return "Embedded";
     } else {
       return "Fullscreen";
@@ -55,7 +55,7 @@ var Ide = React.createClass({
         <ContextMenu />
         <Modal />
         <button className="btn btn-xs full-screen-btn" onClick={this.toggleFullscreen}>
-          {this.getFullScreenButtonTxt()}
+          {this.getFullscreenButtonTxt()}
         </button>
         <div className="well well-sm max-height" onClick={this.handleGlobalClick}>
           <div className="max-height row">
