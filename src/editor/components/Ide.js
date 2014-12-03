@@ -23,6 +23,27 @@ var Ide = React.createClass({
     IdeActions.globalClick();
   },
 
+  toggleFullscreen: function() {
+    IdeActions.toggleFullscreen();
+  },
+
+  getIdeInnerClasses: function() {
+    var cx = React.addons.classSet;
+    var classes = cx({
+      "full-screen-ide": this.state.fullScreen,
+      "embedded-ide": !this.state.fullScreen
+    });
+    return classes;
+  },
+
+  getFullScreenButtonTxt: function() {
+    if (this.state.fullScreen) {
+      return "Embedded";
+    } else {
+      return "Fullscreen";
+    }
+  },
+
   render: function() {
     if (!this.state.loaded) {
       return <Loader />;
@@ -30,11 +51,14 @@ var Ide = React.createClass({
 
     // FIXME Перейти на Flex
     return (
-      <div className="ide-inner">
+      <div className={this.getIdeInnerClasses()}>
         <ContextMenu />
         <Modal />
+        <button className="btn btn-xs full-screen-btn" onClick={this.toggleFullscreen}>
+          {this.getFullScreenButtonTxt()}
+        </button>
         <div className="well well-sm max-height" onClick={this.handleGlobalClick}>
-          <div className="max-height vertical-ide-split">
+          <div className="max-height row">
             <div className="col-xs-3 nopadding max-height">
               <div className="row">
                 <div className="col-xs-10 file-tree-box">

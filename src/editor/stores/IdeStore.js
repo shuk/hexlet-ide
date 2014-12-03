@@ -22,4 +22,11 @@ AppDispatcher.registerHandler(ActionTypes.IDE_LOADED, function() {
   IdeStore.emitChange();
 });
 
+AppDispatcher.registerHandler(ActionTypes.IDE_TOGGLE_FULL_SCREEN, function() {
+  "use strict";
+
+  state.fullScreen = !state.fullScreen;
+  IdeStore.emitChange();
+});
+
 module.exports = IdeStore;
