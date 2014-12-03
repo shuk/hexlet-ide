@@ -23,8 +23,8 @@ var ActionsBox = React.createClass({
   getFullScreenButtonInnerClasses: function() {
     var cx = React.addons.classSet;
     var glyphiconType = IdeStore.getState().fullscreen ?
-      "glyphicon-resize-full" :
-      "glyphicon-resize-small";
+      "glyphicon-resize-small" :
+      "glyphicon-resize-full";
     var classes = {
       "glyphicon": true
     };
