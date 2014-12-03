@@ -10,17 +10,15 @@ var state = {
 
 var IdeStore = BaseStore.extend({
   getState: function() {
+    "use strict";
     return state;
   }
 });
 
 AppDispatcher.registerHandler(ActionTypes.IDE_LOADED, function() {
-  state.loaded = true;
-  IdeStore.emitChange();
-});
+  "use strict";
 
-AppDispatcher.registerHandler(ActionTypes.IDE_TOGGLE_FULL_SCREEN, function() {
-  state.fullScreen = !state.fullScreen;
+  state.loaded = true;
   IdeStore.emitChange();
 });
 
