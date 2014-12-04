@@ -24,7 +24,7 @@ html
           var data = event.data;
           var cmd = data.cmd;
 
-          if (cmd == "makeTest") {
+          if (cmd == "ideMakeTest") {
             widget.exec("make test").done(function(response) {
               var result = {
                 cmd: cmd,
