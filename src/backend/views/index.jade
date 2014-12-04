@@ -1,18 +1,16 @@
 html
   head
     title!= title
-    link(href='/bootstrap.css', rel='stylesheet')
     script(src="http://cdnjs.cloudflare.com/ajax/libs/es5-shim/4.0.3/es5-shim.js")
-    script(src="http://fb.me/react-with-addons-0.12.0.min.js")
     script(type='text/javascript' src="assets/main.js")
   body
     .container
-      #hexlet-ide
+      #hexlet-ide.hexlet-ide
 
     script.
         var widget = HexletIde.create(document.getElementById("hexlet-ide"), {
           rpc: {
-              url: window.location.href,
+              url: window.location.host,
               events: {
                 reconnect: console.log.bind(console, "reconnect"),
                 reconnect_error: console.log.bind(console, "reconnect_error"),
@@ -22,3 +20,17 @@ html
           cmd: "make test"
         });
 
+        window.addEventListener("message", function(event) {
+          var data = event.data;
+          var cmd = data.cmd;
+
+          if (cmd == "ideMakeTest") {
+            widget.exec("make test").done(function(response) {
+              var result = {
+                cmd: cmd,
+                response: response
+              };
+              event.source.postMessage(result, event.origin);
+            });
+          }
+        });

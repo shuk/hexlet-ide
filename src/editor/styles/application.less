@@ -1,6 +1,10 @@
-.full-screen {
-    height: 100vh;
-    width: 100vw;
+.hexlet-ide {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 3000;
 }
 
 .max-height {
@@ -13,18 +17,15 @@
 
 .CodeMirror {
     border: 1px solid #eee;
-    height: 90%;
+    height: 100%;
 }
+
 .CodeMirror-scroll {
     overflow-y: hidden;
     overflow-x: auto;
 }
 
 .icon-folder, .icon-file { margin-right: 0.75em; }
-
-.file-tree-box {
-    padding-right: 0px;
-}
 
 .file-tree-box > .row {
     display: table;
@@ -59,6 +60,7 @@
 .editors-box {
     height: 58%;
     & .nav {
+        position: absolute;
         a {
             & * {
                 cursor: pointer;
@@ -75,6 +77,10 @@
                 opacity: .4;
             }
         }
+    }
+
+    & .file-content {
+      padding-top: 26px;
     }
 }
 
@@ -125,14 +131,6 @@
 }
 
 .embedded-ide {
-    height: 820px;
+    height: 100%;
     z-index: 3000;
 }
-
-.full-screen-btn {
-    clear: both;
-    float: right;
-    z-index: 3001;
-    font-size: 11px;
-}
-
