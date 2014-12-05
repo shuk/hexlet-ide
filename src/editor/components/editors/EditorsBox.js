@@ -121,7 +121,8 @@ var EditorsBox = React.createClass({
       "": "text"
     };
 
-    var extension = _.last(fileName.split("."));
+    var fNameStruct = fileName.split(".");
+    var extension = fNameStruct.length > 1 ? _.last(fNameStruct) : "";
     var mode = modes[extension];
     if (!mode) {
       console.warn("Mode for file: ",  fileName, " is not defined");
