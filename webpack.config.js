@@ -29,7 +29,7 @@ module.exports = function() {
     devServer: {
       publicPath: "/assets/",
       headers: {
-        "Cache-Control": "max-age=315360000"
+        "Cache-Control": "max-age=31536000"
       }
     },
 

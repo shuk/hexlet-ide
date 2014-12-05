@@ -23,6 +23,7 @@ var s = function(options) {
   var routes = require("./routes/index");
   app.use("/", routes);
 
+  var staticCachingOptions = { maxage: "1y" };
   if (process.env.NODE_ENV === "develop" || process.env.NODE_ENV === "test") {
     require("express-debug")(app, {
       panels: ["locals", "request", "session", "template", "nav"]
@@ -35,8 +36,11 @@ var s = function(options) {
     var webpackDevMiddleware = require("webpack-dev-middleware");
     var middleware = webpackDevMiddleware(compiler, webpackConfig.devServer);
     app.use(middleware);
+
+    staticCachingOptions.maxage = "0";
   }
-  app.use(express.static(path.join(__dirname, "public")));
+
+  app.use(express.static(path.join(__dirname, "public"), staticCachingOptions));
 
   // catch 404 and forward to error handler
   app.use(function(req, res, next) {
