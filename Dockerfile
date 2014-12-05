@@ -5,3 +5,4 @@ RUN npm install -g bower \
 
 RUN bower install --allow-root
 RUN gulp bower-copy
+RUN gulp prepublish
