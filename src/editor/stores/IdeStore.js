@@ -5,7 +5,8 @@ var ActionTypes = require("editor/constants/IdeConstants").ActionTypes;
 
 var state = {
   loaded: false,
-  fullscreen: false
+  fullscreen: false,
+  connected: false
 };
 
 var IdeStore = BaseStore.extend({
@@ -27,6 +28,18 @@ AppDispatcher.registerHandler(ActionTypes.IDE_TOGGLE_FULL_SCREEN, function(paylo
 
   state.fullscreen = payload.fullscreen;
   IdeStore.emitChange();
+});
+
+AppDispatcher.registerHandler(ActionTypes.IDE_DISCONNECTED, function() {
+  "use strict";
+
+  state.connected = false;
+});
+
+AppDispatcher.registerHandler(ActionTypes.IDE_CONNECTED, function() {
+  "use strict";
+
+  state.connected = true;
 });
 
 module.exports = IdeStore;

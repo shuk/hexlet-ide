@@ -34,6 +34,22 @@ var IdeActions = {
     AppDispatcher.dispatch({
       actionType: ActionTypes.IDE_LOADED
     });
+  },
+
+  connect: function() {
+    "use strict";
+
+    AppDispatcher.dispatch({
+      actionType: ActionTypes.IDE_CONNECTED
+    });
+  },
+
+  disconnect: function() {
+    "use strict";
+
+    AppDispatcher.dispatch({
+      actionType: ActionTypes.IDE_DISCONNECTED
+    });
   }
 };
 

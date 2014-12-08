@@ -7,6 +7,8 @@ module.exports = {
     IDE_GLOBAL_CLICK: null,
     IDE_TOGGLE_FULL_SCREEN: null,
     IDE_LOADED: null,
+    IDE_CONNECTED: null,
+    IDE_DISCONNECTED: null,
 
     TREE_LOAD: null,
     TREE_RELOAD: null,

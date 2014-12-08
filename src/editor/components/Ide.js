@@ -8,6 +8,7 @@ var Modal = require("editor/components/common/Modal");
 var Loader = require("editor/components/common/Loader");
 var RunnerBox = require("editor/components/RunnerBox");
 var ActionsBox = require("editor/components/ActionsBox");
+var StatusBox = require("editor/components/StatusBox");
 
 var IdeActions = require("editor/actions/IdeActions");
 var WatchStoreMixin = require("editor/mixins/WatchStore");
@@ -38,6 +39,7 @@ var Ide = React.createClass({
               <div className="row">
                 <div className="col-xs-2">
                   <ActionsBox />
+                  <StatusBox />
                 </div>
                 <div className="col-xs-10">
                   <div className="row">

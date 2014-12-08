@@ -39,6 +39,7 @@ HexletIdeWidget.prototype.bindEvents = function() {
     TerminalsActions.createDefaultTerminal(Config.terminal);
 
     IdeActions.loadCompleted();
+    IdeActions.connect();
   });
 
   //FIXME: это хак, пока не сделано дуплексное RPC между клиентом и сервером
@@ -47,7 +48,12 @@ HexletIdeWidget.prototype.bindEvents = function() {
   });
 
   this.rpc.socket.on("reconnect", function() {
+    IdeActions.connect();
     TerminalsActions.reconnectTerminals();
+  });
+
+  this.rpc.socket.on("disconnect", function() {
+    IdeActions.disconnect();
   });
 }
 
