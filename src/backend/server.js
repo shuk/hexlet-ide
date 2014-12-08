@@ -18,6 +18,9 @@ var s = function(options) {
   server.listen(options.port);
 
   var io = require("socket.io")(server);
+  // TODO it might make sense to do rpc calls timeouts on the client side
+  io.set("heartbeat timeout", 5000);
+  io.set("heartbeat interval", 3000);
   require("./rpc")(io, options);
 
   var routes = require("./routes/index");

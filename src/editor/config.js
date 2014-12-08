@@ -12,8 +12,7 @@ var defaultConfig = {
     url: "",
     options: {
       reconnectionDelay: 10000,
-      reconnectionDelayMax: 10000,
-      reconnectionAttempts: 2
+      reconnectionDelayMax: 10000
     },
     events: {
       connect: _.noop,
