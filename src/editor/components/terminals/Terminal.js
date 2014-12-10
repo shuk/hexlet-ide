@@ -32,8 +32,19 @@ var Terminal = React.createClass({
       });
     });
 
+    terminal.terminal.on("open", function() {
+      this.terminalResize();
+    }.bind(this));
+
+    terminal.terminal.on("resize", function(data) {
+      TerminalsActions.resize({
+        id: terminal.id,
+        cols: data.cols,
+        rows: data.rows
+      });
+    });
+
     terminal.terminal.open(this.refs.terminal.getDOMNode());
-    this.terminalResize();
 
     terminalFrame.onresize = function(){
       this.terminalResize();

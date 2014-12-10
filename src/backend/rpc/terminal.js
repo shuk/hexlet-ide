@@ -77,6 +77,15 @@ module.exports = function(options) { "use strict";
 
       var terminal = createTerminal(this.clientSocket, options, params);
       console.log("Created default shell with pty master/slave pair (master: %d, pid: %d)", terminal.fd, terminal.pid);
+    },
+
+    resize: function(msg) {
+      var id = msg.id;
+      var terminal = terminals[id];
+
+      if (terminal) {
+        terminal.resize(msg.cols, msg.rows);
+      }
     }
   };
 };
