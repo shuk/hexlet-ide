@@ -83,6 +83,10 @@ var TerminalsActions = {
         id: terminal.id
       });
     });
+  },
+
+  resize: function(msg) {
+    rpc.terminal.resize(msg);
   }
 };
 
