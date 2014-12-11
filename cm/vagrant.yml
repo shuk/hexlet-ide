@@ -5,7 +5,18 @@
     - name: add nodejs repo
       apt_repository: repo='ppa:chris-lea/node.js' state=present
 
-    - name: install nodejs
-      apt: pkg=nodejs state=latest update_cache=yes
+    - name: update apt cache
+      apt: update_cache=yes
 
-    - npm: name=gulp state=latest global=yes
+    - name: install dependencies
+      apt: pkg={{ item }} state=latest
+      with_items:
+      - nodejs
+      - phantomjs
+      - g++
+      - build-essential
+
+    - npm: name={{ item }} state=latest global=yes
+      with_items:
+      - gulp
+      - bower
