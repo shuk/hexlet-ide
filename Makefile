@@ -1,6 +1,6 @@
 install:
 	npm install
-	bower install # ?
+	./node_modules/bower/bin/bower install # ?
 
 develop:
 	gulp bower-copy

@@ -3,7 +3,7 @@
     "repository": "https://github.com/Hexlet/hexlet-ide",
     "logo": "https://avatars0.githubusercontent.com/u/2685047",
     "scripts": {
-        "postdeploy": "npm install && ./node_modules/bower/bin/bower install"
+        "postdeploy": "make install"
     },
     "keywords": ["hexlet", "ide"]
 }
