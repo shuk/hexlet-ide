@@ -15,6 +15,7 @@
     "hexlet-ide": "./bin/hexlet-ide.js"
   },
   "dependencies": {
+    "bower": "*",
     "commander": "*",
     "express": "*",
     "express-debug": "*",
