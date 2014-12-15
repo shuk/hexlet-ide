@@ -51,7 +51,7 @@ var Ide = React.createClass({
                 </div>
               </div>
             </div>
-            <div className="col-xs-9 max-height nopadding">
+            <div className="col-xs-9 max-height nopadding nooverflow">
               <EditorsBox />
               <TerminalsBox />
             </div>
