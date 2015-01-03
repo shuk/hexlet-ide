@@ -4,7 +4,6 @@ var fs = require("fs");
 var path = require("path");
 var express = require("express");
 var app = express();
-var server = require("http").createServer(app);
 var morgan = require("morgan");
 
 var s = function(options) { "use strict";
@@ -15,19 +14,20 @@ var s = function(options) { "use strict";
   app.set("views", path.join(__dirname, "views"));
   app.set("view engine", "jade");
 
-  console.log("info: starting on port '" + options.port + "'");
-  server.listen(options.port);
+  var server;
 
-  if (options.httpsPath !== undefined) {
-    console.log("info: enabling https");
-    var https = require("https");
+  if (options.httpsPath === undefined) {
+    console.log("info: starting on port '" + options.port + "'");
+    server = require("http").createServer(app);
+    server.listen(options.port);
+  } else {
     var privateKey = fs.readFileSync(options.httpsPath + ".key", "utf8");
     var certificate = fs.readFileSync(options.httpsPath + ".crt", "utf8");
-
     var credentials = {key: privateKey, cert: certificate, passphrase: options.httpsPassphrase};
-    var httpsServer = https.createServer(credentials, app);
+
     console.log("info: starting https on port '" + options.httpsPort + "'");
-    httpsServer.listen(options.httpsPort);
+    server = require("https").createServer(credentials, app);
+    server.listen(options.httpsPort);
   }
 
   var io = require("socket.io")(server);
