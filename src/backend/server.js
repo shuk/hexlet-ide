@@ -1,12 +1,13 @@
-/* global require process module __dirname */
+/* global require console process module __dirname */
 
+var fs = require("fs");
 var path = require("path");
 var express = require("express");
 var app = express();
 var server = require("http").createServer(app);
 var morgan = require("morgan");
 
-var s = function(options) {
+var s = function(options) { "use strict";
   app.use(morgan("combined"));
 
   app.engine("jade", require("jade").__express);
@@ -16,6 +17,18 @@ var s = function(options) {
 
   console.log("info: starting on port '" + options.port + "'");
   server.listen(options.port);
+
+  if (options.httpsPath !== undefined) {
+    console.log("info: enabling https");
+    var https = require("https");
+    var privateKey = fs.readFileSync(options.httpsPath + ".key", "utf8");
+    var certificate = fs.readFileSync(options.httpsPath + ".crt", "utf8");
+
+    var credentials = {key: privateKey, cert: certificate, passphrase: options.httpsPassphrase};
+    var httpsServer = https.createServer(credentials, app);
+    console.log("info: starting https on port '" + options.httpsPort + "'");
+    httpsServer.listen(options.httpsPort);
+  }
 
   var io = require("socket.io")(server);
   // TODO it might make sense to do rpc calls timeouts on the client side

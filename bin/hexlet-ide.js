@@ -8,8 +8,11 @@ var path = require("path");
 var program = require("commander");
 
 program
-.option("-p, --port [num]", "Port", process.env.PORT || 8080)
+.option("-p, --port [num]", "Port", process.env.HEXLET_IDE_PORT || 8080)
 .option("-r, --root-dir [path]", "Root directory", process.cwd())
+.option("-p, --https-port [num]", "Port", process.env.HEXLET_IDE_HTTPS_PORT || 4343)
+.option("-s, --https-path [path]", "Path to crt and key")
+.option("-s, --https-passphrase [passphrase]", "Passphrase", process.env.HEXLET_IDE_HTTPS_PASSPHRASE || null)
 .parse(process.argv);
 
 program.rootDir = path.resolve(process.env.TEST_DIR || program.rootDir);
