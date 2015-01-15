@@ -35,7 +35,7 @@ gulp.task("prepublish", function() {
 
 gulp.task("develop", function() {
   process.env.NODE_ENV = "develop";
-  process.env.PORT = 9000;
+  process.env.HEXLET_IDE_PORT = 9000;
   process.env.TEST_DIR = "test/fixtures/project";
   nodemon(nodemonConfig);
 });
