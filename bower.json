@@ -4,7 +4,7 @@
     "main": "src/backend/public/assets/main.js",
     "dependencies": {
         "bootstrap": "*",
-        "fuelux": "*",
+        "fuelux": "3.4.0",
         "xterm.js": "https://github.com/sourcelair/xterm.js.git#0.27"
     },
     "overrides": {
